@@ -11,7 +11,9 @@ export default function Home() {
           <hr />
 
           <h2 className='text-xl font-bold'>Card element</h2>
-          <CardElement />
+          <CardElement styles={{
+            color: 'white',
+          }} />
         </div>
       </main>
     </OpenPayElementsProvider>
