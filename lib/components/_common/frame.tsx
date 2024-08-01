@@ -1,5 +1,5 @@
 import { FC, useEffect, useMemo, useRef } from 'react';
-import { BASE_URL } from '../../utils/constants';
+import { FRAME_BASE_URL } from '../../utils/constants';
 import { convertStylesToQueryString, type ElementStyle } from '../../utils/style';
 import { ElementEventSchema, type ElementEvent } from '../../utils/event';
 
@@ -31,7 +31,7 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
     if (!iframeRef.current) return;
 
     window.addEventListener('message', (event: MessageEvent) => {
-      if (event.origin !== BASE_URL || event.source !== iframeRef.current?.contentWindow) {
+      if (event.origin !== FRAME_BASE_URL || event.source !== iframeRef.current?.contentWindow) {
         return;
       }
 
@@ -40,11 +40,12 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
         onEvent(data);
       }
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [iframeRef]);
 
   return (
     <iframe
-      src={`${BASE_URL}/elements/${subPath}?${elementStyle}`}
+      src={`${FRAME_BASE_URL}/elements/${subPath}?${elementStyle}`}
       style={FRAME_STYLE}
       ref={iframeRef}
       width="100%"
