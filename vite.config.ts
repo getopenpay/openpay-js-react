@@ -6,7 +6,7 @@ import dts from 'vite-plugin-dts'
 // https://vitejs.dev/config/
 export default defineConfig({
   esbuild: {
-    drop: ['console', 'debugger'],
+    drop: process.env.NODE_ENV === 'development' ? [] : ['console', 'debugger'],
   },
   build: {
     copyPublicDir: false,
