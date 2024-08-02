@@ -1,4 +1,4 @@
-import { FC, useCallback, useEffect, useMemo, useRef } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FRAME_BASE_URL } from '../../utils/constants';
 import { convertStylesToQueryString, type ElementStyle } from '../../utils/style';
 import { useOpenPayElements } from '../../hooks/use-openpay-elements';
@@ -15,6 +15,7 @@ const FRAME_STYLE: React.CSSProperties = {
 const ElementFrame: FC<ElementFrameProps> = (props) => {
   const { subPath, styles } = props;
   const { contextId, dispatchEvent } = useOpenPayElements();
+  const [referer, setReferer] = useState<string>('');
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const elementStyle = useMemo(() => {
@@ -25,12 +26,12 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
 
-    params.append('referer', window.location.href);
+    params.append('referer', referer);
     params.append('styles', elementStyle);
     params.append('contextId', contextId);
 
     return params.toString();
-  }, [elementStyle, contextId]);
+  }, [elementStyle, contextId, referer]);
 
   const onMessage = useCallback((event: MessageEvent) => {
     if (event.origin !== FRAME_BASE_URL || event.source !== iframeRef.current?.contentWindow) {
@@ -43,6 +44,7 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
   useEffect(() => {
     if (!iframeRef.current || !contextId) return;
     window.addEventListener('message', onMessage);
+    setReferer(window.location.href);
 
     // Ensure cleanup
     return () => window.removeEventListener('message', onMessage);
