@@ -1,25 +1,20 @@
-import { FC, useEffect, useMemo, useRef } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef } from 'react';
 import { FRAME_BASE_URL } from '../../utils/constants';
 import { convertStylesToQueryString, type ElementStyle } from '../../utils/style';
-import { ElementEventSchema, type ElementEvent } from '../../utils/event';
+import { useOpenPayElements } from '../../hooks/use-openpay-elements';
 
 type ElementFrameProps = {
   subPath: string;
   styles?: ElementStyle;
-  onEvent?: (event: ElementEvent) => void;
 }
 
 const FRAME_STYLE: React.CSSProperties = {
   border: 'none',
 };
 
-const parseEventPayload = (event: MessageEvent): ElementEvent => {
-  const data = ElementEventSchema.parse(event.data);
-  return data;
-};
-
 const ElementFrame: FC<ElementFrameProps> = (props) => {
-  const { subPath, styles, onEvent } = props;
+  const { subPath, styles } = props;
+  const { contextId, dispatchEvent } = useOpenPayElements();
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const elementStyle = useMemo(() => {
@@ -27,29 +22,37 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
     return convertStylesToQueryString(styles);
   }, [styles]);
 
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams();
+
+    params.append('referer', window.location.href);
+    params.append('styles', elementStyle);
+    params.append('contextId', contextId);
+
+    return params.toString();
+  }, [elementStyle, contextId]);
+
+  const onMessage = useCallback((event: MessageEvent) => {
+    if (event.origin !== FRAME_BASE_URL || event.source !== iframeRef.current?.contentWindow) {
+      return;
+    }
+
+    dispatchEvent(event);
+  }, [dispatchEvent]);
+
   useEffect(() => {
-    if (!iframeRef.current) return;
+    if (!iframeRef.current || !contextId) return;
+    window.addEventListener('message', onMessage);
 
-    window.addEventListener('message', (event: MessageEvent) => {
-      if (event.origin !== FRAME_BASE_URL || event.source !== iframeRef.current?.contentWindow) {
-        return;
-      }
-
-      const data = parseEventPayload(event);
-      if (onEvent !== undefined) {
-        onEvent(data);
-      }
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [iframeRef]);
+    // Ensure cleanup
+    return () => window.removeEventListener('message', onMessage);
+  }, [iframeRef, contextId, onMessage]);
 
   return (
     <iframe
-      src={`${FRAME_BASE_URL}/elements/${subPath}?${elementStyle}`}
+      src={`${FRAME_BASE_URL}/app/elements/${subPath}?${queryString}`}
       style={FRAME_STYLE}
       ref={iframeRef}
-      width="100%"
-      height="100%"
     />
   );
 };

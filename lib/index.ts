@@ -1,10 +1,14 @@
 import useOpenPayElements from './hooks/use-openpay-elements';
-import OpenPayElementsProvider from './hooks/provider';
+import ElementsForm from './components/form';
 import CardElement from './components/card';
+import CardExpiryElement from './components/card-expiry';
+import CardNumberElement from './components/card-number';
 
 
 export {
   useOpenPayElements,
-  OpenPayElementsProvider,
-  CardElement
+  ElementsForm,
+  CardElement,
+  CardExpiryElement,
+  CardNumberElement,
 };
