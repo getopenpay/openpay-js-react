@@ -18,7 +18,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && vite build",
-    "build:dev": "tsc -p tsconfig.build.json && vite build --mode development",
+    "build:dev": "tsc -p tsconfig.build.json && vite build --mode development --watch",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {

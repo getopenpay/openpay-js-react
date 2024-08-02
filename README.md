@@ -1,30 +1,14 @@
-# React + TypeScript + Vite
+# openpay-js-react
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React components for OpenPay.JS
 
-Currently, two official plugins are available:
+## Development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. Install dependencies using `make install`
+2. Run `make dev` to start Vite in watch mode
+3. In another terminal, `cd` into the `example` directory and run `make dev` to start the example app
+4. Open [http://localhost:3032](http://localhost:3032) to see the example app
 
-## Expanding the ESLint configuration
+When you make changes to the library, Vite will automatically recompile it and NextJS will automatically reload the page.
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json', './tsconfig.app.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
-```
-
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+If NextJS doesn't reload, you can try manually refreshing the page, or reinstalling the library using `npm install ../` in the `example` directory.
