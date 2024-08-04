@@ -8,13 +8,9 @@ type ElementFrameProps = {
   styles?: ElementStyle;
 }
 
-const FRAME_STYLE: React.CSSProperties = {
-  border: 'none',
-};
-
 const ElementFrame: FC<ElementFrameProps> = (props) => {
   const { subPath, styles } = props;
-  const { contextId, dispatchEvent } = useOpenPayElements();
+  const { contextId, dispatchEvent, formHeight } = useOpenPayElements();
   const [referer, setReferer] = useState<string>('');
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
@@ -22,6 +18,15 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
     if (!styles) return '';
     return convertStylesToQueryString(styles);
   }, [styles]);
+
+  const frameStyle = useMemo(() => {
+    return {
+      border: 'none',
+      width: '100%',
+      height: formHeight,
+      overflow: 'hidden',
+    };
+  }, [formHeight]);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -34,17 +39,19 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
   }, [elementStyle, contextId, referer]);
 
   const onMessage = useCallback((event: MessageEvent) => {
-    if (event.origin !== FRAME_BASE_URL || event.source !== iframeRef.current?.contentWindow) {
-      return;
-    }
+    if (!iframeRef.current || event.origin == window.location.origin) return;
 
-    dispatchEvent(event);
+    if (event.origin !== FRAME_BASE_URL) {
+      console.warn('[form] Ignoring message from unexpected origin:', event, '(expected:', FRAME_BASE_URL, ')');
+    } else {
+      dispatchEvent(event, iframeRef.current);
+    }
   }, [dispatchEvent]);
 
   useEffect(() => {
     if (!iframeRef.current || !contextId) return;
     window.addEventListener('message', onMessage);
-    setReferer(window.location.href);
+    setReferer(window.location.origin);
 
     // Ensure cleanup
     return () => window.removeEventListener('message', onMessage);
@@ -52,8 +59,8 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
 
   return (
     <iframe
-      src={`${FRAME_BASE_URL}/app/elements/${subPath}?${queryString}`}
-      style={FRAME_STYLE}
+      src={`${FRAME_BASE_URL}/app/v1/${subPath}-element?${queryString}`}
+      style={frameStyle}
       ref={iframeRef}
     />
   );

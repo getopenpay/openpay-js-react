@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
+import { FRAME_BASE_URL } from './constants';
 
 /**
  * Start of common event stuff
@@ -25,10 +27,6 @@ export const ElementEventSchema = z.object({
 });
 export type ElementEvent = z.infer<typeof ElementEventSchema>;
 
-/**
- * End of common event stuff
- */
-
 export const parseEventPayload = (eventData: object): ElementEvent => {
   try {
     return ElementEventSchema.parse(eventData);
@@ -36,4 +34,33 @@ export const parseEventPayload = (eventData: object): ElementEvent => {
     console.error('Error parsing event payload:', eventData, error);
     throw error;
   }
+};
+
+/**
+ * End of common event stuff
+ */
+
+export const emitEvent = (
+  frame: HTMLIFrameElement,
+  formId: string,
+  elementId: string,
+  type: ElementEventType,
+  payload: Record<string, string>
+) => {
+  const target = frame.contentWindow;
+  if (!target) {
+    console.error('[form] Cannot emit event, no contentWindow found:', frame);
+    return;
+  }
+
+  const event: ElementEvent = {
+    type,
+    formId,
+    elementId,
+    payload,
+    nonce: uuidv4(),
+  };
+
+  console.log(`[form] Emitting event ${type} from parent form ${formId} to child element ${elementId}:`, event);
+  target.postMessage(JSON.stringify(event), FRAME_BASE_URL);
 };
