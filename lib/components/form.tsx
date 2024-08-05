@@ -1,35 +1,49 @@
 import { FC, PropsWithChildren, useCallback, useEffect, useRef, useState } from 'react';
 import { ElementsContext, type ElementsContextValue } from '../hooks/context';
-import { ElementEventType, parseEventPayload } from '../utils/event';
+import { emitEvent, ElementEventType, parseEventPayload } from '../utils/event';
 
 interface ElementsFormProps extends PropsWithChildren {
   className?: string;
   onFocus?: (elementId: string) => void;
   onBlur?: (elementId: string) => void;
   onChange?: (elementId: string) => void;
-  onValidationError?: (message: string | number) => void;
+  onValidationError?: (message: string) => void;
 }
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
   const { children, className, onFocus, onBlur, onChange, onValidationError } = props;
   const [contextId, setContextId] = useState<string>('');
   const [nonces, setNonces] = useState<string[]>([]);
-  const [width, setWidth] = useState<string>('1px');
-  const [height, setHeight] = useState<string>('1px');
+  const [targets, setTargets] = useState<Record<string, HTMLIFrameElement>>({});
+  const [formHeight, setFormHeight] = useState<string>('1px');
   const formRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    setContextId(`op-elements-${window.crypto.randomUUID()}`);
-  }, []);
+  useEffect(() => setContextId(`op-elements-${window.crypto.randomUUID()}`), []);
 
-  const resizeForm = useCallback((width?: string, height?: string) => {
+  useEffect(() => {
     if (!formRef.current) return;
 
-    setWidth(width ? `${width}px` : 'auto');
-    setHeight(height ? `${height}px` : 'auto');
-  }, [formRef]);
+    const resizeObserver = new ResizeObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.target) return;
+        const { width } = entry.contentRect;
 
-  const dispatchEvent = useCallback((event: MessageEvent) => {
+        // Resize all target iframes
+        Object.values(targets).forEach((target) => {
+          if (!target) return;
+          emitEvent(target, contextId, 'root', ElementEventType.RESIZE, { width: width.toString() });
+        });
+      });
+    });
+
+    resizeObserver.observe(formRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [formRef, contextId, targets]);
+
+  const dispatchEvent = useCallback((event: MessageEvent, frame: HTMLIFrameElement) => {
     const eventData = parseEventPayload(JSON.parse(event.data));
 
     if (eventData.formId !== contextId) {
@@ -53,21 +67,27 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       onBlur(eventData.elementId);
     } else if (eventData.type === ElementEventType.CHANGE && !!onChange) {
       onChange(eventData.elementId);
-    } else if (eventData.type === ElementEventType.RESIZE) {
-      console.log('[form] Resizing form:', eventData.payload);
-      resizeForm(eventData.payload['width'], eventData.payload['height']);
+    } else if (eventData.type === ElementEventType.LOADED) {
+      const elementId = eventData.elementId;
+      if (!elementId) return;
+
+      setTargets((prevTargets) => ({ ...prevTargets, [elementId]: frame }));
+
+      const height = eventData.payload.height ? `${eventData.payload.height}px` : '100%';
+      setFormHeight(height);
     }
-  }, [contextId, nonces, onValidationError, onFocus, onBlur, onChange, resizeForm]);
+  }, [contextId, nonces, onValidationError, onFocus, onBlur, onChange]);
 
   const value: ElementsContextValue = {
     contextId,
     createToken: () => {},
     dispatchEvent,
+    formHeight,
   };
 
   return (
     <ElementsContext.Provider value={value}>
-      <div className={className} style={{ width, height }} ref={formRef}>
+      <div className={className} ref={formRef}>
         {children}
       </div>
     </ElementsContext.Provider>
