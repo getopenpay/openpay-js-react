@@ -22,6 +22,13 @@ test.describe('Card CVC element', () => {
     await expect(element).toBeFocused();
   });
 
+  test('should be able to fill card cvc input', async ({ page }) => {
+    const iframe = page.frameLocator(IFRAME_SELECTOR);
+    const element = iframe.locator(INPUT_SELECTOR).first();
+    await element.fill('123');
+    await expect(element).toHaveValue('123');
+  });
+
   test('should be able to input only valid number', async ({ page }) => {
     const iframe = page.frameLocator(IFRAME_SELECTOR);
     const clientFrameErrorMessage = page.locator(ERROR_MESSAGE_SELECTOR).first();

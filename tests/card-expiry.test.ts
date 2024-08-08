@@ -28,6 +28,13 @@ test.describe('Card expiry element', () => {
     await expect(element).toBeFocused();
   });
 
+  test('should be able to fill card expiry', async ({ page }) => {
+    const iframe = page.frameLocator(IFRAME_SELECTOR);
+    const element = iframe.locator(INPUT_SELECTOR).first();
+    await element.fill('042027');
+    await expect(element).toHaveValue('04/2027');
+  });
+
   invalidExpiryDates.forEach(async (expiryDate) => {
     test(`should raise validation error when card expiry is invalid: [input:${expiryDate}]`, async ({ page }) => {
       const iframe = page.frameLocator(IFRAME_SELECTOR);

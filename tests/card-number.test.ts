@@ -28,6 +28,13 @@ test.describe('Card number element', () => {
     await expect(element).toBeFocused();
   });
 
+  test('should be able to fill card number', async ({ page }) => {
+    const iframe = page.frameLocator(IFRAME_SELECTOR);
+    const element = iframe.locator(INPUT_SELECTOR).first();
+    await element.fill('4242424242424242');
+    await expect(element).toHaveValue('4242 4242 4242 4242');
+  });
+
   invalidCardNumbers.forEach(async (cardNumber) => {
     test(`should raise validation error when card expiry is invalid: [input:${cardNumber}]`, async ({ page }) => {
       const iframe = page.frameLocator(IFRAME_SELECTOR);
