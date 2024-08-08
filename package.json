@@ -20,7 +20,7 @@
     "build": "tsc -p tsconfig.build.json && vite build",
     "build:dev": "tsc -p tsconfig.build.json && NODE_ENV=development vite build --mode development --watch",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "test": "playwright test"
+    "test": "NODE_ENV=development npm run build -- --mode development && playwright test"
   },
   "dependencies": {
     "react": "^18.3.1",
