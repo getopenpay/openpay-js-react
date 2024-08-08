@@ -1,13 +1,6 @@
-import {
-  FC,
-  PropsWithChildren,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { ElementsContext, type ElementsContextValue } from "../hooks/context";
-import { emitEvent, ElementEventType, parseEventPayload } from "../utils/event";
+import { FC, PropsWithChildren, useCallback, useEffect, useRef, useState } from 'react';
+import { ElementsContext, type ElementsContextValue } from '../hooks/context';
+import { emitEvent, ElementEventType, parseEventPayload } from '../utils/event';
 
 interface ElementsFormProps extends PropsWithChildren {
   className?: string;
@@ -18,18 +11,14 @@ interface ElementsFormProps extends PropsWithChildren {
 }
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
-  const { children, className, onFocus, onBlur, onChange, onValidationError } =
-    props;
-  const [contextId, setContextId] = useState<string>("");
+  const { children, className, onFocus, onBlur, onChange, onValidationError } = props;
+  const [contextId, setContextId] = useState<string>('');
   const [nonces, setNonces] = useState<string[]>([]);
   const [targets, setTargets] = useState<Record<string, HTMLIFrameElement>>({});
-  const [formHeight, setFormHeight] = useState<string>("1px");
+  const [formHeight, setFormHeight] = useState<string>('1px');
   const formRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(
-    () => setContextId(`op-elements-${window.crypto.randomUUID()}`),
-    []
-  );
+  useEffect(() => setContextId(`op-elements-${window.crypto.randomUUID()}`), []);
 
   useEffect(() => {
     if (!formRef.current) return;
@@ -42,9 +31,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         // Resize all target iframes
         Object.values(targets).forEach((target) => {
           if (!target) return;
-          emitEvent(target, contextId, "root", ElementEventType.RESIZE, {
-            width: width.toString(),
-          });
+          emitEvent(target, contextId, 'root', ElementEventType.RESIZE, { width: width.toString() });
         });
       });
     });
@@ -61,28 +48,20 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       const eventData = parseEventPayload(JSON.parse(event.data));
 
       if (eventData.formId !== contextId) {
-        console.warn(
-          "[form] Ignoring event for different form. Expected:",
-          contextId,
-          "Got:",
-          eventData.formId
-        );
+        console.warn('[form] Ignoring event for different form. Expected:', contextId, 'Got:', eventData.formId);
         return;
       }
 
       if (eventData.nonce in nonces) {
-        console.warn("[form] Ignoring duplicate event:", eventData);
+        console.warn('[form] Ignoring duplicate event:', eventData);
         return;
       }
 
       setNonces((prevNonces) => [...prevNonces, eventData.nonce]);
-      console.log("[form] Received event:", eventData);
+      console.log('[form] Received event:', eventData);
 
-      if (
-        eventData.type === ElementEventType.VALIDATION_ERROR &&
-        !!onValidationError
-      ) {
-        onValidationError(eventData.payload["message"], eventData.elementId);
+      if (eventData.type === ElementEventType.VALIDATION_ERROR && !!onValidationError) {
+        onValidationError(eventData.payload['message'], eventData.elementId);
       } else if (eventData.type === ElementEventType.FOCUS && !!onFocus) {
         onFocus(eventData.elementId);
       } else if (eventData.type === ElementEventType.BLUR && !!onBlur) {
@@ -95,9 +74,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
         setTargets((prevTargets) => ({ ...prevTargets, [elementId]: frame }));
 
-        const height = eventData.payload.height
-          ? `${eventData.payload.height}px`
-          : "100%";
+        const height = eventData.payload.height ? `${eventData.payload.height}px` : '100%';
         setFormHeight(height);
       }
     },
