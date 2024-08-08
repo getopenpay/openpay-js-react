@@ -4,11 +4,14 @@
 
 body {
   @apply bg-emerald-50 text-gray-900;
-  font-family: 'Inter', sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   body {
     @apply bg-emerald-950 text-gray-100;
   }
+}
+
+h1, h2, h3 {
+  @apply font-bold;
 }
