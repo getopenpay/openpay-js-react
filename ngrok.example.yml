@@ -1,0 +1,6 @@
+version: "2"
+authtoken: <YOUR_AUTH_TOKEN> 
+tunnels:
+  openpay-client:
+    addr: 3032 
+    proto: http
