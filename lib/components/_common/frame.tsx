@@ -50,6 +50,7 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
 
   useEffect(() => {
     if (!iframeRef.current || !contextId) return;
+
     window.addEventListener('message', onMessage);
     setReferer(window.location.origin);
 

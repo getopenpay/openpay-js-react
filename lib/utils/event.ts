@@ -15,7 +15,9 @@ export enum ElementEventType {
   BLUR = `${EVENT_PREFIX}-blur`,
   FOCUS = `${EVENT_PREFIX}-focus`,
   CHANGE = `${EVENT_PREFIX}-change`,
-  RESIZE = `${EVENT_PREFIX}-resize`,
+  SUBMIT = `${EVENT_PREFIX}-submit`,
+  SUBMIT_ERROR = `${EVENT_PREFIX}-submit-error`,
+  SUBMIT_SUCCESS = `${EVENT_PREFIX}-submit-success`,
 }
 
 export const ElementEventSchema = z.object({
