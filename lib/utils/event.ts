@@ -1,33 +1,6 @@
-import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { FRAME_BASE_URL } from './constants';
-
-/**
- * Start of common event stuff
- * Don't forget to update in app-cde:frontend/utils/elements/event.ts also!
- */
-
-const EVENT_PREFIX = 'op-elements';
-
-export enum ElementEventType {
-  LOADED = `${EVENT_PREFIX}-loaded`,
-  VALIDATION_ERROR = `${EVENT_PREFIX}-validation-error`,
-  BLUR = `${EVENT_PREFIX}-blur`,
-  FOCUS = `${EVENT_PREFIX}-focus`,
-  CHANGE = `${EVENT_PREFIX}-change`,
-  SUBMIT = `${EVENT_PREFIX}-submit`,
-  SUBMIT_ERROR = `${EVENT_PREFIX}-submit-error`,
-  SUBMIT_SUCCESS = `${EVENT_PREFIX}-submit-success`,
-}
-
-export const ElementEventSchema = z.object({
-  type: z.nativeEnum(ElementEventType),
-  payload: z.object({}).catchall(z.string()),
-  nonce: z.string(),
-  formId: z.string(),
-  elementId: z.string(),
-});
-export type ElementEvent = z.infer<typeof ElementEventSchema>;
+import { type ElementEvent, ElementEventType, ElementEventSchema, SubmitDataSchema } from './models';
 
 export const parseEventPayload = (eventData: object): ElementEvent => {
   try {
@@ -38,9 +11,16 @@ export const parseEventPayload = (eventData: object): ElementEvent => {
   }
 };
 
-/**
- * End of common event stuff
- */
+export const submitForm = (
+  frame: HTMLIFrameElement,
+  formId: string,
+  data: Record<string, string>
+) => {
+  const payload = SubmitDataSchema.safeParse(data);
+  if (!payload.success) throw new Error('Invalid submit data: ' + JSON.stringify(payload.error));
+
+  emitEvent(frame, formId, 'root', ElementEventType.SUBMIT, payload.data);
+};
 
 export const emitEvent = (
   frame: HTMLIFrameElement,

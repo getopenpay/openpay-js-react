@@ -1,6 +1,7 @@
 'use client';
 import { FC, useState } from 'react';
 import { ElementsForm, CardCvcElement, CardElement, CardNumberElement, CardExpiryElement } from '@getopenpay/openpay-js-react';
+import { v4 as uuidv4 } from 'uuid';
 import FormWrapper from '../components/form-wrapper';
 import InputField from '../components/input-field';
 import PayButton from '../components/pay-button';
@@ -8,6 +9,9 @@ import BillingDetails from '@/components/billing-details';
 
 
 const ElementsExample: FC = () => {
+  const token1 = uuidv4();
+  const token2 = uuidv4();
+
   const [error1, setError1] = useState<string>('');
   const [error2, setError2] = useState<string>('');
 
@@ -20,6 +24,7 @@ const ElementsExample: FC = () => {
 
         <h2 className="box-border text-xl font-bold">All card elements in one frame</h2>
         <ElementsForm
+          checkoutSecureToken={token1}
           onValidationError={(message) => setError1(message)}
           onChange={() => setError1('')}
         >
@@ -36,6 +41,7 @@ const ElementsExample: FC = () => {
 
         <h2 className="box-border text-xl font-bold mt-4">Card elements in separate frames</h2>
         <ElementsForm
+          checkoutSecureToken={token2}
           onValidationError={(message) => setError2(message)}
           onChange={() => setError2('')}
         >

@@ -1,6 +1,7 @@
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { ElementsContext, type ElementsContextValue } from '../hooks/context';
-import { emitEvent, ElementEventType, parseEventPayload } from '../utils/event';
+import { parseEventPayload, submitForm } from '../utils/event';
+import { ElementEventType } from '../utils/models';
 
 interface ElementsFormChildrenProps {
   submit: () => void;
@@ -8,6 +9,7 @@ interface ElementsFormChildrenProps {
 
 interface ElementsFormProps {
   className?: string;
+  checkoutSecureToken: string;
   children: (props: ElementsFormChildrenProps) => JSX.Element;
   onFocus?: (elementId: string) => void;
   onBlur?: (elementId: string) => void;
@@ -18,7 +20,18 @@ interface ElementsFormProps {
 }
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
-  const { children, className, onFocus, onBlur, onChange, onValidationError, onSubmitSuccess, onSubmitError } = props;
+  const {
+    children,
+    checkoutSecureToken,
+    className,
+    onFocus,
+    onBlur,
+    onChange,
+    onValidationError,
+    onSubmitSuccess,
+    onSubmitError
+  } = props;
+
   const [contextId, setContextId] = useState<string>('');
   const [nonces, setNonces] = useState<string[]>([]);
   const [targets, setTargets] = useState<Record<string, HTMLIFrameElement>>({});
@@ -67,13 +80,31 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   }, [contextId, nonces, onValidationError, onFocus, onBlur, onChange, onSubmitSuccess, onSubmitError]);
 
   const submit = useCallback(() => {
-    console.log('[form] Submitting form');
-    
+    if (!formRef.current) return;
+
+    const includedInputs: HTMLInputElement[] = Array.from(formRef.current.querySelectorAll('input[data-opid]') ?? []);
+    const extraData = includedInputs.reduce((acc, input) => {
+      const key = input.getAttribute('data-opid');
+      if (!key) return acc;
+      return { ...acc, [key]: input.value };
+    }, {} as Record<string, string>);
+
+    console.log('[form] Submitting form:', extraData);
+
     for (const target of Object.values(targets)) {
       if (!target) continue;
-      emitEvent(target, contextId, 'root', ElementEventType.SUBMIT, {});
+
+      try {
+        submitForm(target, contextId, {
+          checkoutSecureToken,
+          ...extraData
+        });
+      } catch (error) {
+        console.error('[form] Error submitting form:', error);
+        if (onSubmitError) onSubmitError();
+      }
     }
-  }, [targets, contextId]);
+  }, [formRef, targets, contextId, checkoutSecureToken, onSubmitError]);
 
   const value: ElementsContextValue = {
     contextId,

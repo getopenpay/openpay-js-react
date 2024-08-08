@@ -1,13 +1,20 @@
 import { FC } from 'react';
+import { FieldName } from '@getopenpay/openpay-js-react';
 import InputField from './input-field';
 
 interface InputProps {
   type?: string;
   placeholder: string;
+  openPayId?: FieldName;
 }
 
-const Input: FC<InputProps> = ({ type, placeholder }) => (
-  <input type={type ?? 'text'} placeholder={placeholder} className="w-full text-sm bg-transparent outline-none py-2" />
+const Input: FC<InputProps> = ({ type, placeholder, openPayId }) => (
+  <input
+    type={type ?? 'text'}
+    placeholder={placeholder}
+    className="w-full text-sm bg-transparent outline-none py-2"
+    data-opid={openPayId}
+  />
 );
 
 const HorizontalRule: FC = () => (
@@ -16,16 +23,19 @@ const HorizontalRule: FC = () => (
 
 const BillingDetails: FC = () => (
   <InputField>
-    <Input placeholder="Name" />
+    <div className="flex gap-2 items-center justify-between">
+      <Input placeholder="Given name" openPayId={FieldName.FIRST_NAME} />
+      <Input placeholder="Family name" openPayId={FieldName.LAST_NAME} />
+    </div>
     <HorizontalRule />
-    <Input placeholder="Email" type="email" />
+    <Input placeholder="Email" type="email" openPayId={FieldName.EMAIL} />
     <HorizontalRule />
     <Input placeholder="Address" />
     <HorizontalRule />
     <div className="flex gap-2 items-center justify-between">
       <Input placeholder="City" />
       <Input placeholder="State" />
-      <Input placeholder="ZIP" />
+      <Input placeholder="ZIP" openPayId={FieldName.ZIP_CODE} />
     </div>
   </InputField>
 );
