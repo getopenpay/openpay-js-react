@@ -1,0 +1,39 @@
+name: 'Publish alpha release'
+
+on:
+  push:
+    branches:
+      - main 
+
+jobs:
+  publish:
+    name: 🚀 Publishing to NPM
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          version: 8
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org/
+
+      - name: Set hash and version variable
+        # To generate unique hashes for each alpha release without having to change version in package.json
+        run: |
+          echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "VERSION=$(npm view ./ version)" >> $GITHUB_ENV
+
+      - name: Build package
+        run: |
+          npm ci
+          npm run build:alpha 
+       #    ^ For now to use localhost for cde
+
+      - name: Publish package
+        run: |
+          npm version ${{ env.VERSION }}-alpha.${{ env.COMMIT_HASH }}
+          npm publish --tag alpha
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
