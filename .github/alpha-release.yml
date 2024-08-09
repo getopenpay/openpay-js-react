@@ -33,6 +33,6 @@ jobs:
       - name: Publish package
         run: |
           npm version ${{ env.VERSION }}-alpha.${{ env.COMMIT_HASH }}
-          npm publish --tag alpha --access public --no-git-checks
+          npm publish --tag alpha
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
