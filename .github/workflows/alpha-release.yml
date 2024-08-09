@@ -3,7 +3,7 @@ name: 'Publish alpha release'
 on:
   push:
     branches:
-      - main 
+      - main
 
 jobs:
   publish:
@@ -28,12 +28,12 @@ jobs:
       - name: Build package
         run: |
           npm ci
-          npm run build:alpha 
-       #    ^ For now to use localhost for cde
+          npm run build:alpha
+        #    ^ For now to use localhost for cde
 
       - name: Publish package
         run: |
           npm version ${{ env.VERSION }}-alpha.${{ env.COMMIT_HASH }}
-          npm publish --tag alpha
+          npm publish --tag alpha --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

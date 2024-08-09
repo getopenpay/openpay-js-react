@@ -12,10 +12,6 @@
     "openpay",
     "payments"
   ],
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
-  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && vite build",
     "build:dev": "tsc -p tsconfig.build.json && NODE_ENV=development vite build --mode development --watch",
