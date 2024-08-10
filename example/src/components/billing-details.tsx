@@ -17,9 +17,7 @@ const Input: FC<InputProps> = ({ type, placeholder, openPayId }) => (
   />
 );
 
-const HorizontalRule: FC = () => (
-  <hr className="border-emerald-200 dark:border-emerald-700" />
-);
+const HorizontalRule: FC = () => <hr className="border-emerald-200 dark:border-emerald-700" />;
 
 const BillingDetails: FC = () => (
   <InputField>

@@ -16,6 +16,28 @@ module.exports = {
       'warn',
       { allowConstantExport: true },
     ],
+    '@typescript-eslint/no-unused-vars': 'error',
+    'jsx-a11y/no-autofocus': 'off',
+    'jsx-a11y/click-events-have-key-events': 'off',
+    '@typescript-eslint/explicit-function-return-type': [
+      'warn',
+      {
+        allowExpressions: true,
+        allowConciseArrowFunctionExpressionsStartingWithVoid: true
+      }
+    ],
+    'prettier/prettier': [
+      'error',
+      {
+        endOfLine: 'auto',
+        semi: true,
+        trailingComma: 'es5',
+        singleQuote: true,
+        printWidth: 120,
+        tabWidth: 2,
+        useTabs: false
+      }
+    ]
   },
   settings: {
     react: {
@@ -25,40 +47,12 @@ module.exports = {
   overrides: [
     {
       files: [
-        '**/*.ts',
-        '**/*.tsx',
-      ],
-      parser: '@typescript-eslint/parser',
-      plugins: [
-        '@typescript-eslint'
+        'lib/**/*.ts',
+        'lib/**/*.tsx',
       ],
       extends: [
         'plugin:react-hooks/recommended',
-      ],
-      rules: {
-        '@typescript-eslint/no-unused-vars': 'error',
-        'jsx-a11y/no-autofocus': 'off',
-        'jsx-a11y/click-events-have-key-events': 'off',
-        '@typescript-eslint/explicit-function-return-type': [
-          'warn',
-          {
-            allowExpressions: true,
-            allowConciseArrowFunctionExpressionsStartingWithVoid: true
-          }
-        ],
-        'prettier/prettier': [
-          'error',
-          {
-            endOfLine: 'auto',
-            semi: true,
-            trailingComma: 'es5',
-            singleQuote: true,
-            printWidth: 120,
-            tabWidth: 2,
-            useTabs: false
-          }
-        ]
-      }
+      ]
     }
   ]
 }

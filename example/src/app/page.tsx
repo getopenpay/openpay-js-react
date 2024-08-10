@@ -1,19 +1,23 @@
 'use client';
-import { FC, useCallback, useMemo, useState } from 'react';
-import { ElementsForm, CardCvcElement, CardElement, CardNumberElement, CardExpiryElement } from '@getopenpay/openpay-js-react';
+import { FC, useCallback, useState } from 'react';
+import {
+  ElementsForm,
+  CardCvcElement,
+  CardElement,
+  CardNumberElement,
+  CardExpiryElement,
+} from '@getopenpay/openpay-js-react';
 import FormWrapper from '@/components/form-wrapper';
 import InputField from '@/components/input-field';
 import BillingDetails from '@/components/billing-details';
 
-
 interface FormProps {
   token: string;
   separateFrames: boolean;
-  onSubmit: (submit: () => void) => void;
 }
 
 const Form: FC<FormProps> = (props) => {
-  const { token, separateFrames, onSubmit } = props;
+  const { token, separateFrames } = props;
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
 
@@ -62,7 +66,7 @@ const Form: FC<FormProps> = (props) => {
           )}
 
           <button
-            onClick={() => onSubmit(submit)}
+            onClick={submit}
             className="px-4 py-2 mt-2 w-full font-bold rounded-lg bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700"
           >
             Pay
@@ -76,12 +80,6 @@ const Form: FC<FormProps> = (props) => {
 const ElementsExample: FC = () => {
   const [token, setToken] = useState<string>('');
   const [separateFrames, setSeparateFrames] = useState<boolean>(true);
-  const [loading, setLoading] = useState<boolean>(true);
-
-  const submitImpl = useCallback((submit: () => void) => {
-    setLoading(true);
-    submit();
-  }, []);
 
   return (
     <main className="w-full max-w-5xl p-24">
@@ -91,10 +89,7 @@ const ElementsExample: FC = () => {
       </div>
 
       <div className="mt-8">
-        <label
-          htmlFor="checkout-secure-token"
-          className="text-sm select-none"
-        >
+        <label htmlFor="checkout-secure-token" className="text-sm select-none">
           Checkout secure token
         </label>
         <input
@@ -113,21 +108,14 @@ const ElementsExample: FC = () => {
           className="mr-2 size-4"
           onChange={(e) => setSeparateFrames(e.target.checked)}
         />
-        <label
-          htmlFor="use-separate-frames"
-          className="text-sm select-none cursor-pointer"
-        >
+        <label htmlFor="use-separate-frames" className="text-sm select-none cursor-pointer">
           Use separate frames for each card element
         </label>
       </div>
 
       {token ? (
         <div className="relative">
-          <Form
-            token={token}
-            separateFrames={separateFrames}
-            onSubmit={submitImpl}
-          />
+          <Form token={token} separateFrames={separateFrames} />
         </div>
       ) : (
         <div className="text-center text-lg">
@@ -137,6 +125,6 @@ const ElementsExample: FC = () => {
       )}
     </main>
   );
-}
+};
 
 export default ElementsExample;

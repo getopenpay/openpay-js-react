@@ -6,7 +6,8 @@
     "dev": "next dev -p 3032",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix"
   },
   "dependencies": {
     "@getopenpay/openpay-js-react": "file:..",

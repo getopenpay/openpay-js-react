@@ -1,4 +1,4 @@
-import { FC, PropsWithChildren } from "react";
+import { FC, PropsWithChildren } from 'react';
 
 interface FormWrapperProps extends PropsWithChildren {
   error?: string;
