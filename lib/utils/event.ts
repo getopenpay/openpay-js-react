@@ -1,10 +1,10 @@
 import { v4 as uuidv4 } from 'uuid';
 import { FRAME_BASE_URL } from './constants';
-import { type ElementEvent, ElementEventType, ElementEventSchema, SubmitDataSchema } from './models';
+import { ElementEvent, ElementEventType, SubmitEvent } from './models';
 
 export const parseEventPayload = (eventData: object): ElementEvent => {
   try {
-    return ElementEventSchema.parse(eventData);
+    return ElementEvent.parse(eventData);
   } catch (error) {
     console.error('Error parsing event payload:', eventData, error);
     throw error;
@@ -14,12 +14,9 @@ export const parseEventPayload = (eventData: object): ElementEvent => {
 export const submitForm = (
   frame: HTMLIFrameElement,
   formId: string,
-  data: Record<string, string>
+  data: SubmitEvent
 ) => {
-  const payload = SubmitDataSchema.safeParse(data);
-  if (!payload.success) throw new Error('Invalid submit data: ' + JSON.stringify(payload.error));
-
-  emitEvent(frame, formId, 'root', ElementEventType.SUBMIT, payload.data);
+  emitEvent(frame, formId, 'root', ElementEventType.SUBMIT, data);
 };
 
 export const emitEvent = (

@@ -30,11 +30,8 @@ const BillingDetails: FC = () => (
     <HorizontalRule />
     <Input placeholder="Email" type="email" openPayId={FieldName.EMAIL} />
     <HorizontalRule />
-    <Input placeholder="Address" />
-    <HorizontalRule />
     <div className="flex gap-2 items-center justify-between">
-      <Input placeholder="City" />
-      <Input placeholder="State" />
+      <Input placeholder="Country" openPayId={FieldName.COUNTRY} />
       <Input placeholder="ZIP" openPayId={FieldName.ZIP_CODE} />
     </div>
   </InputField>

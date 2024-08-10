@@ -2,6 +2,7 @@ import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { ElementsContext, type ElementsContextValue } from '../hooks/context';
 import { parseEventPayload, submitForm } from '../utils/event';
 import { ElementEventType } from '../utils/models';
+import { extractExtraFields } from '../utils/extra-fields';
 
 interface ElementsFormChildrenProps {
   submit: () => void;
@@ -9,13 +10,15 @@ interface ElementsFormChildrenProps {
 
 interface ElementsFormProps {
   className?: string;
-  checkoutSecureToken: string;
+  checkoutSecureToken?: string;
   children: (props: ElementsFormChildrenProps) => JSX.Element;
   onFocus?: (elementId: string) => void;
   onBlur?: (elementId: string) => void;
   onChange?: (elementId: string) => void;
+  onLoad?: () => void;
+  onLoadError?: (message: string) => void;
   onValidationError?: (message: string) => void;
-  onSubmitSuccess?: () => void;
+  onSubmitSuccess?: (invoiceUrls: string[]) => void;
   onSubmitError?: () => void;
 }
 
@@ -27,6 +30,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     onFocus,
     onBlur,
     onChange,
+    onLoad,
+    onLoadError,
     onValidationError,
     onSubmitSuccess,
     onSubmitError
@@ -36,6 +41,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const [nonces, setNonces] = useState<string[]>([]);
   const [targets, setTargets] = useState<Record<string, HTMLIFrameElement>>({});
   const [formHeight, setFormHeight] = useState<string>('1px');
+  const [loaded, setLoaded] = useState<boolean>(false);
   const formRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => setContextId(`opjs-form-${window.crypto.randomUUID()}`), []);
@@ -64,6 +70,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
       const height = eventData.payload.height ? `${eventData.payload.height}px` : '100%';
       setFormHeight(height);
+    } else if (eventData.type === ElementEventType.LOAD_ERROR && !!onLoadError) {
+      onLoadError(eventData.payload['message']);
     } else if (eventData.type === ElementEventType.FOCUS && !!onFocus) {
       onFocus(eventData.elementId);
     } else if (eventData.type === ElementEventType.BLUR && !!onBlur) {
@@ -73,42 +81,48 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     } else if (eventData.type === ElementEventType.VALIDATION_ERROR && !!onValidationError) {
       onValidationError(eventData.payload['message']);
     } else if (eventData.type === ElementEventType.SUBMIT_SUCCESS && !!onSubmitSuccess) {
-      onSubmitSuccess();
+      const invoiceUrls = eventData.payload['invoice_urls'];
+      // @ts-expect-error TODO: allow specifying expected payload schema
+      onSubmitSuccess(invoiceUrls);
     } else if (eventData.type === ElementEventType.SUBMIT_ERROR && !!onSubmitError) {
       onSubmitError();
     }
-  }, [contextId, nonces, onValidationError, onFocus, onBlur, onChange, onSubmitSuccess, onSubmitError]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contextId, nonces]);
 
   const submit = useCallback(() => {
     if (!formRef.current) return;
 
-    const includedInputs: HTMLInputElement[] = Array.from(formRef.current.querySelectorAll('input[data-opid]') ?? []);
-    const extraData = includedInputs.reduce((acc, input) => {
-      const key = input.getAttribute('data-opid');
-      if (!key) return acc;
-      return { ...acc, [key]: input.value };
-    }, {} as Record<string, string>);
-
+    const extraData = extractExtraFields(formRef.current);
     console.log('[form] Submitting form:', extraData);
 
     for (const target of Object.values(targets)) {
       if (!target) continue;
 
       try {
-        submitForm(target, contextId, {
-          checkoutSecureToken,
-          ...extraData
-        });
+        submitForm(target, contextId, extraData);
       } catch (error) {
         console.error('[form] Error submitting form:', error);
         if (onSubmitError) onSubmitError();
       }
     }
-  }, [formRef, targets, contextId, checkoutSecureToken, onSubmitError]);
+  }, [formRef, targets, contextId, onSubmitError]);
+
+  useEffect(() => {
+    if (loaded || !formRef.current) return;
+
+    const iframes = formRef.current.querySelectorAll('iframe');
+    if (iframes.length === Object.keys(targets).length) {
+      console.log('[form] All iframes loaded');
+      setLoaded(true);
+      if (onLoad) onLoad();
+    }
+  }, [targets, loaded, onLoad]);
 
   const value: ElementsContextValue = {
     contextId,
     formHeight,
+    checkoutSecureToken,
     createToken: () => {},
     dispatchEvent,
   };

@@ -4,13 +4,14 @@ import { convertStylesToQueryString, type ElementStyle } from '../../utils/style
 import { useOpenPayElements } from '../../hooks/use-openpay-elements';
 
 type ElementFrameProps = {
+  checkoutSecureToken?: string;
   subPath: string;
   styles?: ElementStyle;
 }
 
 const ElementFrame: FC<ElementFrameProps> = (props) => {
   const { subPath, styles } = props;
-  const { contextId, dispatchEvent, formHeight } = useOpenPayElements();
+  const { contextId, dispatchEvent, formHeight, checkoutSecureToken } = useOpenPayElements();
   const [referer, setReferer] = useState<string>('');
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
@@ -24,19 +25,20 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
       border: 'none',
       width: '100%',
       height: formHeight,
-      overflow: 'hidden',
     };
   }, [formHeight]);
 
   const queryString = useMemo(() => {
+    if (!checkoutSecureToken) return '';
     const params = new URLSearchParams();
 
     params.append('referer', referer);
     params.append('styles', elementStyle);
     params.append('contextId', contextId);
+    params.append('secureToken', checkoutSecureToken);
 
     return params.toString();
-  }, [elementStyle, contextId, referer]);
+  }, [elementStyle, contextId, referer, checkoutSecureToken]);
 
   const onMessage = useCallback((event: MessageEvent) => {
     if (!iframeRef.current || event.origin == window.location.origin) return;
@@ -57,6 +59,11 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
     // Ensure cleanup
     return () => window.removeEventListener('message', onMessage);
   }, [iframeRef, contextId, onMessage]);
+
+  if (!checkoutSecureToken) {
+    console.error('[form] Cannot render frame, no checkout secure token provided');
+    return <div></div>;
+  }
 
   return (
     <iframe
