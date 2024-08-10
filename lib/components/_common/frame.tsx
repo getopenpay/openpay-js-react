@@ -7,7 +7,7 @@ type ElementFrameProps = {
   checkoutSecureToken?: string;
   subPath: string;
   styles?: ElementStyle;
-}
+};
 
 const ElementFrame: FC<ElementFrameProps> = (props) => {
   const { subPath, styles } = props;
@@ -40,15 +40,18 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
     return params.toString();
   }, [elementStyle, contextId, referer, checkoutSecureToken]);
 
-  const onMessage = useCallback((event: MessageEvent) => {
-    if (!iframeRef.current || event.origin == window.location.origin) return;
+  const onMessage = useCallback(
+    (event: MessageEvent) => {
+      if (!iframeRef.current || event.origin == window.location.origin) return;
 
-    if (event.origin !== FRAME_BASE_URL) {
-      console.warn('[form] Ignoring message from unexpected origin:', event, '(expected:', FRAME_BASE_URL, ')');
-    } else {
-      dispatchEvent(event, iframeRef.current);
-    }
-  }, [dispatchEvent]);
+      if (event.origin !== FRAME_BASE_URL) {
+        console.warn('[form] Ignoring message from unexpected origin:', event, '(expected:', FRAME_BASE_URL, ')');
+      } else {
+        dispatchEvent(event, iframeRef.current);
+      }
+    },
+    [dispatchEvent]
+  );
 
   useEffect(() => {
     if (!iframeRef.current || !contextId) return;
@@ -67,6 +70,7 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
 
   return (
     <iframe
+      name={`${subPath}-element`}
       src={`${FRAME_BASE_URL}/app/v1/${subPath}-element?${queryString}`}
       style={frameStyle}
       ref={iframeRef}
