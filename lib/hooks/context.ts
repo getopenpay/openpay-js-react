@@ -6,7 +6,7 @@ export type ElementsContextValue = {
   formHeight: string;
   createToken: () => void;
   dispatchEvent: (event: MessageEvent, frame: HTMLIFrameElement) => void;
-}
+};
 
 export const ElementsContext = createContext<ElementsContextValue>({
   contextId: '',

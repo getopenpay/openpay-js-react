@@ -6,7 +6,6 @@ import CardExpiryElement from './components/card-expiry';
 import CardNumberElement from './components/card-number';
 import { FieldName } from './utils/models';
 
-
 export {
   useOpenPayElements,
   ElementsForm,

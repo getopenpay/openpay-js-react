@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { FRAME_BASE_URL } from './constants';
-import { ElementEvent, ElementEventType, SubmitEvent } from './models';
+import { ElementEvent, ElementEventType } from './models';
 
 export const parseEventPayload = (eventData: object): ElementEvent => {
   try {
@@ -11,21 +11,13 @@ export const parseEventPayload = (eventData: object): ElementEvent => {
   }
 };
 
-export const submitForm = (
-  frame: HTMLIFrameElement,
-  formId: string,
-  data: SubmitEvent
-) => {
-  emitEvent(frame, formId, 'root', ElementEventType.SUBMIT, data);
-};
-
 export const emitEvent = (
   frame: HTMLIFrameElement,
   formId: string,
   elementId: string,
   type: ElementEventType,
   payload: Record<string, string>
-) => {
+): void => {
   const target = frame.contentWindow;
   if (!target) {
     console.error('[form] Cannot emit event, no contentWindow found:', frame);

@@ -1,6 +1,6 @@
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { ElementsContext, type ElementsContextValue } from '../hooks/context';
-import { parseEventPayload, submitForm } from '../utils/event';
+import { parseEventPayload, emitEvent } from '../utils/event';
 import { ElementEventType } from '../utils/models';
 import { extractExtraFields } from '../utils/extra-fields';
 
@@ -34,7 +34,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     onLoadError,
     onValidationError,
     onSubmitSuccess,
-    onSubmitError
+    onSubmitError,
   } = props;
 
   const [contextId, setContextId] = useState<string>('');
@@ -62,12 +62,12 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
       setNonces((prevNonces) => [...prevNonces, eventData.nonce]);
       console.log('[form] Received event:', eventData);
-      
+
       if (eventData.type === ElementEventType.LOADED) {
         const elementId = eventData.elementId;
         if (!elementId) return;
 
-          setTargets((prevTargets) => ({ ...prevTargets, [elementId]: frame }));
+        setTargets((prevTargets) => ({ ...prevTargets, [elementId]: frame }));
 
         const height = eventData.payload.height ? `${eventData.payload.height}px` : '100%';
         setFormHeight(height);
@@ -103,7 +103,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       if (!target) continue;
 
       try {
-        submitForm(target, contextId, extraData);
+        emitEvent(target, contextId, 'root', ElementEventType.SUBMIT, extraData);
       } catch (error) {
         console.error('[form] Error submitting form:', error);
         if (onSubmitError) onSubmitError();
