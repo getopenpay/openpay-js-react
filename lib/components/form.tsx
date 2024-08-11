@@ -28,6 +28,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const [formHeight, setFormHeight] = useState<string>('1px');
   const [loaded, setLoaded] = useState<boolean>(false);
   const [extraData, setExtraData] = useState<SubmitEventPayload | undefined>(undefined);
+  const [totalAmountAtoms, setTotalAmountAtoms] = useState<number | undefined>(undefined);
   const formRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => setContextId(`opjs-form-${window.crypto.randomUUID()}`), []);
@@ -67,11 +68,10 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       } else if (eventType === ElementEventType.LOADED) {
         console.log(`[form] Element ${elementId} loaded with height:`, eventPayload.height);
         setTargets((prevTargets) => ({ ...prevTargets, [elementId]: eventSource }));
+        setTotalAmountAtoms(eventPayload.totalAmountAtoms);
 
         const height = eventPayload.height ? `${eventPayload.height}px` : '100%';
         setFormHeight(height);
-
-        if (onLoad) onLoad();
       } else if (eventType === ElementEventType.TOKENIZE_STARTED) {
         console.log('[form] Tokenization started');
 
@@ -106,7 +106,6 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       onBlur,
       onChange,
       onFocus,
-      onLoad,
       onLoadError,
       onCheckoutStarted,
       onCheckoutSuccess,
@@ -131,16 +130,16 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   }, [formRef, targets, contextId]);
 
   useEffect(() => {
-    if (loaded || !formRef.current) return;
+    if (loaded || !formRef.current || !totalAmountAtoms) return;
 
     const iframes = formRef.current.querySelectorAll('iframe');
 
     if (iframes.length === Object.keys(targets).length) {
       console.log('[form] All iframes loaded');
       setLoaded(true);
-      if (onLoad) onLoad();
+      if (onLoad) onLoad(totalAmountAtoms);
     }
-  }, [targets, loaded, onLoad]);
+  }, [targets, loaded, onLoad, totalAmountAtoms]);
 
   useEffect(() => {
     window.addEventListener('message', onMessage);

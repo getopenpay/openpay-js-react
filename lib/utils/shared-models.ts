@@ -98,6 +98,7 @@ export type ErrorEventPayload = z.infer<typeof ErrorEventPayload>;
 export const LoadedEventPayload = z.object({
   type: z.literal(ElementEventType.LOADED),
   height: z.string(),
+  totalAmountAtoms: z.number(),
 });
 export type LoadedEventPayload = z.infer<typeof LoadedEventPayload>;
 

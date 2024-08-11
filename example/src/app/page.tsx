@@ -21,6 +21,7 @@ const Form: FC<FormProps> = (props) => {
   const { token, separateFrames, onCheckoutSuccess } = props;
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | undefined>(undefined);
+  const [amount, setAmount] = useState<string | undefined>(undefined);
   const [overlayMessage, setOverlayMessage] = useState<string | undefined>(undefined);
 
   const onBeforeUnload = useCallback(() => {
@@ -41,15 +42,26 @@ const Form: FC<FormProps> = (props) => {
     setOverlayMessage('In progress...');
   };
 
+  const onCheckoutError = (message: string) => {
+    setLoading(false);
+    setError(message);
+  };
+
+  const onLoad = (totalAmountAtoms: number) => {
+    setLoading(false);
+    setAmount(`$${totalAmountAtoms / 100}`);
+  };
+
   return (
     <ElementsForm
       checkoutSecureToken={token}
-      onLoad={() => setLoading(false)}
+      onLoad={onLoad}
       onLoadError={(message) => setOverlayMessage(`Could not load form: ${message}`)}
       onChange={() => setError(undefined)}
       onValidationError={(message) => setError(message)}
       onCheckoutStarted={onCheckoutStarted}
       onCheckoutSuccess={onCheckoutSuccess}
+      onCheckoutError={onCheckoutError}
     >
       {({ submit }) => (
         <FormWrapper error={error}>
@@ -85,7 +97,7 @@ const Form: FC<FormProps> = (props) => {
             onClick={submit}
             className="px-4 py-2 mt-2 w-full font-bold rounded-lg bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700"
           >
-            Pay
+            Pay {amount}
           </button>
         </FormWrapper>
       )}
@@ -98,9 +110,14 @@ const ElementsExample: FC = () => {
   const [separateFrames, setSeparateFrames] = useState<boolean>(false);
   const [invoiceUrls, setInvoiceUrls] = useState<string[] | null>(null);
 
-  const reset = useCallback(() => {
+  const onCheckoutSuccess = useCallback((invoiceUrls: string[]) => {
     setToken('');
+    setInvoiceUrls(invoiceUrls);
+  }, []);
+
+  const onTokenChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setInvoiceUrls(null);
+    setToken(e.target.value);
   }, []);
 
   return (
@@ -119,7 +136,7 @@ const ElementsExample: FC = () => {
           id="checkout-secure-token"
           placeholder="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
           className="w-full p-2 border-2 rounded-lg mt-2 text-black"
-          onChange={(e) => setToken(e.target.value)}
+          onChange={onTokenChange}
         />
       </div>
 
@@ -137,31 +154,23 @@ const ElementsExample: FC = () => {
 
       {token ? (
         <div className="relative">
-          <Form
-            token={token}
-            separateFrames={separateFrames}
-            onCheckoutSuccess={(urls) => setInvoiceUrls(urls)}
-          />
+          <Form token={token} separateFrames={separateFrames} onCheckoutSuccess={onCheckoutSuccess} />
         </div>
       ) : (
         <div>
           {invoiceUrls ? (
             <>
-              <h2 className="text-lg font-bold">Checkout successful! 🎉</h2>
-              <p className="font-bold mb-2">Invoice URLs:</p>
-              <ul className="flex flex-col gap-2">
+              <h2 className="text-xl font-bold">🎉 Checkout successful!</h2>
+              <p className="my-2">Invoice URLs:</p>
+              <ul className="text-sm list-inside list-decimal">
                 {invoiceUrls.map((url, index) => (
-                  <li key={index}>
-                    <a href={url} target="_blank" rel="noreferrer">
+                  <li className="mb-2" key={index}>
+                    <a href={url} target="_blank" rel="noreferrer" className="underline">
                       {url}
                     </a>
                   </li>
                 ))}
               </ul>
-
-              <button onClick={reset} className="px-4 py-2 mt-2 w-full font-bold rounded-lg bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700">
-                Reset
-              </button>
             </>
           ) : (
             <>
