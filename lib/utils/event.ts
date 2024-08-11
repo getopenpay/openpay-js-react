@@ -1,14 +1,19 @@
 import { v4 as uuidv4 } from 'uuid';
 import { FRAME_BASE_URL } from './constants';
-import { ElementEvent, EventPayload, SubmitEventPayload } from './shared-models';
+import { ElementEvent, ElementEventType, EventPayload, SubmitEventPayload } from './shared-models';
 
-export const constructSubmitEventPayload = (formDiv: HTMLDivElement): SubmitEventPayload => {
+export const constructTokenizeEventPayload = (formDiv: HTMLDivElement): SubmitEventPayload => {
   const includedInputs: HTMLInputElement[] = Array.from(formDiv.querySelectorAll('input[data-opid]') ?? []);
-  const extraData = includedInputs.reduce((acc, input) => {
-    const key = input.getAttribute('data-opid');
-    if (!key) return acc;
-    return { ...acc, [key]: input.value };
-  }, {});
+  const extraData = includedInputs.reduce(
+    (acc, input) => {
+      const key = input.getAttribute('data-opid');
+      if (!key) return acc;
+      return { ...acc, [key]: input.value };
+    },
+    { type: ElementEventType.TOKENIZE }
+  );
+
+  console.log('[form] Constructing tokenization payload:', extraData);
 
   return SubmitEventPayload.parse(extraData);
 };

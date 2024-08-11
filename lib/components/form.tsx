@@ -1,6 +1,6 @@
 import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { ElementsContext, type ElementsContextValue } from '../hooks/context';
-import { constructSubmitEventPayload, emitEvent, parseEventPayload } from '../utils/event';
+import { constructTokenizeEventPayload, emitEvent, parseEventPayload } from '../utils/event';
 import { ElementsFormProps } from '../utils/models';
 import { ElementEventType, SubmitEventPayload } from '../utils/shared-models';
 import { FRAME_BASE_URL } from '../utils/constants';
@@ -112,7 +112,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const submit = useCallback(() => {
     if (!formRef.current) return;
 
-    const extraData = constructSubmitEventPayload(formRef.current);
+    const extraData = constructTokenizeEventPayload(formRef.current);
     console.log('[form] Submitting form:', extraData);
 
     for (const [elementId, target] of Object.entries(targets)) {
