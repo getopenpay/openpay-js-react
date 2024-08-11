@@ -1,5 +1,5 @@
 'use client';
-import { FC, useCallback, useState } from 'react';
+import { FC, useCallback, useEffect, useState } from 'react';
 import {
   ElementsForm,
   CardCvcElement,
@@ -14,32 +14,48 @@ import BillingDetails from '@/components/billing-details';
 interface FormProps {
   token: string;
   separateFrames: boolean;
+  onCheckoutSuccess: (invoiceUrls: string[]) => void;
 }
 
 const Form: FC<FormProps> = (props) => {
-  const { token, separateFrames } = props;
+  const { token, separateFrames, onCheckoutSuccess } = props;
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>('');
-  const [formError, setFormError] = useState<string>('');
+  const [error, setError] = useState<string | undefined>(undefined);
+  const [overlayMessage, setOverlayMessage] = useState<string | undefined>(undefined);
 
-  const onLoadError = useCallback((message: string) => {
-    setFormError(`Could not load form: ${message}`);
-  }, []);
+  const onBeforeUnload = useCallback(() => {
+    if (loading) {
+      window.alert('Checkout in progress. Are you sure you want to leave?');
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    window.addEventListener('beforeunload', onBeforeUnload);
+
+    // Ensure cleanup
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [onBeforeUnload]);
+
+  const onCheckoutStarted = () => {
+    setLoading(true);
+    setOverlayMessage('In progress...');
+  };
 
   return (
     <ElementsForm
       checkoutSecureToken={token}
-      onValidationError={(message) => setError(message)}
-      onChange={() => setError('')}
       onLoad={() => setLoading(false)}
-      onLoadError={onLoadError}
-      onSubmitSuccess={(invoiceUrls) => console.log('Invoice URLs:', invoiceUrls)}
+      onLoadError={(message) => setOverlayMessage(`Could not load form: ${message}`)}
+      onChange={() => setError(undefined)}
+      onValidationError={(message) => setError(message)}
+      onCheckoutStarted={onCheckoutStarted}
+      onCheckoutSuccess={onCheckoutSuccess}
     >
       {({ submit }) => (
         <FormWrapper error={error}>
           {loading && (
             <div className="absolute top-0 left-0 z-50 w-full h-full flex items-center justify-center bg-emerald-500/50 dark:bg-emerald-600/50 backdrop-blur">
-              <p>{formError ?? 'Loading...'}</p>
+              <p>{overlayMessage ?? 'Loading...'}</p>
             </div>
           )}
 
@@ -80,6 +96,12 @@ const Form: FC<FormProps> = (props) => {
 const ElementsExample: FC = () => {
   const [token, setToken] = useState<string>('');
   const [separateFrames, setSeparateFrames] = useState<boolean>(false);
+  const [invoiceUrls, setInvoiceUrls] = useState<string[] | null>(null);
+
+  const reset = useCallback(() => {
+    setToken('');
+    setInvoiceUrls(null);
+  }, []);
 
   return (
     <main className="w-full max-w-5xl p-24 mx-auto">
@@ -115,12 +137,38 @@ const ElementsExample: FC = () => {
 
       {token ? (
         <div className="relative">
-          <Form token={token} separateFrames={separateFrames} />
+          <Form
+            token={token}
+            separateFrames={separateFrames}
+            onCheckoutSuccess={(urls) => setInvoiceUrls(urls)}
+          />
         </div>
       ) : (
-        <div className="text-center text-lg">
-          <p className="font-bold mb-2">No token provided</p>
-          <p className="text-sm">Please provide a checkout secure token in the input above</p>
+        <div>
+          {invoiceUrls ? (
+            <>
+              <h2 className="text-lg font-bold">Checkout successful! 🎉</h2>
+              <p className="font-bold mb-2">Invoice URLs:</p>
+              <ul className="flex flex-col gap-2">
+                {invoiceUrls.map((url, index) => (
+                  <li key={index}>
+                    <a href={url} target="_blank" rel="noreferrer">
+                      {url}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+
+              <button onClick={reset} className="px-4 py-2 mt-2 w-full font-bold rounded-lg bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700">
+                Reset
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="font-bold mb-2">No token provided</p>
+              <p className="text-sm">Please provide a checkout secure token in the input above</p>
+            </>
+          )}
         </div>
       )}
     </main>

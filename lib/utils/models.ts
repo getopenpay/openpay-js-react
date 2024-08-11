@@ -18,6 +18,7 @@ export type ElementsFormProps = {
   onLoad?: () => void;
   onLoadError?: (message: string) => void;
   onValidationError?: (message: string, elementId?: string) => void;
-  onSubmitSuccess?: (invoiceUrls: string[]) => void;
-  onSubmitError?: (message: string) => void;
+  onCheckoutStarted?: () => void;
+  onCheckoutSuccess?: (invoiceUrls: string[]) => void;
+  onCheckoutError?: (message: string) => void;
 };

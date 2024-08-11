@@ -50,6 +50,8 @@ export enum ElementEventType {
   BLUR = `${EVENT_PREFIX}-blur`,
   FOCUS = `${EVENT_PREFIX}-focus`,
   CHANGE = `${EVENT_PREFIX}-change`,
+  TOKENIZE_STARTED = `${EVENT_PREFIX}-tokenize-started`,
+  CHECKOUT_STARTED = `${EVENT_PREFIX}-checkout-started`,
   TOKENIZE_SUCCESS = `${EVENT_PREFIX}-tokenize-success`,
   CHECKOUT_SUCCESS = `${EVENT_PREFIX}-checkout-success`,
   LOAD_ERROR = `${EVENT_PREFIX}-load-error`,
@@ -66,11 +68,17 @@ export enum ElementEventType {
  * Event payload schemas
  */
 
-// Field events
-const FieldEventType = z.enum([ElementEventType.BLUR, ElementEventType.FOCUS, ElementEventType.CHANGE]);
-type FieldEventType = z.infer<typeof FieldEventType>;
-export const FieldEventPayload = z.object({ type: FieldEventType });
-export type FieldEventPayload = z.infer<typeof FieldEventPayload>;
+// Events that don't have a specific payload
+const GenericEventType = z.enum([
+  ElementEventType.BLUR,
+  ElementEventType.FOCUS,
+  ElementEventType.CHANGE,
+  ElementEventType.TOKENIZE_STARTED,
+  ElementEventType.CHECKOUT_STARTED,
+]);
+type GenericEventType = z.infer<typeof GenericEventType>;
+export const GenericEventPayload = z.object({ type: GenericEventType });
+export type GenericEventPayload = z.infer<typeof GenericEventPayload>;
 
 // Generic error events
 const ErrorEventType = z.enum([
@@ -119,7 +127,7 @@ export type CheckoutSuccessEventPayload = z.infer<typeof CheckoutSuccessEventPay
 
 // Discriminated union of event payloads
 export const EventPayload = z.discriminatedUnion('type', [
-  FieldEventPayload,
+  GenericEventPayload,
   ErrorEventPayload,
   LoadedEventPayload,
   SubmitEventPayload,

@@ -16,8 +16,9 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     onLoad,
     onLoadError,
     onValidationError,
-    onSubmitSuccess,
-    onSubmitError,
+    onCheckoutStarted,
+    onCheckoutSuccess,
+    onCheckoutError,
   } = props;
 
   const [referer, setReferer] = useState<string | undefined>(undefined);
@@ -71,6 +72,10 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         setFormHeight(height);
 
         if (onLoad) onLoad();
+      } else if (eventType === ElementEventType.TOKENIZE_STARTED) {
+        console.log('[form] Tokenization started');
+
+        if (onCheckoutStarted) onCheckoutStarted();
       } else if (eventType === ElementEventType.TOKENIZE_SUCCESS && !!extraData) {
         console.log('[form] Tokenization complete:', eventPayload.paymentToken);
 
@@ -79,7 +84,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       } else if (eventType === ElementEventType.CHECKOUT_SUCCESS) {
         console.log('[form] Checkout complete:', eventPayload.invoiceUrls);
 
-        if (onSubmitSuccess) onSubmitSuccess(eventPayload.invoiceUrls);
+        if (onCheckoutSuccess) onCheckoutSuccess(eventPayload.invoiceUrls);
       } else if (eventType === ElementEventType.LOAD_ERROR) {
         console.error('[form] Error loading iframe:', eventPayload.message);
 
@@ -91,7 +96,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       } else if (eventType === ElementEventType.TOKENIZE_ERROR || eventType === ElementEventType.CHECKOUT_ERROR) {
         console.error('[form] API error from element:', eventPayload.message);
 
-        if (onSubmitError) onSubmitError(eventPayload.message);
+        if (onCheckoutError) onCheckoutError(eventPayload.message);
       }
     },
     [
@@ -103,8 +108,9 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       onFocus,
       onLoad,
       onLoadError,
-      onSubmitError,
-      onSubmitSuccess,
+      onCheckoutStarted,
+      onCheckoutSuccess,
+      onCheckoutError,
       onValidationError,
     ]
   );
