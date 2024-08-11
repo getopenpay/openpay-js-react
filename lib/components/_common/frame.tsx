@@ -1,12 +1,13 @@
 import { FC, useMemo, useRef } from 'react';
 import { FRAME_BASE_URL } from '../../utils/constants';
-import { convertStylesToQueryString, type ElementStyle } from '../../utils/style';
+import { convertStylesToQueryString } from '../../utils/style';
+import { ElementsStyle } from '../../utils/shared-models';
 import { useOpenPayElements } from '../../hooks/use-openpay-elements';
 
 type ElementFrameProps = {
   checkoutSecureToken?: string;
   subPath: string;
-  styles?: ElementStyle;
+  styles?: ElementsStyle;
 };
 
 const ElementFrame: FC<ElementFrameProps> = (props) => {

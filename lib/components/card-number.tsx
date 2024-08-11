@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { type ElementProps } from '../utils/element';
+import { type ElementProps } from '../utils/models';
 import ElementFrame from './_common/frame';
 
 const CardNumberElement: FC<ElementProps> = ({ styles }) => {

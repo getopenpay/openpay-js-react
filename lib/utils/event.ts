@@ -1,6 +1,17 @@
 import { v4 as uuidv4 } from 'uuid';
 import { FRAME_BASE_URL } from './constants';
-import { ElementEvent, ElementEventType } from './models';
+import { ElementEvent, EventPayload, SubmitEventPayload } from './shared-models';
+
+export const constructSubmitEventPayload = (formDiv: HTMLDivElement): SubmitEventPayload => {
+  const includedInputs: HTMLInputElement[] = Array.from(formDiv.querySelectorAll('input[data-opid]') ?? []);
+  const extraData = includedInputs.reduce((acc, input) => {
+    const key = input.getAttribute('data-opid');
+    if (!key) return acc;
+    return { ...acc, [key]: input.value };
+  }, {});
+
+  return SubmitEventPayload.parse(extraData);
+};
 
 export const parseEventPayload = (eventData: object): ElementEvent => {
   try {
@@ -15,17 +26,15 @@ export const emitEvent = (
   target: MessageEventSource,
   formId: string,
   elementId: string,
-  type: ElementEventType,
-  payload: Record<string, string>
+  payload: EventPayload
 ): void => {
   const event: ElementEvent = {
-    type,
-    formId,
-    elementId,
     payload,
     nonce: uuidv4(),
+    formId,
+    elementId,
   };
 
-  console.log(`[form] Emitting event ${type} from parent form ${formId} to child element ${elementId}:`, event);
+  console.log(`[form ${formId}] Sending event to child ${elementId}:`, event);
   target.postMessage(JSON.stringify(event), FRAME_BASE_URL);
 };

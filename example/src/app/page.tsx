@@ -20,10 +20,10 @@ const Form: FC<FormProps> = (props) => {
   const { token, separateFrames } = props;
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
+  const [formError, setFormError] = useState<string>('');
 
   const onLoadError = useCallback((message: string) => {
-    setError(`Could not load form: ${message}`);
-    setLoading(false);
+    setFormError(`Could not load form: ${message}`);
   }, []);
 
   return (
@@ -39,7 +39,7 @@ const Form: FC<FormProps> = (props) => {
         <FormWrapper error={error}>
           {loading && (
             <div className="absolute top-0 left-0 z-50 w-full h-full flex items-center justify-center bg-emerald-500/50 dark:bg-emerald-600/50 backdrop-blur">
-              <p>Loading...</p>
+              <p>{formError ?? 'Loading...'}</p>
             </div>
           )}
 

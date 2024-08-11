@@ -2,11 +2,9 @@ import { createContext } from 'react';
 
 export type ElementsContextValue = {
   contextId: string;
+  formHeight: string;
   referer?: string;
   checkoutSecureToken?: string;
-  formHeight: string;
-  createToken: () => void;
-  dispatchEvent: (event: MessageEvent, frame: HTMLIFrameElement) => void;
 };
 
 export const ElementsContext = createContext<ElementsContextValue>({
@@ -14,8 +12,6 @@ export const ElementsContext = createContext<ElementsContextValue>({
   formHeight: '',
   referer: undefined,
   checkoutSecureToken: undefined,
-  createToken: () => {},
-  dispatchEvent: () => {},
 });
 
 export default { ElementsContext };
