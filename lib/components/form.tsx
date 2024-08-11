@@ -3,6 +3,7 @@ import { ElementsContext, type ElementsContextValue } from '../hooks/context';
 import { parseEventPayload, emitEvent } from '../utils/event';
 import { ElementEventType } from '../utils/models';
 import { extractExtraFields } from '../utils/extra-fields';
+import { FRAME_BASE_URL } from '../utils/constants';
 
 interface ElementsFormChildrenProps {
   submit: () => void;
@@ -19,7 +20,7 @@ interface ElementsFormProps {
   onLoadError?: (message: string) => void;
   onValidationError?: (message: string, elementId?: string) => void;
   onSubmitSuccess?: (invoiceUrls: string[]) => void;
-  onSubmitError?: () => void;
+  onSubmitError?: (message: string) => void;
 }
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
@@ -37,21 +38,29 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     onSubmitError,
   } = props;
 
+  const [referer, setReferer] = useState<string | undefined>(undefined);
   const [contextId, setContextId] = useState<string>('');
   const [nonces, setNonces] = useState<string[]>([]);
-  const [targets, setTargets] = useState<Record<string, HTMLIFrameElement>>({});
+  const [targets, setTargets] = useState<Record<string, MessageEventSource>>({});
   const [formHeight, setFormHeight] = useState<string>('1px');
   const [loaded, setLoaded] = useState<boolean>(false);
+  const [extraData, setExtraData] = useState<Record<string, string> | undefined>(undefined);
   const formRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => setContextId(`opjs-form-${window.crypto.randomUUID()}`), []);
 
-  const dispatchEvent = useCallback(
-    (event: MessageEvent, frame: HTMLIFrameElement) => {
-      const eventData = parseEventPayload(JSON.parse(event.data));
+  const onMessage = useCallback(
+    (event: MessageEvent) => {
+      const eventSource = event.source;
 
-      if (eventData.formId !== contextId) {
-        console.warn('[form] Ignoring event for different form. Expected:', contextId, 'Got:', eventData.formId);
+      if (event.origin !== FRAME_BASE_URL || !eventSource) return;
+
+      const eventData = parseEventPayload(JSON.parse(event.data));
+      const elementId = eventData.elementId;
+      const formId = eventData.formId;
+
+      if (formId !== contextId || !elementId) {
+        console.warn('[form] Ignoring unknown event:', eventData);
         return;
       }
 
@@ -61,13 +70,12 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       }
 
       setNonces((prevNonces) => [...prevNonces, eventData.nonce]);
-      console.log('[form] Received event:', eventData);
+      console.log(`[form] Received ${eventData.type} event from ${elementId}:`, eventData.payload);
 
       if (eventData.type === ElementEventType.LOADED) {
-        const elementId = eventData.elementId;
         if (!elementId) return;
 
-        setTargets((prevTargets) => ({ ...prevTargets, [elementId]: frame }));
+        setTargets((prevTargets) => ({ ...prevTargets, [elementId]: eventSource }));
 
         const height = eventData.payload.height ? `${eventData.payload.height}px` : '100%';
         setFormHeight(height);
@@ -80,33 +88,50 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       } else if (eventData.type === ElementEventType.CHANGE && !!onChange) {
         onChange(eventData.elementId);
       } else if (eventData.type === ElementEventType.VALIDATION_ERROR && !!onValidationError) {
-        onValidationError(eventData.payload['message'], eventData.elementId);
-      } else if (eventData.type === ElementEventType.SUBMIT_SUCCESS && !!onSubmitSuccess) {
+        onValidationError(eventData.payload['message'], elementId);
+      } else if (eventData.type === ElementEventType.SUBMIT_SUCCESS && !!extraData) {
+        // Tokenization complete, proceed to checkout
+        emitEvent(eventSource, contextId, elementId, ElementEventType.CHECKOUT, extraData);
+        setExtraData(undefined);
+      } else if (eventData.type === ElementEventType.CHECKOUT_SUCCESS && !!onSubmitSuccess) {
         const invoiceUrls = eventData.payload['invoice_urls'];
         // @ts-expect-error TODO: allow specifying expected payload schema
         onSubmitSuccess(invoiceUrls);
       } else if (eventData.type === ElementEventType.SUBMIT_ERROR && !!onSubmitError) {
-        onSubmitError();
+        onSubmitError(JSON.stringify(eventData.payload));
+      } else if (eventData.type === ElementEventType.CHECKOUT_ERROR && !!onSubmitError) {
+        onSubmitError(JSON.stringify(eventData.payload));
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [contextId, nonces]
+    [
+      contextId,
+      nonces,
+      extraData,
+      onBlur,
+      onChange,
+      onFocus,
+      onLoadError,
+      onSubmitError,
+      onSubmitSuccess,
+      onValidationError,
+    ]
   );
 
   const submit = useCallback(() => {
     if (!formRef.current) return;
 
     const extraData = extractExtraFields(formRef.current);
+    setExtraData(extraData);
     console.log('[form] Submitting form:', extraData);
 
-    for (const target of Object.values(targets)) {
+    for (const [elementId, target] of Object.entries(targets)) {
       if (!target) continue;
 
       try {
-        emitEvent(target, contextId, 'root', ElementEventType.SUBMIT, extraData);
+        emitEvent(target, contextId, elementId, ElementEventType.SUBMIT, extraData);
       } catch (error) {
         console.error('[form] Error submitting form:', error);
-        if (onSubmitError) onSubmitError();
+        if (onSubmitError) onSubmitError(JSON.stringify(error));
       }
     }
   }, [formRef, targets, contextId, onSubmitError]);
@@ -115,6 +140,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     if (loaded || !formRef.current) return;
 
     const iframes = formRef.current.querySelectorAll('iframe');
+
     if (iframes.length === Object.keys(targets).length) {
       console.log('[form] All iframes loaded');
       setLoaded(true);
@@ -122,9 +148,18 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     }
   }, [targets, loaded, onLoad]);
 
+  useEffect(() => {
+    window.addEventListener('message', onMessage);
+    setReferer(window.location.origin);
+
+    // Ensure cleanup
+    return () => window.removeEventListener('message', onMessage);
+  }, [onMessage]);
+
   const value: ElementsContextValue = {
     contextId,
     formHeight,
+    referer,
     checkoutSecureToken,
     createToken: () => {},
     dispatchEvent,

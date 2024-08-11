@@ -12,18 +12,12 @@ export const parseEventPayload = (eventData: object): ElementEvent => {
 };
 
 export const emitEvent = (
-  frame: HTMLIFrameElement,
+  target: MessageEventSource,
   formId: string,
   elementId: string,
   type: ElementEventType,
   payload: Record<string, string>
 ): void => {
-  const target = frame.contentWindow;
-  if (!target) {
-    console.error('[form] Cannot emit event, no contentWindow found:', frame);
-    return;
-  }
-
   const event: ElementEvent = {
     type,
     formId,

@@ -17,6 +17,9 @@ export enum ElementEventType {
   SUBMIT = `${EVENT_PREFIX}-submit`,
   SUBMIT_ERROR = `${EVENT_PREFIX}-submit-error`,
   SUBMIT_SUCCESS = `${EVENT_PREFIX}-submit-success`,
+  CHECKOUT = `${EVENT_PREFIX}-checkout`,
+  CHECKOUT_ERROR = `${EVENT_PREFIX}-checkout-error`,
+  CHECKOUT_SUCCESS = `${EVENT_PREFIX}-checkout-success`,
 }
 
 export const ElementEvent = z.object({

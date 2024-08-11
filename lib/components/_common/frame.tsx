@@ -1,4 +1,4 @@
-import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, useMemo, useRef } from 'react';
 import { FRAME_BASE_URL } from '../../utils/constants';
 import { convertStylesToQueryString, type ElementStyle } from '../../utils/style';
 import { useOpenPayElements } from '../../hooks/use-openpay-elements';
@@ -11,8 +11,7 @@ type ElementFrameProps = {
 
 const ElementFrame: FC<ElementFrameProps> = (props) => {
   const { subPath, styles } = props;
-  const { contextId, dispatchEvent, formHeight, checkoutSecureToken } = useOpenPayElements();
-  const [referer, setReferer] = useState<string>('');
+  const { contextId, referer, formHeight, checkoutSecureToken } = useOpenPayElements();
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const elementStyle = useMemo(() => {
@@ -29,7 +28,7 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
   }, [formHeight]);
 
   const queryString = useMemo(() => {
-    if (!checkoutSecureToken) return '';
+    if (!checkoutSecureToken || !referer) return '';
     const params = new URLSearchParams();
 
     params.append('referer', referer);
@@ -40,31 +39,8 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
     return params.toString();
   }, [elementStyle, contextId, referer, checkoutSecureToken]);
 
-  const onMessage = useCallback(
-    (event: MessageEvent) => {
-      if (!iframeRef.current || event.origin == window.location.origin) return;
-
-      if (event.origin !== FRAME_BASE_URL) {
-        console.warn('[form] Ignoring message from unexpected origin:', event, '(expected:', FRAME_BASE_URL, ')');
-      } else {
-        dispatchEvent(event, iframeRef.current);
-      }
-    },
-    [dispatchEvent]
-  );
-
-  useEffect(() => {
-    if (!iframeRef.current || !contextId) return;
-
-    window.addEventListener('message', onMessage);
-    setReferer(window.location.origin);
-
-    // Ensure cleanup
-    return () => window.removeEventListener('message', onMessage);
-  }, [iframeRef, contextId, onMessage]);
-
   if (!checkoutSecureToken) {
-    console.error('[form] Cannot render frame, no checkout secure token provided');
+    console.error('[form] Cannot render partially initialized frame');
     return <div></div>;
   }
 

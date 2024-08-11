@@ -2,6 +2,7 @@ import { createContext } from 'react';
 
 export type ElementsContextValue = {
   contextId: string;
+  referer?: string;
   checkoutSecureToken?: string;
   formHeight: string;
   createToken: () => void;
@@ -11,6 +12,7 @@ export type ElementsContextValue = {
 export const ElementsContext = createContext<ElementsContextValue>({
   contextId: '',
   formHeight: '',
+  referer: undefined,
   checkoutSecureToken: undefined,
   createToken: () => {},
   dispatchEvent: () => {},
