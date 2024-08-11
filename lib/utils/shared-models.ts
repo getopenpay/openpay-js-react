@@ -67,23 +67,22 @@ export enum ElementEventType {
  */
 
 // Field events
-export const FieldEventPayload = z.object({
-  type: z.union([
-    z.literal(ElementEventType.BLUR),
-    z.literal(ElementEventType.FOCUS),
-    z.literal(ElementEventType.CHANGE),
-  ]),
-});
+const FieldEventType = z.enum([ElementEventType.BLUR, ElementEventType.FOCUS, ElementEventType.CHANGE]);
+type FieldEventType = z.infer<typeof FieldEventType>;
+export const FieldEventPayload = z.object({ type: FieldEventType });
 export type FieldEventPayload = z.infer<typeof FieldEventPayload>;
 
 // Generic error events
+const ErrorEventType = z.enum([
+  ElementEventType.LOAD_ERROR,
+  ElementEventType.VALIDATION_ERROR,
+  ElementEventType.TOKENIZE_ERROR,
+  ElementEventType.CHECKOUT_ERROR,
+]);
+type ErrorEventType = z.infer<typeof ErrorEventType>;
+
 export const ErrorEventPayload = z.object({
-  type: z.union([
-    z.literal(ElementEventType.LOAD_ERROR),
-    z.literal(ElementEventType.VALIDATION_ERROR),
-    z.literal(ElementEventType.TOKENIZE_ERROR),
-    z.literal(ElementEventType.CHECKOUT_ERROR),
-  ]),
+  type: ErrorEventType,
   message: z.string(),
 });
 export type ErrorEventPayload = z.infer<typeof ErrorEventPayload>;
@@ -94,8 +93,10 @@ export const LoadedEventPayload = z.object({
 });
 export type LoadedEventPayload = z.infer<typeof LoadedEventPayload>;
 
+const SubmitEventType = z.enum([ElementEventType.TOKENIZE, ElementEventType.CHECKOUT]);
+type SubmitEventType = z.infer<typeof SubmitEventType>;
 export const SubmitEventPayload = z.object({
-  type: z.union([z.literal(ElementEventType.TOKENIZE), z.literal(ElementEventType.CHECKOUT)]),
+  type: SubmitEventType,
   [FieldName.FIRST_NAME]: z.string(),
   [FieldName.LAST_NAME]: z.string(),
   [FieldName.EMAIL]: z.string(),
