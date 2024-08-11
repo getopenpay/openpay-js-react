@@ -79,10 +79,10 @@ const Form: FC<FormProps> = (props) => {
 
 const ElementsExample: FC = () => {
   const [token, setToken] = useState<string>('');
-  const [separateFrames, setSeparateFrames] = useState<boolean>(true);
+  const [separateFrames, setSeparateFrames] = useState<boolean>(false);
 
   return (
-    <main className="w-full max-w-5xl p-24">
+    <main className="w-full max-w-5xl p-24 mx-auto">
       <div>
         <h1 className="text-2xl font-bold">OpenPay Elements</h1>
         <p className="my-4">Accept payments through OpenPay, right on your site</p>
