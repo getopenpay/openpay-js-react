@@ -1,4 +1,4 @@
-import { ElementsStyle } from './shared-models';
+import { ElementsStyle, FieldName } from './shared-models';
 
 export type ElementProps = {
   styles?: ElementsStyle;
@@ -17,7 +17,7 @@ export type ElementsFormProps = {
   onChange?: (elementId: string) => void;
   onLoad?: (totalAmountAtoms: number) => void;
   onLoadError?: (message: string) => void;
-  onValidationError?: (message: string, elementId?: string) => void;
+  onValidationError?: (field: FieldName, errors: string[], elementId?: string) => void;
   onCheckoutStarted?: () => void;
   onCheckoutSuccess?: (invoiceUrls: string[]) => void;
   onCheckoutError?: (message: string) => void;

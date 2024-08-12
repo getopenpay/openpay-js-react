@@ -117,10 +117,9 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
         if (onLoadError) onLoadError(eventPayload.message);
       } else if (eventType === EventType.enum.VALIDATION_ERROR) {
-        console.error('[form] Validation error:', eventPayload.message);
-        setPreventClose(false);
+        console.error(`[form] Validation error for ${eventPayload.elementType}:`, eventPayload.errors);
 
-        if (onValidationError) onValidationError(eventPayload.message, elementId);
+        if (onValidationError) onValidationError(eventPayload.elementType, eventPayload.errors, elementId);
       } else if (eventType === EventType.enum.TOKENIZE_ERROR || eventType === EventType.enum.CHECKOUT_ERROR) {
         console.error('[form] API error from element:', eventPayload.message);
         setPreventClose(false);
@@ -145,9 +144,11 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   );
 
   const submit = useCallback(() => {
-    if (!formRef.current) return;
+    if (!formRef.current || !onValidationError) return;
 
-    const extraData = constructTokenizeEventPayload(formRef.current);
+    const extraData = constructTokenizeEventPayload(formRef.current, onValidationError);
+    if (!extraData) return;
+
     console.log('[form] Submitting form:', extraData);
 
     for (const [elementId, target] of Object.entries(eventTargets)) {
@@ -157,7 +158,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
     extraData.type = EventType.enum.CHECKOUT;
     setExtraData(extraData);
-  }, [formRef, eventTargets, formId]);
+  }, [formRef, eventTargets, formId, onValidationError]);
 
   const onBeforeUnload = useCallback(
     (e: BeforeUnloadEvent) => {

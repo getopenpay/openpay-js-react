@@ -1,8 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
 import { FRAME_BASE_URL } from './constants';
-import { ElementEvent, EventType, EventPayload, SubmitEventPayload } from './shared-models';
+import { ElementEvent, FieldName, EventType, EventPayload, SubmitEventPayload } from './shared-models';
+import { extractIssuesPerField } from './zod-errors';
 
-export const constructTokenizeEventPayload = (formDiv: HTMLDivElement): SubmitEventPayload => {
+export const constructTokenizeEventPayload = (
+  formDiv: HTMLDivElement,
+  onValidationError: (field: FieldName, errors: string[], elementId?: string) => void
+): SubmitEventPayload | undefined => {
   const includedInputs: HTMLInputElement[] = Array.from(formDiv.querySelectorAll('input[data-opid]') ?? []);
   const extraData = includedInputs.reduce(
     (acc, input) => {
@@ -15,7 +19,18 @@ export const constructTokenizeEventPayload = (formDiv: HTMLDivElement): SubmitEv
 
   console.log('[form] Constructing tokenization payload:', extraData);
 
-  return SubmitEventPayload.parse(extraData);
+  const payload = SubmitEventPayload.safeParse(extraData);
+
+  if (!payload.success) {
+    const formatted = payload.error.format();
+    const issues = extractIssuesPerField(formatted);
+
+    for (const [fieldName, errors] of Object.entries(issues)) {
+      onValidationError(fieldName as FieldName, errors, fieldName);
+    }
+  } else {
+    return payload.data;
+  }
 };
 
 export const parseEventPayload = (eventData: object): ElementEvent => {

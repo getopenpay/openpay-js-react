@@ -1,5 +1,5 @@
 'use client';
-import { FC, useCallback, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ElementsForm,
   CardCvcElement,
@@ -20,37 +20,68 @@ interface FormProps {
 const Form: FC<FormProps> = (props) => {
   const { token, separateFrames, onCheckoutSuccess } = props;
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | undefined>(undefined);
-  const [amount, setAmount] = useState<string | undefined>(undefined);
-  const [overlayMessage, setOverlayMessage] = useState<string | undefined>(undefined);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [amount, setAmount] = useState<string | null>(null);
+  const [overlayMessage, setOverlayMessage] = useState<string | null>(null);
+
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
+  const validationError = useMemo(() => {
+    if (!validationErrors) return null;
+
+    const errorMessages = Object.entries(validationErrors).map(([elementType, errors]) => {
+      return `${elementType}: ${errors.join(', ')}`;
+    });
+
+    return errorMessages.join('; ');
+  }, [validationErrors]);
+
+  const error = useMemo(() => checkoutError || validationError, [checkoutError, validationError]);
+
+  const resetErrors = useCallback(() => {
+    setValidationErrors({});
+    setCheckoutError(null);
+  }, []);
 
   const onCheckoutStarted = (): void => {
     setLoading(true);
-    setOverlayMessage('In progress...');
+    setOverlayMessage('Processing payment...');
   };
 
   const onCheckoutError = (message: string): void => {
     setLoading(false);
-    setError(message);
+    setCheckoutError(message);
   };
 
   const onLoad = (totalAmountAtoms: number): void => {
     setLoading(false);
+    resetErrors();
     setAmount(`$${totalAmountAtoms / 100}`);
   };
 
   const onLoadError = (message: string): void => {
     setLoading(false);
-    setOverlayMessage(`Could not load form: ${message}`);
+    setOverlayMessage(`Could not load form. Is the session valid and not expired? Raw error: ${message}`);
   };
+
+  const onValidationError = (elementType: string, errors: string[]): void => {
+    setValidationErrors((prevValidationErrors) => ({
+      ...prevValidationErrors,
+      [elementType]: errors,
+    }));
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    setOverlayMessage(null);
+  }, [token]);
 
   return (
     <ElementsForm
       checkoutSecureToken={token}
       onLoad={onLoad}
       onLoadError={onLoadError}
-      onChange={() => setError(undefined)}
-      onValidationError={(message) => setError(message)}
+      onChange={resetErrors}
+      onValidationError={onValidationError}
       onCheckoutStarted={onCheckoutStarted}
       onCheckoutSuccess={onCheckoutSuccess}
       onCheckoutError={onCheckoutError}
@@ -58,8 +89,9 @@ const Form: FC<FormProps> = (props) => {
       {({ submit }) => (
         <FormWrapper error={error}>
           {(loading || overlayMessage) && (
-            <div className="absolute top-0 left-0 z-50 w-full h-full flex items-center justify-center bg-emerald-500/50 dark:bg-emerald-600/50 backdrop-blur">
-              <p>{overlayMessage ?? 'Loading...'}</p>
+            <div className="absolute top-0 left-0 z-50 w-full h-full flex flex-col gap-2 items-center justify-center bg-emerald-100/50 dark:bg-emerald-800/50 backdrop-blur rounded-lg cursor-not-allowed">
+              {loading && <span className="text-4xl animate-spin">⏳︎</span>}
+              <p className="text-lg text-center font-bold max-w-md w-full">{overlayMessage ?? 'Loading...'}</p>
             </div>
           )}
 
@@ -67,20 +99,22 @@ const Form: FC<FormProps> = (props) => {
 
           {separateFrames ? (
             <>
-              <InputField>
+              <InputField hasError={!!validationErrors.card_number}>
                 <CardNumberElement />
               </InputField>
               <div className="flex gap-2 items-center justify-between">
-                <InputField>
+                <InputField hasError={!!validationErrors.card_expiry}>
                   <CardExpiryElement />
                 </InputField>
-                <InputField>
+                <InputField hasError={!!validationErrors.card_cvc}>
                   <CardCvcElement />
                 </InputField>
               </div>
             </>
           ) : (
-            <InputField>
+            <InputField
+              hasError={!!validationErrors.card_number || !!validationErrors.card_expiry || !!validationErrors.card_cvc}
+            >
               <CardElement />
             </InputField>
           )}
@@ -98,18 +132,26 @@ const Form: FC<FormProps> = (props) => {
 };
 
 const ElementsExample: FC = () => {
-  const [token, setToken] = useState<string>('');
+  const [token, setToken] = useState<string | null>(null);
   const [separateFrames, setSeparateFrames] = useState<boolean>(false);
   const [invoiceUrls, setInvoiceUrls] = useState<string[] | null>(null);
 
-  const onCheckoutSuccess = useCallback((invoiceUrls: string[]) => {
-    setToken('');
-    setInvoiceUrls(invoiceUrls);
-  }, []);
+  const tokenInputRef = useRef<HTMLInputElement | null>(null);
+
+  const onCheckoutSuccess = useCallback(
+    (invoiceUrls: string[]) => {
+      setInvoiceUrls(invoiceUrls);
+
+      if (tokenInputRef.current) {
+        tokenInputRef.current.value = '';
+      }
+    },
+    [tokenInputRef]
+  );
 
   const onTokenChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setInvoiceUrls(null);
-    setToken(e.target.value);
+    setToken(e.target.value === '' ? null : e.target.value);
   }, []);
 
   return (
@@ -124,6 +166,7 @@ const ElementsExample: FC = () => {
           Checkout secure token
         </label>
         <input
+          ref={tokenInputRef}
           type="text"
           id="checkout-secure-token"
           placeholder="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
