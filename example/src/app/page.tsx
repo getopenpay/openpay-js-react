@@ -1,5 +1,5 @@
 'use client';
-import { FC, useCallback, useEffect, useState } from 'react';
+import { FC, useCallback, useState } from 'react';
 import {
   ElementsForm,
   CardCvcElement,
@@ -24,39 +24,31 @@ const Form: FC<FormProps> = (props) => {
   const [amount, setAmount] = useState<string | undefined>(undefined);
   const [overlayMessage, setOverlayMessage] = useState<string | undefined>(undefined);
 
-  const onBeforeUnload = useCallback(() => {
-    if (loading) {
-      window.alert('Checkout in progress. Are you sure you want to leave?');
-    }
-  }, [loading]);
-
-  useEffect(() => {
-    window.addEventListener('beforeunload', onBeforeUnload);
-
-    // Ensure cleanup
-    return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [onBeforeUnload]);
-
-  const onCheckoutStarted = () => {
+  const onCheckoutStarted = (): void => {
     setLoading(true);
     setOverlayMessage('In progress...');
   };
 
-  const onCheckoutError = (message: string) => {
+  const onCheckoutError = (message: string): void => {
     setLoading(false);
     setError(message);
   };
 
-  const onLoad = (totalAmountAtoms: number) => {
+  const onLoad = (totalAmountAtoms: number): void => {
     setLoading(false);
     setAmount(`$${totalAmountAtoms / 100}`);
+  };
+
+  const onLoadError = (message: string): void => {
+    setLoading(false);
+    setOverlayMessage(`Could not load form: ${message}`);
   };
 
   return (
     <ElementsForm
       checkoutSecureToken={token}
       onLoad={onLoad}
-      onLoadError={(message) => setOverlayMessage(`Could not load form: ${message}`)}
+      onLoadError={onLoadError}
       onChange={() => setError(undefined)}
       onValidationError={(message) => setError(message)}
       onCheckoutStarted={onCheckoutStarted}
@@ -65,7 +57,7 @@ const Form: FC<FormProps> = (props) => {
     >
       {({ submit }) => (
         <FormWrapper error={error}>
-          {loading && (
+          {(loading || overlayMessage) && (
             <div className="absolute top-0 left-0 z-50 w-full h-full flex items-center justify-center bg-emerald-500/50 dark:bg-emerald-600/50 backdrop-blur">
               <p>{overlayMessage ?? 'Loading...'}</p>
             </div>

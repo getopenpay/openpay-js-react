@@ -28,6 +28,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const [loaded, setLoaded] = useState<boolean>(false);
   const [extraData, setExtraData] = useState<SubmitEventPayload | undefined>(undefined);
   const [totalAmountAtoms, setTotalAmountAtoms] = useState<number | undefined>(undefined);
+  const [preventClose, setPreventClose] = useState<boolean>(false);
 
   const [iframes, setIframes] = useState<HTMLIFrameElement[]>([]);
   const [eventTargets, setEventTargets] = useState<Record<string, MessageEventSource>>({});
@@ -80,6 +81,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         onChange(eventData.elementId);
       } else if (eventType === EventType.enum.LOADED) {
         const matchingIframe = iframes.find((iframe) => iframe.contentWindow === eventSource);
+        setPreventClose(false);
 
         if (!matchingIframe) {
           console.warn('[form] Ignoring LOADED event from unregistered iframe:', eventData);
@@ -94,6 +96,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         console.log(`[form] Element ${elementId} loaded with height ${height}`);
       } else if (eventType === EventType.enum.TOKENIZE_STARTED) {
         console.log('[form] Tokenization started');
+        setPreventClose(true);
 
         if (onCheckoutStarted) onCheckoutStarted();
       } else if (eventType === EventType.enum.TOKENIZE_SUCCESS && !!extraData) {
@@ -106,6 +109,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         }
       } else if (eventType === EventType.enum.CHECKOUT_SUCCESS) {
         console.log('[form] Checkout complete:', eventPayload.invoiceUrls);
+        setPreventClose(false);
 
         if (onCheckoutSuccess) onCheckoutSuccess(eventPayload.invoiceUrls);
       } else if (eventType === EventType.enum.LOAD_ERROR) {
@@ -114,10 +118,12 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         if (onLoadError) onLoadError(eventPayload.message);
       } else if (eventType === EventType.enum.VALIDATION_ERROR) {
         console.error('[form] Validation error:', eventPayload.message);
+        setPreventClose(false);
 
         if (onValidationError) onValidationError(eventPayload.message, elementId);
       } else if (eventType === EventType.enum.TOKENIZE_ERROR || eventType === EventType.enum.CHECKOUT_ERROR) {
         console.error('[form] API error from element:', eventPayload.message);
+        setPreventClose(false);
 
         if (onCheckoutError) onCheckoutError(eventPayload.message);
       }
@@ -153,6 +159,13 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     setExtraData(extraData);
   }, [formRef, eventTargets, formId]);
 
+  const onBeforeUnload = useCallback(
+    (e: BeforeUnloadEvent) => {
+      if (preventClose) e.preventDefault();
+    },
+    [preventClose]
+  );
+
   useEffect(() => {
     if (loaded || !formRef.current || !totalAmountAtoms) return;
 
@@ -166,10 +179,14 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   useEffect(() => {
     setReferer(window.location.origin);
     window.addEventListener('message', onMessage);
+    window.addEventListener('beforeunload', onBeforeUnload);
 
     // Ensure cleanup
-    return () => window.removeEventListener('message', onMessage);
-  }, [onMessage]);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('message', onMessage);
+    };
+  }, [onMessage, onBeforeUnload]);
 
   const registerIframe = useCallback(
     (iframe: HTMLIFrameElement) => {
