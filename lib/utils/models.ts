@@ -1,4 +1,4 @@
-import { ElementsStyle } from './shared-models';
+import { Appearance, ElementsStyle } from './shared-models';
 
 export type ElementProps = {
   styles?: ElementsStyle;
@@ -10,6 +10,7 @@ type ElementsFormChildrenProps = {
 
 export type ElementsFormProps = {
   className?: string;
+  appearance?: Appearance;
   checkoutSecureToken?: string;
   children: (props: ElementsFormChildrenProps) => JSX.Element;
   onFocus?: (elementId: string) => void;

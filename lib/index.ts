@@ -4,7 +4,7 @@ import CardCvcElement from './components/card-cvc';
 import CardElement from './components/card';
 import CardExpiryElement from './components/card-expiry';
 import CardNumberElement from './components/card-number';
-import { FieldName } from './utils/shared-models';
+import { FieldName, Appearance, AppearanceTheme, AppearanceVariables } from './utils/shared-models';
 
 export {
   useOpenPayElements,
@@ -14,4 +14,7 @@ export {
   CardNumberElement,
   ElementsForm,
   FieldName,
+  Appearance,
+  AppearanceTheme,
+  AppearanceVariables,
 };

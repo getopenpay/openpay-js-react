@@ -1,6 +1,6 @@
 import { FC, useMemo, useRef } from 'react';
 import { FRAME_BASE_URL } from '../../utils/constants';
-import { convertStylesToQueryString } from '../../utils/style';
+import { convertToQueryString } from '../../utils/style';
 import { ElementsStyle } from '../../utils/shared-models';
 import { useOpenPayElements } from '../../hooks/use-openpay-elements';
 
@@ -12,13 +12,18 @@ type ElementFrameProps = {
 
 const ElementFrame: FC<ElementFrameProps> = (props) => {
   const { subPath, styles } = props;
-  const { contextId, referer, formHeight, checkoutSecureToken } = useOpenPayElements();
+  const { contextId, referer, formHeight, checkoutSecureToken, appearance } = useOpenPayElements();
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const elementStyle = useMemo(() => {
     if (!styles) return '';
-    return convertStylesToQueryString(styles);
+    return convertToQueryString(styles);
   }, [styles]);
+
+  const formAppearance = useMemo(() => {
+    if (!appearance) return '';
+    return convertToQueryString(appearance);
+  }, [appearance]);
 
   const frameStyle = useMemo(() => {
     return {
@@ -34,11 +39,12 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
 
     params.append('referer', referer);
     params.append('styles', elementStyle);
+    params.append('appearance', formAppearance);
     params.append('contextId', contextId);
     params.append('secureToken', checkoutSecureToken);
 
     return params.toString();
-  }, [elementStyle, contextId, referer, checkoutSecureToken]);
+  }, [elementStyle, formAppearance, contextId, referer, checkoutSecureToken]);
 
   if (!checkoutSecureToken) {
     console.error('[form] Cannot render partially initialized frame');

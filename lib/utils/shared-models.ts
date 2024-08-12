@@ -6,8 +6,37 @@ import { z } from 'zod';
  */
 
 /**
- * Styles
+ * Styles and appearance
  */
+export enum AppearanceTheme {
+  UNSTYLED = 'unstyled',
+  LIGHT = 'light',
+  DARK = 'dark',
+}
+
+export const AppearanceVariables = z.object({
+  colorPrimary: z.string().optional(),
+  colorBackground: z.string().optional(),
+  colorForeground: z.string().optional(),
+  colorText: z.string().optional(),
+  colorDanger: z.string().optional(),
+  fontFamily: z.string().optional(),
+  fontSize: z.string().optional(),
+  spacing: z.string().optional(),
+  borderRadius: z.string().optional(),
+  borderColor: z.string().optional(),
+  borderWidth: z.string().optional(),
+  focusRingColor: z.string().optional(),
+  padding: z.string().optional(),
+});
+
+export const Appearance = z.object({
+  theme: z.enum([AppearanceTheme.UNSTYLED, AppearanceTheme.LIGHT, AppearanceTheme.DARK]),
+  variables: AppearanceVariables.optional(),
+});
+
+export type AppearanceVariables = z.infer<typeof AppearanceVariables>;
+export type Appearance = z.infer<typeof Appearance>;
 
 export const ElementsStyle = z.object({
   backgroundColor: z.string().optional(),

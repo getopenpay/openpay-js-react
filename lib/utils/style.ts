@@ -1,6 +1,4 @@
-import { ElementsStyle } from './shared-models';
-
-export const convertStylesToQueryString = (styles: ElementsStyle): string => {
+export const convertToQueryString = (styles: object): string => {
   const serializedStyles = encodeURIComponent(JSON.stringify(styles));
-  return `styles=${serializedStyles}`;
+  return serializedStyles;
 };

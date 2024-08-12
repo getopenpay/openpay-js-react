@@ -19,6 +19,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     onCheckoutStarted,
     onCheckoutSuccess,
     onCheckoutError,
+    appearance,
   } = props;
 
   const [referer, setReferer] = useState<string | undefined>(undefined);
@@ -154,6 +155,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     formHeight,
     referer,
     checkoutSecureToken,
+    appearance,
   };
 
   return (
