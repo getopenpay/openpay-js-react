@@ -6,7 +6,7 @@ on:
 
 jobs:
   publish:
-    name: 🚀 Publishing to NPM
+    name: Publish to NPM
     runs-on: ubuntu-latest
 
     steps:
@@ -22,6 +22,12 @@ jobs:
         run: |
           npm ci
           npm run build
+
+      - name: Set version variable
+        if: 'github.event.release.prerelease'
+        run: |
+          echo "Tag name from github.ref_name: ${{  github.ref_name }}"
+          npm version ${{ github.ref_name }} --no-git-tag-version
 
       - name: Publish package
         run: |

@@ -7,7 +7,7 @@ on:
 
 jobs:
   publish:
-    name: 🚀 Publishing to NPM
+    name: Publish to NPM
     runs-on: ubuntu-latest
 
     steps:
