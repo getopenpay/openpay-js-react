@@ -32,6 +32,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
   const [iframes, setIframes] = useState<HTMLIFrameElement[]>([]);
   const [eventTargets, setEventTargets] = useState<Record<string, MessageEventSource>>({});
+  const [tokenized, setTokenized] = useState<number>(0);
+  const [checkoutFired, setCheckoutFired] = useState<boolean>(false);
 
   const formId = useMemo(() => `opjs-form-${uuidv4()}`, []);
   const formRef = useRef<HTMLDivElement | null>(null);
@@ -100,16 +102,31 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
         if (onCheckoutStarted) onCheckoutStarted();
       } else if (eventType === EventType.enum.TOKENIZE_SUCCESS && !!extraData) {
-        if (eventPayload.isReadyForCheckout) {
+        // When using separate elements for card number, expiry, and CVC,
+        // there are instances where CDE tokenizes all three successfully
+        // but does not return is_ready=True for any of them. This is due
+        // to the fact that the tokenization is done in parallel.
+        // To work around this, we keep track of the number of tokenized
+        // elements and only fire the checkout event when either all
+        // elements have been tokenized or at least one of them has
+        // received is_ready=True from the backend.
+        const totalTokenized = tokenized + 1;
+        const allTokenized = totalTokenized === Object.keys(eventTargets).length;
+
+        if (!checkoutFired && (allTokenized || eventPayload.isReadyForCheckout)) {
           console.log('[form] Tokenized card is ready for checkout');
           emitEvent(eventSource, formId, elementId, extraData);
+          setCheckoutFired(true);
           setExtraData(undefined);
         } else {
-          console.log(`[form] Element ${elementId} finished tokenization but is not yet ready for checkout`);
+          console.log(`[form] Element ${elementId} finished tokenization but card not yet ready for checkout`);
+          setTokenized(totalTokenized);
         }
       } else if (eventType === EventType.enum.CHECKOUT_SUCCESS) {
         console.log('[form] Checkout complete:', eventPayload.invoiceUrls);
         setPreventClose(false);
+        setTokenized(0);
+        setCheckoutFired(false);
 
         if (onCheckoutSuccess) onCheckoutSuccess(eventPayload.invoiceUrls);
       } else if (eventType === EventType.enum.LOAD_ERROR) {
@@ -132,6 +149,9 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       nonces,
       extraData,
       iframes,
+      eventTargets,
+      tokenized,
+      checkoutFired,
       onBlur,
       onChange,
       onFocus,
