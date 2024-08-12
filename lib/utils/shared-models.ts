@@ -117,6 +117,7 @@ export type SubmitEventPayload = z.infer<typeof SubmitEventPayload>;
 export const TokenizeSuccessEventPayload = z.object({
   type: z.literal(ElementEventType.TOKENIZE_SUCCESS),
   paymentToken: z.string(),
+  isReadyForCheckout: z.boolean(),
 });
 export type TokenizeSuccessEventPayload = z.infer<typeof TokenizeSuccessEventPayload>;
 

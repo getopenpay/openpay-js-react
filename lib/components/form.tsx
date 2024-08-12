@@ -77,10 +77,13 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
         if (onCheckoutStarted) onCheckoutStarted();
       } else if (eventType === ElementEventType.TOKENIZE_SUCCESS && !!extraData) {
-        console.log('[form] Tokenization complete:', eventPayload.paymentToken);
-
-        emitEvent(eventSource, formId, elementId, extraData);
-        setExtraData(undefined);
+        if (eventPayload.isReadyForCheckout) {
+          console.log('[form] Tokenized card is ready for checkout');
+          emitEvent(eventSource, formId, elementId, extraData);
+          setExtraData(undefined);
+        } else {
+          console.log(`[form] Element ${elementId} finished tokenization but is not yet ready for checkout`);
+        }
       } else if (eventType === ElementEventType.CHECKOUT_SUCCESS) {
         console.log('[form] Checkout complete:', eventPayload.invoiceUrls);
 
