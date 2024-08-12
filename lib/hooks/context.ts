@@ -5,6 +5,7 @@ export type ElementsContextValue = {
   formHeight: string;
   referer?: string;
   checkoutSecureToken?: string;
+  registerIframe: (iframe: HTMLIFrameElement) => void;
 };
 
 export const ElementsContext = createContext<ElementsContextValue>({
@@ -12,6 +13,7 @@ export const ElementsContext = createContext<ElementsContextValue>({
   formHeight: '',
   referer: undefined,
   checkoutSecureToken: undefined,
+  registerIframe: () => {},
 });
 
 export default { ElementsContext };

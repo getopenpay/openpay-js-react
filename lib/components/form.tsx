@@ -24,20 +24,33 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
   const [referer, setReferer] = useState<string | undefined>(undefined);
   const [nonces, setNonces] = useState<string[]>([]);
-  const [targets, setTargets] = useState<Record<string, MessageEventSource>>({});
   const [formHeight, setFormHeight] = useState<string>('1px');
   const [loaded, setLoaded] = useState<boolean>(false);
   const [extraData, setExtraData] = useState<SubmitEventPayload | undefined>(undefined);
   const [totalAmountAtoms, setTotalAmountAtoms] = useState<number | undefined>(undefined);
-  const formRef = useRef<HTMLDivElement | null>(null);
+
+  const [iframes, setIframes] = useState<HTMLIFrameElement[]>([]);
+  const [eventTargets, setEventTargets] = useState<Record<string, MessageEventSource>>({});
 
   const formId = useMemo(() => `opjs-form-${uuidv4()}`, []);
+  const formRef = useRef<HTMLDivElement | null>(null);
 
   const onMessage = useCallback(
     (event: MessageEvent) => {
-      const eventSource = event.source;
+      // Since window.postMessage allows any source to post messages
+      // to a specific target, we need to ensure that messages are
+      // originating from CDE.
+      // https://html.spec.whatwg.org/multipage/web-messaging.html#authors
+      if (event.origin !== FRAME_BASE_URL) return;
 
-      if (event.origin !== FRAME_BASE_URL || !eventSource) return;
+      // MessageEvent.source is a non-null MessageEventSource for
+      // messages sent via window.postMessage, but it is null for
+      // messages sent via BroadcastChannel.postMessage.
+      // We are not interested in the latter, and it's cleaner to
+      // convince TypeScript about this using a temp variable
+      // than to recheck inside the if blocks.
+      if (!event.source) return;
+      const eventSource = event.source;
 
       const eventData = parseEventPayload(JSON.parse(event.data));
       const elementId = eventData.elementId;
@@ -66,12 +79,19 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       } else if (eventType === ElementEventType.CHANGE && !!onChange) {
         onChange(eventData.elementId);
       } else if (eventType === ElementEventType.LOADED) {
-        console.log(`[form] Element ${elementId} loaded with height:`, eventPayload.height);
-        setTargets((prevTargets) => ({ ...prevTargets, [elementId]: eventSource }));
-        setTotalAmountAtoms(eventPayload.totalAmountAtoms);
+        const matchingIframe = iframes.find((iframe) => iframe.contentWindow === eventSource);
+
+        if (!matchingIframe) {
+          console.warn('[form] Ignoring LOADED event from unregistered iframe:', eventData);
+          return;
+        }
+        setEventTargets((prevTargets) => ({ ...prevTargets, [elementId]: eventSource }));
 
         const height = eventPayload.height ? `${eventPayload.height}px` : '100%';
+        setTotalAmountAtoms(eventPayload.totalAmountAtoms);
         setFormHeight(height);
+
+        console.log(`[form] Element ${elementId} loaded with height ${height}`);
       } else if (eventType === ElementEventType.TOKENIZE_STARTED) {
         console.log('[form] Tokenization started');
 
@@ -106,6 +126,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       formId,
       nonces,
       extraData,
+      iframes,
       onBlur,
       onChange,
       onFocus,
@@ -123,40 +144,50 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     const extraData = constructTokenizeEventPayload(formRef.current);
     console.log('[form] Submitting form:', extraData);
 
-    for (const [elementId, target] of Object.entries(targets)) {
+    for (const [elementId, target] of Object.entries(eventTargets)) {
       if (!target) continue;
       emitEvent(target, formId, elementId, extraData);
     }
 
     extraData.type = ElementEventType.CHECKOUT;
     setExtraData(extraData);
-  }, [formRef, targets, formId]);
+  }, [formRef, eventTargets, formId]);
 
   useEffect(() => {
     if (loaded || !formRef.current || !totalAmountAtoms) return;
 
-    const iframes = formRef.current.querySelectorAll('iframe');
-
-    if (iframes.length === Object.keys(targets).length) {
-      console.log('[form] All iframes loaded');
+    if (iframes.length === Object.keys(eventTargets).length) {
+      console.log('[form] All elements loaded');
       setLoaded(true);
       if (onLoad) onLoad(totalAmountAtoms);
     }
-  }, [targets, loaded, onLoad, totalAmountAtoms]);
+  }, [iframes, eventTargets, loaded, onLoad, totalAmountAtoms]);
 
   useEffect(() => {
-    window.addEventListener('message', onMessage);
     setReferer(window.location.origin);
+    window.addEventListener('message', onMessage);
 
     // Ensure cleanup
     return () => window.removeEventListener('message', onMessage);
   }, [onMessage]);
+
+  const registerIframe = useCallback(
+    (iframe: HTMLIFrameElement) => {
+      const existingIframe = iframes.find((existingIframe) => existingIframe.contentWindow === iframe.contentWindow);
+      if (existingIframe) return;
+
+      console.log('[form] Registering iframe:', iframe);
+      setIframes((prevIframes) => [...prevIframes, iframe]);
+    },
+    [iframes]
+  );
 
   const value: ElementsContextValue = {
     formId,
     formHeight,
     referer,
     checkoutSecureToken,
+    registerIframe,
   };
 
   return (

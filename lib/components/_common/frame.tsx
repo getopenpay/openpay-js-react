@@ -1,4 +1,4 @@
-import { FC, useMemo, useRef } from 'react';
+import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { FRAME_BASE_URL } from '../../utils/constants';
 import { convertStylesToQueryString } from '../../utils/style';
 import { ElementsStyle } from '../../utils/shared-models';
@@ -12,7 +12,9 @@ type ElementFrameProps = {
 
 const ElementFrame: FC<ElementFrameProps> = (props) => {
   const { subPath, styles } = props;
-  const { formId, referer, formHeight, checkoutSecureToken } = useOpenPayElements();
+  const { formId, referer, formHeight, checkoutSecureToken, registerIframe } = useOpenPayElements();
+
+  const [hasLoaded, setHasLoaded] = useState<boolean>(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const elementStyle = useMemo(() => {
@@ -39,6 +41,13 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
 
     return params.toString();
   }, [elementStyle, formId, referer, checkoutSecureToken]);
+
+  useEffect(() => setHasLoaded(true), []);
+  useEffect(() => {
+    if (!iframeRef.current || !hasLoaded) return;
+    registerIframe(iframeRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasLoaded]);
 
   if (!checkoutSecureToken) {
     console.error('[form] Cannot render partially initialized frame');
