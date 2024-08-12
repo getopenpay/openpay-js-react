@@ -12,7 +12,7 @@ type ElementFrameProps = {
 
 const ElementFrame: FC<ElementFrameProps> = (props) => {
   const { subPath, styles } = props;
-  const { contextId, referer, formHeight, checkoutSecureToken } = useOpenPayElements();
+  const { formId, referer, formHeight, checkoutSecureToken } = useOpenPayElements();
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const elementStyle = useMemo(() => {
@@ -34,11 +34,11 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
 
     params.append('referer', referer);
     params.append('styles', elementStyle);
-    params.append('contextId', contextId);
+    params.append('formId', formId);
     params.append('secureToken', checkoutSecureToken);
 
     return params.toString();
-  }, [elementStyle, contextId, referer, checkoutSecureToken]);
+  }, [elementStyle, formId, referer, checkoutSecureToken]);
 
   if (!checkoutSecureToken) {
     console.error('[form] Cannot render partially initialized frame');

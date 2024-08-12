@@ -1,9 +1,10 @@
-import { FC, useCallback, useEffect, useRef, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ElementsContext, type ElementsContextValue } from '../hooks/context';
 import { constructTokenizeEventPayload, emitEvent, parseEventPayload } from '../utils/event';
 import { ElementsFormProps } from '../utils/models';
 import { ElementEventType, SubmitEventPayload } from '../utils/shared-models';
 import { FRAME_BASE_URL } from '../utils/constants';
+import { v4 as uuidv4 } from 'uuid';
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
   const {
@@ -22,7 +23,6 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   } = props;
 
   const [referer, setReferer] = useState<string | undefined>(undefined);
-  const [contextId, setContextId] = useState<string>('');
   const [nonces, setNonces] = useState<string[]>([]);
   const [targets, setTargets] = useState<Record<string, MessageEventSource>>({});
   const [formHeight, setFormHeight] = useState<string>('1px');
@@ -31,7 +31,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const [totalAmountAtoms, setTotalAmountAtoms] = useState<number | undefined>(undefined);
   const formRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => setContextId(`opjs-form-${window.crypto.randomUUID()}`), []);
+  const formId = useMemo(() => `opjs-form-${uuidv4()}`, []);
 
   const onMessage = useCallback(
     (event: MessageEvent) => {
@@ -41,9 +41,9 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
       const eventData = parseEventPayload(JSON.parse(event.data));
       const elementId = eventData.elementId;
-      const formId = eventData.formId;
+      const targetFormId = eventData.formId;
 
-      if (formId !== contextId || !elementId) {
+      if (targetFormId !== formId || !elementId) {
         console.warn('[form] Ignoring unknown event:', eventData);
         return;
       }
@@ -79,7 +79,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       } else if (eventType === ElementEventType.TOKENIZE_SUCCESS && !!extraData) {
         console.log('[form] Tokenization complete:', eventPayload.paymentToken);
 
-        emitEvent(eventSource, contextId, elementId, extraData);
+        emitEvent(eventSource, formId, elementId, extraData);
         setExtraData(undefined);
       } else if (eventType === ElementEventType.CHECKOUT_SUCCESS) {
         console.log('[form] Checkout complete:', eventPayload.invoiceUrls);
@@ -100,7 +100,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       }
     },
     [
-      contextId,
+      formId,
       nonces,
       extraData,
       onBlur,
@@ -122,12 +122,12 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
     for (const [elementId, target] of Object.entries(targets)) {
       if (!target) continue;
-      emitEvent(target, contextId, elementId, extraData);
+      emitEvent(target, formId, elementId, extraData);
     }
 
     extraData.type = ElementEventType.CHECKOUT;
     setExtraData(extraData);
-  }, [formRef, targets, contextId]);
+  }, [formRef, targets, formId]);
 
   useEffect(() => {
     if (loaded || !formRef.current || !totalAmountAtoms) return;
@@ -150,7 +150,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   }, [onMessage]);
 
   const value: ElementsContextValue = {
-    contextId,
+    formId,
     formHeight,
     referer,
     checkoutSecureToken,
