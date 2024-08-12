@@ -27,13 +27,16 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const [formHeight, setFormHeight] = useState<string>('1px');
   const [loaded, setLoaded] = useState<boolean>(false);
   const [extraData, setExtraData] = useState<SubmitEventPayload | undefined>(undefined);
-  const [totalAmountAtoms, setTotalAmountAtoms] = useState<number | undefined>(undefined);
   const [preventClose, setPreventClose] = useState<boolean>(false);
 
   const [iframes, setIframes] = useState<HTMLIFrameElement[]>([]);
   const [eventTargets, setEventTargets] = useState<Record<string, MessageEventSource>>({});
   const [tokenized, setTokenized] = useState<number>(0);
   const [checkoutFired, setCheckoutFired] = useState<boolean>(false);
+
+  // From load event
+  const [currency, setCurrency] = useState<string | undefined>(undefined);
+  const [totalAmountAtoms, setTotalAmountAtoms] = useState<number | undefined>(undefined);
 
   const formId = useMemo(() => `opjs-form-${uuidv4()}`, []);
   const formRef = useRef<HTMLDivElement | null>(null);
@@ -92,8 +95,9 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         setEventTargets((prevTargets) => ({ ...prevTargets, [elementId]: eventSource }));
 
         const height = eventPayload.height ? `${eventPayload.height}px` : '100%';
-        setTotalAmountAtoms(eventPayload.totalAmountAtoms);
         setFormHeight(height);
+        setTotalAmountAtoms(eventPayload.totalAmountAtoms);
+        setCurrency(eventPayload.currency);
 
         console.log(`[form] Element ${elementId} loaded with height ${height}`);
       } else if (eventType === EventType.enum.TOKENIZE_STARTED) {
@@ -193,9 +197,9 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     if (iframes.length === Object.keys(eventTargets).length) {
       console.log('[form] All elements loaded');
       setLoaded(true);
-      if (onLoad) onLoad(totalAmountAtoms);
+      if (onLoad) onLoad(totalAmountAtoms, currency);
     }
-  }, [iframes, eventTargets, loaded, onLoad, totalAmountAtoms]);
+  }, [iframes, eventTargets, loaded, onLoad, totalAmountAtoms, currency]);
 
   useEffect(() => {
     setReferer(window.location.origin);

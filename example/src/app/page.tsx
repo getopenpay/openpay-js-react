@@ -49,10 +49,10 @@ const Form: FC<FormProps> = (props) => {
     setOverlayMessage(`Could not process payment. Raw error: ${message}`);
   };
 
-  const onLoad = (totalAmountAtoms: number): void => {
+  const onLoad = (totalAmountAtoms: number, currency?: string): void => {
     setLoading(false);
     resetErrors();
-    setAmount(`$${totalAmountAtoms / 100}`);
+    setAmount(`${currency ? `${currency.toUpperCase()} ` : '$'}${totalAmountAtoms / 100}`);
   };
 
   const onLoadError = (message: string): void => {

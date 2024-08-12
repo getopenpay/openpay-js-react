@@ -6,6 +6,7 @@ import { z } from 'zod';
  */
 
 const RequiredString = z.string().trim().min(1, { message: `Cannot be blank` });
+const OptionalString = z.string().trim().optional();
 
 /**
  * Expected input fields
@@ -13,9 +14,9 @@ const RequiredString = z.string().trim().min(1, { message: `Cannot be blank` });
 
 export enum FieldName {
   // Comes directly from CDE iframes
-  CARD_NUMBER = 'card_number',
-  CARD_EXPIRY = 'card_expiry',
-  CARD_CVC = 'card_cvc',
+  CARD_NUMBER = 'cardNumber',
+  CARD_EXPIRY = 'cardExpiry',
+  CARD_CVC = 'cardCvc',
 
   // Supplied by the user
   FIRST_NAME = 'firstName',
@@ -36,13 +37,13 @@ export type FieldNameEnum = z.infer<typeof FieldNameEnum>;
  */
 
 export const ElementsStyle = z.object({
-  backgroundColor: z.string().optional(),
-  color: z.string().optional(),
-  fontFamily: z.string().optional(),
-  fontSize: z.string().optional(),
-  fontWeight: z.string().optional(),
-  margin: z.string().optional(),
-  padding: z.string().optional(),
+  backgroundColor: OptionalString,
+  color: OptionalString,
+  fontFamily: OptionalString,
+  fontSize: OptionalString,
+  fontWeight: OptionalString,
+  margin: OptionalString,
+  padding: OptionalString,
 });
 export type ElementsStyle = z.infer<typeof ElementsStyle>;
 
@@ -96,7 +97,7 @@ const ErrorEventType = EventType.extract(['LOAD_ERROR', 'TOKENIZE_ERROR', 'CHECK
 type ErrorEventType = z.infer<typeof ErrorEventType>;
 export const ErrorEventPayload = z.object({
   type: ErrorEventType,
-  message: z.string(),
+  message: RequiredString,
 });
 export type ErrorEventPayload = z.infer<typeof ErrorEventPayload>;
 
@@ -111,8 +112,9 @@ export type ValidationErrorEventPayload = z.infer<typeof ValidationErrorEventPay
 
 export const LoadedEventPayload = z.object({
   type: z.literal(EventType.enum.LOADED),
-  height: z.string(),
+  height: RequiredString,
   totalAmountAtoms: z.number(),
+  currency: OptionalString,
 });
 export type LoadedEventPayload = z.infer<typeof LoadedEventPayload>;
 
@@ -130,7 +132,7 @@ export type SubmitEventPayload = z.infer<typeof SubmitEventPayload>;
 
 export const TokenizeSuccessEventPayload = z.object({
   type: z.literal(EventType.enum.TOKENIZE_SUCCESS),
-  paymentToken: z.string(),
+  paymentToken: RequiredString,
   isReadyForCheckout: z.boolean(),
 });
 export type TokenizeSuccessEventPayload = z.infer<typeof TokenizeSuccessEventPayload>;
@@ -160,8 +162,8 @@ export type EventPayload = z.infer<typeof EventPayload>;
 
 export const ElementEvent = z.object({
   payload: EventPayload,
-  nonce: z.string(),
-  formId: z.string(),
-  elementId: z.string(),
+  nonce: RequiredString,
+  formId: RequiredString,
+  elementId: RequiredString,
 });
 export type ElementEvent = z.infer<typeof ElementEvent>;
