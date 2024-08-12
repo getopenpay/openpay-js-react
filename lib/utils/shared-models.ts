@@ -42,51 +42,38 @@ export enum FieldName {
  * while Form refers to the page hosting the Element iframes.
  */
 
-const EVENT_PREFIX = 'op-elements';
-
-export enum ElementEventType {
+export const EventType = z.enum([
   // Element -> Form
-  LOADED = `${EVENT_PREFIX}-loaded`,
-  BLUR = `${EVENT_PREFIX}-blur`,
-  FOCUS = `${EVENT_PREFIX}-focus`,
-  CHANGE = `${EVENT_PREFIX}-change`,
-  TOKENIZE_STARTED = `${EVENT_PREFIX}-tokenize-started`,
-  CHECKOUT_STARTED = `${EVENT_PREFIX}-checkout-started`,
-  TOKENIZE_SUCCESS = `${EVENT_PREFIX}-tokenize-success`,
-  CHECKOUT_SUCCESS = `${EVENT_PREFIX}-checkout-success`,
-  LOAD_ERROR = `${EVENT_PREFIX}-load-error`,
-  VALIDATION_ERROR = `${EVENT_PREFIX}-validation-error`,
-  TOKENIZE_ERROR = `${EVENT_PREFIX}-tokenize-error`,
-  CHECKOUT_ERROR = `${EVENT_PREFIX}-checkout-error`,
+  'LOADED',
+  'BLUR',
+  'FOCUS',
+  'CHANGE',
+  'TOKENIZE_STARTED',
+  'CHECKOUT_STARTED',
+  'TOKENIZE_SUCCESS',
+  'CHECKOUT_SUCCESS',
+  'LOAD_ERROR',
+  'VALIDATION_ERROR',
+  'TOKENIZE_ERROR',
+  'CHECKOUT_ERROR',
 
   // Form -> Element
-  TOKENIZE = `${EVENT_PREFIX}-tokenize`,
-  CHECKOUT = `${EVENT_PREFIX}-checkout`,
-}
+  'TOKENIZE',
+  'CHECKOUT',
+]);
 
 /**
  * Event payload schemas
  */
 
 // Events that don't have a specific payload
-const GenericEventType = z.enum([
-  ElementEventType.BLUR,
-  ElementEventType.FOCUS,
-  ElementEventType.CHANGE,
-  ElementEventType.TOKENIZE_STARTED,
-  ElementEventType.CHECKOUT_STARTED,
-]);
+const GenericEventType = EventType.extract(['BLUR', 'FOCUS', 'CHANGE', 'TOKENIZE_STARTED', 'CHECKOUT_STARTED']);
 type GenericEventType = z.infer<typeof GenericEventType>;
 export const GenericEventPayload = z.object({ type: GenericEventType });
 export type GenericEventPayload = z.infer<typeof GenericEventPayload>;
 
 // Generic error events
-const ErrorEventType = z.enum([
-  ElementEventType.LOAD_ERROR,
-  ElementEventType.VALIDATION_ERROR,
-  ElementEventType.TOKENIZE_ERROR,
-  ElementEventType.CHECKOUT_ERROR,
-]);
+const ErrorEventType = EventType.extract(['LOAD_ERROR', 'VALIDATION_ERROR', 'TOKENIZE_ERROR', 'CHECKOUT_ERROR']);
 type ErrorEventType = z.infer<typeof ErrorEventType>;
 
 export const ErrorEventPayload = z.object({
@@ -96,13 +83,13 @@ export const ErrorEventPayload = z.object({
 export type ErrorEventPayload = z.infer<typeof ErrorEventPayload>;
 
 export const LoadedEventPayload = z.object({
-  type: z.literal(ElementEventType.LOADED),
+  type: z.literal(EventType.enum.LOADED),
   height: z.string(),
   totalAmountAtoms: z.number(),
 });
 export type LoadedEventPayload = z.infer<typeof LoadedEventPayload>;
 
-const SubmitEventType = z.enum([ElementEventType.TOKENIZE, ElementEventType.CHECKOUT]);
+const SubmitEventType = EventType.extract(['TOKENIZE', 'CHECKOUT']);
 type SubmitEventType = z.infer<typeof SubmitEventType>;
 export const SubmitEventPayload = z.object({
   type: SubmitEventType,
@@ -115,14 +102,14 @@ export const SubmitEventPayload = z.object({
 export type SubmitEventPayload = z.infer<typeof SubmitEventPayload>;
 
 export const TokenizeSuccessEventPayload = z.object({
-  type: z.literal(ElementEventType.TOKENIZE_SUCCESS),
+  type: z.literal(EventType.enum.TOKENIZE_SUCCESS),
   paymentToken: z.string(),
   isReadyForCheckout: z.boolean(),
 });
 export type TokenizeSuccessEventPayload = z.infer<typeof TokenizeSuccessEventPayload>;
 
 export const CheckoutSuccessEventPayload = z.object({
-  type: z.literal(ElementEventType.CHECKOUT_SUCCESS),
+  type: z.literal(EventType.enum.CHECKOUT_SUCCESS),
   invoiceUrls: z.array(z.string()),
 });
 export type CheckoutSuccessEventPayload = z.infer<typeof CheckoutSuccessEventPayload>;

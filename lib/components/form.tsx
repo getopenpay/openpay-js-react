@@ -2,7 +2,7 @@ import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ElementsContext, type ElementsContextValue } from '../hooks/context';
 import { constructTokenizeEventPayload, emitEvent, parseEventPayload } from '../utils/event';
 import { ElementsFormProps } from '../utils/models';
-import { ElementEventType, SubmitEventPayload } from '../utils/shared-models';
+import { EventType, SubmitEventPayload } from '../utils/shared-models';
 import { FRAME_BASE_URL } from '../utils/constants';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -72,13 +72,13 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
       console.log(`[form] Received ${eventType} event from ${elementId}:`, eventData.payload);
 
-      if (eventType === ElementEventType.FOCUS && !!onFocus) {
+      if (eventType === EventType.enum.FOCUS && !!onFocus) {
         onFocus(eventData.elementId);
-      } else if (eventType === ElementEventType.BLUR && !!onBlur) {
+      } else if (eventType === EventType.enum.BLUR && !!onBlur) {
         onBlur(eventData.elementId);
-      } else if (eventType === ElementEventType.CHANGE && !!onChange) {
+      } else if (eventType === EventType.enum.CHANGE && !!onChange) {
         onChange(eventData.elementId);
-      } else if (eventType === ElementEventType.LOADED) {
+      } else if (eventType === EventType.enum.LOADED) {
         const matchingIframe = iframes.find((iframe) => iframe.contentWindow === eventSource);
 
         if (!matchingIframe) {
@@ -92,11 +92,11 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         setFormHeight(height);
 
         console.log(`[form] Element ${elementId} loaded with height ${height}`);
-      } else if (eventType === ElementEventType.TOKENIZE_STARTED) {
+      } else if (eventType === EventType.enum.TOKENIZE_STARTED) {
         console.log('[form] Tokenization started');
 
         if (onCheckoutStarted) onCheckoutStarted();
-      } else if (eventType === ElementEventType.TOKENIZE_SUCCESS && !!extraData) {
+      } else if (eventType === EventType.enum.TOKENIZE_SUCCESS && !!extraData) {
         if (eventPayload.isReadyForCheckout) {
           console.log('[form] Tokenized card is ready for checkout');
           emitEvent(eventSource, formId, elementId, extraData);
@@ -104,19 +104,19 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         } else {
           console.log(`[form] Element ${elementId} finished tokenization but is not yet ready for checkout`);
         }
-      } else if (eventType === ElementEventType.CHECKOUT_SUCCESS) {
+      } else if (eventType === EventType.enum.CHECKOUT_SUCCESS) {
         console.log('[form] Checkout complete:', eventPayload.invoiceUrls);
 
         if (onCheckoutSuccess) onCheckoutSuccess(eventPayload.invoiceUrls);
-      } else if (eventType === ElementEventType.LOAD_ERROR) {
+      } else if (eventType === EventType.enum.LOAD_ERROR) {
         console.error('[form] Error loading iframe:', eventPayload.message);
 
         if (onLoadError) onLoadError(eventPayload.message);
-      } else if (eventType === ElementEventType.VALIDATION_ERROR) {
+      } else if (eventType === EventType.enum.VALIDATION_ERROR) {
         console.error('[form] Validation error:', eventPayload.message);
 
         if (onValidationError) onValidationError(eventPayload.message, elementId);
-      } else if (eventType === ElementEventType.TOKENIZE_ERROR || eventType === ElementEventType.CHECKOUT_ERROR) {
+      } else if (eventType === EventType.enum.TOKENIZE_ERROR || eventType === EventType.enum.CHECKOUT_ERROR) {
         console.error('[form] API error from element:', eventPayload.message);
 
         if (onCheckoutError) onCheckoutError(eventPayload.message);
@@ -149,7 +149,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       emitEvent(target, formId, elementId, extraData);
     }
 
-    extraData.type = ElementEventType.CHECKOUT;
+    extraData.type = EventType.enum.CHECKOUT;
     setExtraData(extraData);
   }, [formRef, eventTargets, formId]);
 

@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { FRAME_BASE_URL } from './constants';
-import { ElementEvent, ElementEventType, EventPayload, SubmitEventPayload } from './shared-models';
+import { ElementEvent, EventType, EventPayload, SubmitEventPayload } from './shared-models';
 
 export const constructTokenizeEventPayload = (formDiv: HTMLDivElement): SubmitEventPayload => {
   const includedInputs: HTMLInputElement[] = Array.from(formDiv.querySelectorAll('input[data-opid]') ?? []);
@@ -10,7 +10,7 @@ export const constructTokenizeEventPayload = (formDiv: HTMLDivElement): SubmitEv
       if (!key) return acc;
       return { ...acc, [key]: input.value };
     },
-    { type: ElementEventType.TOKENIZE }
+    { type: EventType.enum.TOKENIZE }
   );
 
   console.log('[form] Constructing tokenization payload:', extraData);
