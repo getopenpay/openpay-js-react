@@ -20,7 +20,6 @@ interface FormProps {
 const Form: FC<FormProps> = (props) => {
   const { token, separateFrames, onCheckoutSuccess } = props;
   const [loading, setLoading] = useState<boolean>(true);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [amount, setAmount] = useState<string | null>(null);
   const [overlayMessage, setOverlayMessage] = useState<string | null>(null);
 
@@ -35,11 +34,9 @@ const Form: FC<FormProps> = (props) => {
     return errorMessages.join('; ');
   }, [validationErrors]);
 
-  const error = useMemo(() => checkoutError || validationError, [checkoutError, validationError]);
-
   const resetErrors = useCallback(() => {
     setValidationErrors({});
-    setCheckoutError(null);
+    setOverlayMessage(null);
   }, []);
 
   const onCheckoutStarted = (): void => {
@@ -49,7 +46,7 @@ const Form: FC<FormProps> = (props) => {
 
   const onCheckoutError = (message: string): void => {
     setLoading(false);
-    setCheckoutError(message);
+    setOverlayMessage(`Could not process payment. Raw error: ${message}`);
   };
 
   const onLoad = (totalAmountAtoms: number): void => {
@@ -87,7 +84,7 @@ const Form: FC<FormProps> = (props) => {
       onCheckoutError={onCheckoutError}
     >
       {({ submit }) => (
-        <FormWrapper error={error}>
+        <FormWrapper error={validationError}>
           {(loading || overlayMessage) && (
             <div className="absolute top-0 left-0 z-50 w-full h-full flex flex-col gap-2 items-center justify-center bg-emerald-100/50 dark:bg-emerald-800/50 backdrop-blur rounded-lg cursor-not-allowed">
               {loading && <span className="text-4xl animate-spin">⏳︎</span>}
@@ -141,6 +138,7 @@ const ElementsExample: FC = () => {
   const onCheckoutSuccess = useCallback(
     (invoiceUrls: string[]) => {
       setInvoiceUrls(invoiceUrls);
+      setToken(null);
 
       if (tokenInputRef.current) {
         tokenInputRef.current.value = '';
