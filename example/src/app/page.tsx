@@ -6,6 +6,7 @@ import {
   CardElement,
   CardNumberElement,
   CardExpiryElement,
+  AppearanceTheme,
 } from '@getopenpay/openpay-js-react';
 import FormWrapper from '@/components/form-wrapper';
 import InputField from '@/components/input-field';
@@ -105,9 +106,107 @@ const Form: FC<FormProps> = (props) => {
   );
 };
 
+const StyledForm: FC<FormProps> = (props) => {
+  const { token, separateFrames, onCheckoutSuccess } = props;
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | undefined>(undefined);
+  const [amount, setAmount] = useState<string | undefined>(undefined);
+  const [overlayMessage, setOverlayMessage] = useState<string | undefined>(undefined);
+
+  const onBeforeUnload = useCallback(() => {
+    if (loading) {
+      window.alert('Checkout in progress. Are you sure you want to leave?');
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    window.addEventListener('beforeunload', onBeforeUnload);
+
+    // Ensure cleanup
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [onBeforeUnload]);
+
+  const onCheckoutStarted = () => {
+    setLoading(true);
+    setOverlayMessage('In progress...');
+  };
+
+  const onCheckoutError = (message: string) => {
+    setLoading(false);
+    setError(message);
+  };
+
+  const onLoad = (totalAmountAtoms: number) => {
+    setLoading(false);
+    setAmount(`$${totalAmountAtoms / 100}`);
+  };
+
+  return (
+    <ElementsForm
+      checkoutSecureToken={token}
+      onLoad={onLoad}
+      onLoadError={(message) => setOverlayMessage(`Could not load form: ${message}`)}
+      onChange={() => setError(undefined)}
+      onValidationError={(message) => setError(message)}
+      onCheckoutStarted={onCheckoutStarted}
+      onCheckoutSuccess={onCheckoutSuccess}
+      onCheckoutError={onCheckoutError}
+      appearance={{
+        theme: AppearanceTheme.DARK,
+        variables: {
+          borderRadius: '1rem',
+          padding: '0.7rem 1rem',
+          fontSize: '1.2rem',
+        },
+      }}
+    >
+      {({ submit }) => (
+        <FormWrapper styled error={error}>
+          {loading && (
+            <div className="absolute top-0 left-0 z-50 w-full h-full flex items-center justify-center bg-emerald-500/50 dark:bg-emerald-600/50 backdrop-blur">
+              <p>{overlayMessage ?? 'Loading...'}</p>
+            </div>
+          )}
+
+          <BillingDetails />
+
+          {separateFrames ? (
+            <div className="text-sm flex flex-col gap-2">
+              <label>
+                <p className="mb-1">Card number</p>
+                <CardNumberElement />
+              </label>
+              <div className="flex gap-3 items-center justify-between flex-grow-0">
+                <label>
+                  <p className="mb-1">Card expiry</p>
+                  <CardExpiryElement />
+                </label>
+                <label>
+                  <p className="mb-1">CVC</p>
+                  <CardCvcElement />
+                </label>
+              </div>
+            </div>
+          ) : (
+            <CardElement />
+          )}
+
+          <button
+            onClick={submit}
+            className="px-4 py-2 mt-4 w-full font-bold rounded-2xl bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700"
+          >
+            Pay {amount}
+          </button>
+        </FormWrapper>
+      )}
+    </ElementsForm>
+  );
+};
+
 const ElementsExample: FC = () => {
   const [token, setToken] = useState<string>('');
   const [separateFrames, setSeparateFrames] = useState<boolean>(false);
+  const [isStyled, setIsStyled] = useState<boolean>(false);
   const [invoiceUrls, setInvoiceUrls] = useState<string[] | null>(null);
 
   const onCheckoutSuccess = useCallback((invoiceUrls: string[]) => {
@@ -152,9 +251,30 @@ const ElementsExample: FC = () => {
         </label>
       </div>
 
+      <div
+        onChange={(e) => {
+          // @ts-expect-error value will be a string of 'true' or 'false'
+          setIsStyled(e.target.value === 'true');
+        }}
+        className="inline-flex p-1 rounded-lg mb-2 bg-emerald-200 dark:bg-emerald-800"
+      >
+        <label className="px-3 py-1 rounded-lg has-[input:checked]:bg-white dark:has-[input:checked]:bg-emerald-600">
+          Styled
+          <input type="radio" name="use-styled" value="true" className="sr-only" defaultChecked={isStyled} />
+        </label>
+        <label className="px-3 py-1 rounded-lg has-[input:checked]:bg-white dark:has-[input:checked]:bg-emerald-600">
+          Unstyled
+          <input type="radio" name="use-styled" value="false" className="sr-only" defaultChecked={!isStyled} />
+        </label>
+      </div>
+
       {token ? (
         <div className="relative">
-          <Form token={token} separateFrames={separateFrames} onCheckoutSuccess={onCheckoutSuccess} />
+          {isStyled ? (
+            <StyledForm token={token} separateFrames={separateFrames} onCheckoutSuccess={onCheckoutSuccess} />
+          ) : (
+            <Form token={token} separateFrames={separateFrames} onCheckoutSuccess={onCheckoutSuccess} />
+          )}
         </div>
       ) : (
         <div>
