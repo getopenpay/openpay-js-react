@@ -12,13 +12,8 @@ const OptionalString = z.string().trim().optional();
  * Expected input fields
  */
 
+// Supplied by the user
 export enum FieldName {
-  // Comes directly from CDE iframes
-  CARD_NUMBER = 'cardNumber',
-  CARD_EXPIRY = 'cardExpiry',
-  CARD_CVC = 'cardCvc',
-
-  // Supplied by the user
   FIRST_NAME = 'firstName',
   LAST_NAME = 'lastName',
   EMAIL = 'email',
@@ -31,6 +26,18 @@ export enum FieldName {
 }
 export const FieldNameEnum = z.nativeEnum(FieldName);
 export type FieldNameEnum = z.infer<typeof FieldNameEnum>;
+
+// Comes directly from CDE iframes
+export enum PrivateFieldName {
+  CARD_NUMBER = 'cardNumber',
+  CARD_EXPIRY = 'cardExpiry',
+  CARD_CVC = 'cardCvc',
+}
+export const PrivateFieldNameEnum = z.nativeEnum(PrivateFieldName);
+export type PrivateFieldNameEnum = z.infer<typeof PrivateFieldNameEnum>;
+
+export const AllFieldNames = z.union([FieldNameEnum, PrivateFieldNameEnum]);
+export type AllFieldNames = z.infer<typeof AllFieldNames>;
 
 /**
  * Styles
@@ -88,7 +95,7 @@ const InputEventType = EventType.extract(['BLUR', 'FOCUS', 'CHANGE']);
 type InputEventType = z.infer<typeof InputEventType>;
 export const InputEventPayload = z.object({
   type: InputEventType,
-  elementType: FieldNameEnum,
+  elementType: PrivateFieldNameEnum,
 });
 export type InputEventPayload = z.infer<typeof InputEventPayload>;
 
@@ -105,13 +112,14 @@ const ValidationErrorEventType = EventType.extract(['VALIDATION_ERROR']);
 type ValidationErrorEventType = z.infer<typeof ValidationErrorEventType>;
 export const ValidationErrorEventPayload = z.object({
   type: ValidationErrorEventType,
-  elementType: FieldNameEnum,
+  elementType: AllFieldNames,
   errors: z.array(z.string()),
 });
 export type ValidationErrorEventPayload = z.infer<typeof ValidationErrorEventPayload>;
 
 export const LoadedEventPayload = z.object({
   type: z.literal(EventType.enum.LOADED),
+  sessionId: RequiredString,
   height: RequiredString,
   totalAmountAtoms: z.number(),
   currency: OptionalString,
@@ -122,6 +130,7 @@ const SubmitEventType = EventType.extract(['TOKENIZE', 'CHECKOUT']);
 type SubmitEventType = z.infer<typeof SubmitEventType>;
 export const SubmitEventPayload = z.object({
   type: SubmitEventType,
+  sessionId: RequiredString,
   [FieldName.FIRST_NAME]: RequiredString,
   [FieldName.LAST_NAME]: RequiredString,
   [FieldName.EMAIL]: RequiredString,
@@ -132,7 +141,6 @@ export type SubmitEventPayload = z.infer<typeof SubmitEventPayload>;
 
 export const TokenizeSuccessEventPayload = z.object({
   type: z.literal(EventType.enum.TOKENIZE_SUCCESS),
-  paymentToken: RequiredString,
   isReadyForCheckout: z.boolean(),
 });
 export type TokenizeSuccessEventPayload = z.infer<typeof TokenizeSuccessEventPayload>;
