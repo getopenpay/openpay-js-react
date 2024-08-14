@@ -33,6 +33,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const [eventTargets, setEventTargets] = useState<Record<string, MessageEventSource>>({});
   const [tokenized, setTokenized] = useState<number>(0);
   const [checkoutFired, setCheckoutFired] = useState<boolean>(false);
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
 
   // From load event
   const [currency, setCurrency] = useState<string | undefined>(undefined);
@@ -99,6 +100,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         setTotalAmountAtoms(eventPayload.totalAmountAtoms);
         setCurrency(eventPayload.currency);
 
+        if (!sessionId) setSessionId(eventPayload.sessionId);
+
         console.log(`[form] Element ${elementId} loaded with height ${height}`);
       } else if (eventType === EventType.enum.TOKENIZE_STARTED) {
         console.log('[form] Tokenization started');
@@ -150,6 +153,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     },
     [
       formId,
+      sessionId,
       nonces,
       extraData,
       iframes,
@@ -168,9 +172,9 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   );
 
   const submit = useCallback(() => {
-    if (!formRef.current || !onValidationError) return;
+    if (!formRef.current || !onValidationError || !sessionId) return;
 
-    const extraData = constructTokenizeEventPayload(formRef.current, onValidationError);
+    const extraData = constructTokenizeEventPayload(sessionId, formRef.current, onValidationError);
     if (!extraData) return;
 
     console.log('[form] Submitting form:', extraData);
@@ -182,7 +186,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
     extraData.type = EventType.enum.CHECKOUT;
     setExtraData(extraData);
-  }, [formRef, eventTargets, formId, onValidationError]);
+  }, [formRef, eventTargets, formId, onValidationError, sessionId]);
 
   const onBeforeUnload = useCallback(
     (e: BeforeUnloadEvent) => {
@@ -211,7 +215,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       window.removeEventListener('beforeunload', onBeforeUnload);
       window.removeEventListener('message', onMessage);
     };
-  }, [onMessage, onBeforeUnload]);
+  }, [sessionId, onMessage, onBeforeUnload]);
 
   const registerIframe = useCallback(
     (iframe: HTMLIFrameElement) => {

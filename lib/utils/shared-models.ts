@@ -119,6 +119,7 @@ export type ValidationErrorEventPayload = z.infer<typeof ValidationErrorEventPay
 
 export const LoadedEventPayload = z.object({
   type: z.literal(EventType.enum.LOADED),
+  sessionId: RequiredString,
   height: RequiredString,
   totalAmountAtoms: z.number(),
   currency: OptionalString,
@@ -129,6 +130,7 @@ const SubmitEventType = EventType.extract(['TOKENIZE', 'CHECKOUT']);
 type SubmitEventType = z.infer<typeof SubmitEventType>;
 export const SubmitEventPayload = z.object({
   type: SubmitEventType,
+  sessionId: RequiredString,
   [FieldName.FIRST_NAME]: RequiredString,
   [FieldName.LAST_NAME]: RequiredString,
   [FieldName.EMAIL]: RequiredString,
@@ -139,7 +141,6 @@ export type SubmitEventPayload = z.infer<typeof SubmitEventPayload>;
 
 export const TokenizeSuccessEventPayload = z.object({
   type: z.literal(EventType.enum.TOKENIZE_SUCCESS),
-  paymentToken: RequiredString,
   isReadyForCheckout: z.boolean(),
 });
 export type TokenizeSuccessEventPayload = z.infer<typeof TokenizeSuccessEventPayload>;

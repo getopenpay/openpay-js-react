@@ -4,6 +4,7 @@ import { ElementEvent, FieldName, EventType, EventPayload, SubmitEventPayload } 
 import { extractIssuesPerField } from './zod-errors';
 
 export const constructTokenizeEventPayload = (
+  sessionId: string,
   formDiv: HTMLDivElement,
   onValidationError: (field: FieldName, errors: string[], elementId?: string) => void
 ): SubmitEventPayload | undefined => {
@@ -14,7 +15,10 @@ export const constructTokenizeEventPayload = (
       if (!key) return acc;
       return { ...acc, [key]: input.value };
     },
-    { type: EventType.enum.TOKENIZE }
+    {
+      type: EventType.enum.TOKENIZE,
+      sessionId,
+    }
   );
 
   console.log('[form] Constructing tokenization payload:', extraData);
