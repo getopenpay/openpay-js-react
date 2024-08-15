@@ -63,6 +63,4 @@ If you want to customize the styling of the element itself you can apply via the
 - `fontWeight`
 - `margin`
 - `padding`
-  What’s Next
-  Tell your users what they should do after they've finished this page
-  Examples
+
