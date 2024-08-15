@@ -1,17 +1,6 @@
-import { z } from 'zod';
+import { ElementsStyle } from './shared-models';
 
-const ElementStyleSchema = z.object({
-  backgroundColor: z.string().optional(),
-  color: z.string().optional(),
-  fontFamily: z.string().optional(),
-  fontSize: z.string().optional(),
-  fontWeight: z.string().optional(),
-  margin: z.string().optional(),
-  padding: z.string().optional(),
-});
-export type ElementStyle = z.infer<typeof ElementStyleSchema>;
-
-export const convertStylesToQueryString = (styles: ElementStyle): string => {
+export const convertStylesToQueryString = (styles: ElementsStyle): string => {
   const serializedStyles = encodeURIComponent(JSON.stringify(styles));
   return `styles=${serializedStyles}`;
 };

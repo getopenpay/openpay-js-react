@@ -1,17 +1,19 @@
 import { createContext } from 'react';
 
 export type ElementsContextValue = {
-  contextId: string;
-  createToken: () => void;
-  dispatchEvent: (event: MessageEvent, frame: HTMLIFrameElement) => void;
+  formId: string;
   formHeight: string;
-}
+  referer?: string;
+  checkoutSecureToken?: string;
+  registerIframe: (iframe: HTMLIFrameElement) => void;
+};
 
 export const ElementsContext = createContext<ElementsContextValue>({
-  contextId: '',
-  createToken: () => {},
-  dispatchEvent: () => {},
+  formId: '',
   formHeight: '',
+  referer: undefined,
+  checkoutSecureToken: undefined,
+  registerIframe: () => {},
 });
 
 export default { ElementsContext };

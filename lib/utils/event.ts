@@ -1,66 +1,64 @@
-import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { FRAME_BASE_URL } from './constants';
+import { ElementEvent, FieldName, EventType, EventPayload, SubmitEventPayload } from './shared-models';
+import { extractIssuesPerField } from './zod-errors';
 
-/**
- * Start of common event stuff
- * Don't forget to update in app-cde:frontend/utils/elements/event.ts also!
- */
+export const constructTokenizeEventPayload = (
+  sessionId: string,
+  formDiv: HTMLDivElement,
+  onValidationError: (field: FieldName, errors: string[], elementId?: string) => void
+): SubmitEventPayload | undefined => {
+  const includedInputs: HTMLInputElement[] = Array.from(formDiv.querySelectorAll('input[data-opid]') ?? []);
+  const extraData = includedInputs.reduce(
+    (acc, input) => {
+      const key = input.getAttribute('data-opid');
+      if (!key) return acc;
+      return { ...acc, [key]: input.value };
+    },
+    {
+      type: EventType.enum.TOKENIZE,
+      sessionId,
+    }
+  );
 
-const EVENT_PREFIX = 'op-elements';
+  console.log('[form] Constructing tokenization payload:', extraData);
 
-export enum ElementEventType {
-  LOADED = `${EVENT_PREFIX}-loaded`,
-  VALIDATION_ERROR = `${EVENT_PREFIX}-validation-error`,
-  BLUR = `${EVENT_PREFIX}-blur`,
-  FOCUS = `${EVENT_PREFIX}-focus`,
-  CHANGE = `${EVENT_PREFIX}-change`,
-  RESIZE = `${EVENT_PREFIX}-resize`,
-}
+  const payload = SubmitEventPayload.safeParse(extraData);
 
-export const ElementEventSchema = z.object({
-  type: z.nativeEnum(ElementEventType),
-  payload: z.object({}).catchall(z.string()),
-  nonce: z.string(),
-  formId: z.string(),
-  elementId: z.string(),
-});
-export type ElementEvent = z.infer<typeof ElementEventSchema>;
+  if (!payload.success) {
+    const formatted = payload.error.format();
+    const issues = extractIssuesPerField(formatted);
+
+    for (const [fieldName, errors] of Object.entries(issues)) {
+      onValidationError(fieldName as FieldName, errors, fieldName);
+    }
+  } else {
+    return payload.data;
+  }
+};
 
 export const parseEventPayload = (eventData: object): ElementEvent => {
   try {
-    return ElementEventSchema.parse(eventData);
+    return ElementEvent.parse(eventData);
   } catch (error) {
     console.error('Error parsing event payload:', eventData, error);
     throw error;
   }
 };
 
-/**
- * End of common event stuff
- */
-
 export const emitEvent = (
-  frame: HTMLIFrameElement,
+  target: MessageEventSource,
   formId: string,
   elementId: string,
-  type: ElementEventType,
-  payload: Record<string, string>
-) => {
-  const target = frame.contentWindow;
-  if (!target) {
-    console.error('[form] Cannot emit event, no contentWindow found:', frame);
-    return;
-  }
-
+  payload: EventPayload
+): void => {
   const event: ElementEvent = {
-    type,
-    formId,
-    elementId,
     payload,
     nonce: uuidv4(),
+    formId,
+    elementId,
   };
 
-  console.log(`[form] Emitting event ${type} from parent form ${formId} to child element ${elementId}:`, event);
+  console.log(`[form ${formId}] Sending event to child ${elementId}:`, event);
   target.postMessage(JSON.stringify(event), FRAME_BASE_URL);
 };

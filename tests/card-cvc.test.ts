@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { CARD_CVC_INPUT_SELECTOR, ERROR_MESSAGE_SELECTOR, INVALID_CVC_MESSAGE, invalidCVCNumbers, validCVCNumbers } from './constants';
+import {
+  CARD_CVC_INPUT_SELECTOR,
+  ERROR_MESSAGE_SELECTOR,
+  INVALID_CVC_MESSAGE,
+  invalidCVCNumbers,
+  validCVCNumbers,
+} from './constants';
 
 const IFRAME_SELECTOR = 'iframe[name=card-cvc-element]';
 const INPUT_SELECTOR = CARD_CVC_INPUT_SELECTOR;

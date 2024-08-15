@@ -1,17 +1,20 @@
-import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { FRAME_BASE_URL } from '../../utils/constants';
-import { convertStylesToQueryString, type ElementStyle } from '../../utils/style';
+import { convertStylesToQueryString } from '../../utils/style';
+import { ElementsStyle } from '../../utils/shared-models';
 import { useOpenPayElements } from '../../hooks/use-openpay-elements';
 
 type ElementFrameProps = {
+  checkoutSecureToken?: string;
   subPath: string;
-  styles?: ElementStyle;
+  styles?: ElementsStyle;
 };
 
 const ElementFrame: FC<ElementFrameProps> = (props) => {
   const { subPath, styles } = props;
-  const { contextId, dispatchEvent, formHeight } = useOpenPayElements();
-  const [referer, setReferer] = useState<string>('');
+  const { formId, referer, formHeight, checkoutSecureToken, registerIframe } = useOpenPayElements();
+
+  const [hasLoaded, setHasLoaded] = useState<boolean>(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const elementStyle = useMemo(() => {
@@ -24,41 +27,32 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
       border: 'none',
       width: '100%',
       height: formHeight,
-      overflow: 'hidden',
     };
   }, [formHeight]);
 
   const queryString = useMemo(() => {
+    if (!checkoutSecureToken || !referer) return '';
     const params = new URLSearchParams();
 
     params.append('referer', referer);
     params.append('styles', elementStyle);
-    params.append('contextId', contextId);
+    params.append('formId', formId);
+    params.append('secureToken', checkoutSecureToken);
 
     return params.toString();
-  }, [elementStyle, contextId, referer]);
+  }, [elementStyle, formId, referer, checkoutSecureToken]);
 
-  const onMessage = useCallback(
-    (event: MessageEvent) => {
-      if (!iframeRef.current || event.origin == window.location.origin) return;
-
-      if (event.origin !== FRAME_BASE_URL) {
-        console.warn('[form] Ignoring message from unexpected origin:', event, '(expected:', FRAME_BASE_URL, ')');
-      } else {
-        dispatchEvent(event, iframeRef.current);
-      }
-    },
-    [dispatchEvent]
-  );
-
+  useEffect(() => setHasLoaded(true), []);
   useEffect(() => {
-    if (!iframeRef.current || !contextId) return;
-    window.addEventListener('message', onMessage);
-    setReferer(window.location.origin);
+    if (!iframeRef.current || !hasLoaded) return;
+    registerIframe(iframeRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasLoaded]);
 
-    // Ensure cleanup
-    return () => window.removeEventListener('message', onMessage);
-  }, [iframeRef, contextId, onMessage]);
+  if (!checkoutSecureToken) {
+    console.error('[form] Cannot render partially initialized frame');
+    return <div></div>;
+  }
 
   return (
     <iframe

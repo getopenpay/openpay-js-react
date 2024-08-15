@@ -90,7 +90,19 @@ export const validCardNumbers = [
   '4587517354648608',
 ];
 
-export const invalidExpiryDates = ['12/2020', '12/2021', '12/2022', '122023', '13/2025', '12/202', '1220', '12/2', '12/', '12', '1'];
+export const invalidExpiryDates = [
+  '12/2020',
+  '12/2021',
+  '12/2022',
+  '122023',
+  '13/2025',
+  '12/202',
+  '1220',
+  '12/2',
+  '12/',
+  '12',
+  '1',
+];
 export const validExpiryDates = ['12/2024', '12/2025', '122026', '082027'];
 
 export const validCVCNumbers = ['123', '1234', '111', '12345', '123456', '123aaa', '1234aaa'];
