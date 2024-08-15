@@ -63,4 +63,3 @@ If you want to customize the styling of the element itself you can apply via the
 - `fontWeight`
 - `margin`
 - `padding`
-
