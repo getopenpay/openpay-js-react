@@ -1,6 +1,6 @@
 {
   "name": "@getopenpay/openpay-js-react",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Accept payments through OpenPay, right on your site",
   "author": "OpenPay <info@getopenpay.com> (https://getopenpay.com)",
   "type": "module",
@@ -17,11 +17,11 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json && vite build",
+    "build:alpha": "npm run build -- --mode staging",
     "build:dev": "tsc -p tsconfig.build.json && NODE_ENV=development vite build --mode development --watch",
     "lint": "eslint . --ignore-path=.eslintignore --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --fix --ignore-path=.eslintignore --report-unused-disable-directives --max-warnings 0",
     "test": "NODE_ENV=development npm run build -- --mode development && playwright test",
-    "build:alpha": "NODE_ENV=development npm run build -- --mode development",
     "prepare": "husky"
   },
   "dependencies": {
