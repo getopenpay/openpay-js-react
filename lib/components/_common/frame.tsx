@@ -57,7 +57,7 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
   return (
     <iframe
       name={`${subPath}-element`}
-      src={`${FRAME_BASE_URL}/app/v1/${subPath}-element?${queryString}`}
+      src={`${FRAME_BASE_URL}/app/v1/${subPath}-element/?${queryString}`}
       style={frameStyle}
       ref={iframeRef}
     />
