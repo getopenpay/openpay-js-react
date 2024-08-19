@@ -1,4 +1,4 @@
-import { ElementsStyle, AllFieldNames } from './shared-models';
+import { ElementsStyle, AllFieldNames, PaymentRequestStatus } from './shared-models';
 
 export type ElementProps = {
   styles?: ElementsStyle;
@@ -6,6 +6,7 @@ export type ElementProps = {
 
 type ElementsFormChildrenProps = {
   submit: () => void;
+  applePay: PaymentRequestStatus;
 };
 
 export type ElementsFormProps = {

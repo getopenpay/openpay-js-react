@@ -10,6 +10,8 @@ import {
 import FormWrapper from '@/components/form-wrapper';
 import InputField from '@/components/input-field';
 import BillingDetails from '@/components/billing-details';
+import classNames from 'classnames';
+import { loadStripe } from '@stripe/stripe-js';
 
 interface FormProps {
   token: string;
@@ -68,6 +70,7 @@ const Form: FC<FormProps> = (props) => {
   };
 
   useEffect(() => {
+    console.log(`Stripe JS can be loaded as a <script> in head (recommended), or loaded through ${loadStripe.name}`);
     setLoading(true);
     setOverlayMessage(null);
   }, [token]);
@@ -83,7 +86,7 @@ const Form: FC<FormProps> = (props) => {
       onCheckoutSuccess={onCheckoutSuccess}
       onCheckoutError={onCheckoutError}
     >
-      {({ submit }) => (
+      {({ submit, applePay }) => (
         <FormWrapper error={validationError}>
           {(loading || overlayMessage) && (
             <div className="absolute top-0 left-0 z-50 w-full h-full flex flex-col gap-2 items-center justify-center bg-emerald-100/50 dark:bg-emerald-800/50 backdrop-blur rounded-lg cursor-not-allowed">
@@ -122,6 +125,18 @@ const Form: FC<FormProps> = (props) => {
           >
             Pay {amount}
           </button>
+
+          <button
+            onClick={() => applePay.startFlow()}
+            disabled={!applePay.isAvailable}
+            className={classNames(
+              "px-4 py-2 mt-2 w-full rounded-lg",
+              applePay.isAvailable ? "bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold" : "bg-gray-100 text-gray-300"
+            )}
+          >
+            {applePay.isLoading ? "Loading" : "Apple Pay"}
+          </button>
+
         </FormWrapper>
       )}
     </ElementsForm>
