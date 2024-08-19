@@ -1,14 +1,3 @@
-// TODO ASAP:
-// - Check if stripe.js is in oddsjam repo
-
-// Element -> Form:
-// - Loaded (done)
-//   - Get total amount atom from here
-//   - Get currency
-
-// Form -> Element:
-// - PR
-
 import { PaymentRequest, Stripe as StripeType } from '@stripe/stripe-js';
 import { LoadedEventPayload } from './shared-models';
 
