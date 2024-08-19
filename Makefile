@@ -35,3 +35,7 @@ stop-ngrok:
 	@echo "Stopping ngrok..."
 	@pkill ngrok || true
 	@echo "Ngrok stopped."
+
+precommit:
+	npm run lint:fix
+	cd ./example && npm run lint:fix

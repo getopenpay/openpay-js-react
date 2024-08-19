@@ -22,8 +22,10 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     onCheckoutStarted,
     onCheckoutSuccess,
     onCheckoutError,
+    baseUrl,
   } = props;
 
+  const frameBaseUrl: string = baseUrl ?? FRAME_BASE_URL;
   const [referer, setReferer] = useState<string | undefined>(undefined);
   const [nonces, setNonces] = useState<string[]>([]);
   const [formHeight, setFormHeight] = useState<string>('1px');
@@ -52,7 +54,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       // to a specific target, we need to ensure that messages are
       // originating from CDE.
       // https://html.spec.whatwg.org/multipage/web-messaging.html#authors
-      if (event.origin !== FRAME_BASE_URL) return;
+      if (event.origin !== frameBaseUrl) return;
 
       // MessageEvent.source is a non-null MessageEventSource for
       // messages sent via window.postMessage, but it is null for
@@ -127,7 +129,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
         if (!checkoutFired && (allTokenized || eventPayload.isReadyForCheckout)) {
           console.log('[form] Tokenized card is ready for checkout');
-          emitEvent(eventSource, formId, elementId, extraData);
+          emitEvent(eventSource, formId, elementId, extraData, frameBaseUrl);
           setCheckoutFired(true);
           setExtraData(undefined);
         } else {
@@ -173,6 +175,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       onCheckoutSuccess,
       onCheckoutError,
       onValidationError,
+      frameBaseUrl,
     ]
   );
 
@@ -186,12 +189,12 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
     for (const [elementId, target] of Object.entries(eventTargets)) {
       if (!target) continue;
-      emitEvent(target, formId, elementId, extraData);
+      emitEvent(target, formId, elementId, extraData, frameBaseUrl);
     }
 
     extraData.type = EventType.enum.CHECKOUT;
     setExtraData(extraData);
-  }, [formRef, eventTargets, formId, onValidationError, sessionId]);
+  }, [formRef, eventTargets, formId, onValidationError, sessionId, frameBaseUrl]);
 
   const onBeforeUnload = useCallback(
     (e: BeforeUnloadEvent) => {
@@ -240,6 +243,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     checkoutSecureToken,
     stripeContext,
     registerIframe,
+    baseUrl: frameBaseUrl,
   };
 
   return (

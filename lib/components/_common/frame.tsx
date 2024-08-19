@@ -1,5 +1,4 @@
 import { FC, useEffect, useMemo, useRef, useState } from 'react';
-import { FRAME_BASE_URL } from '../../utils/constants';
 import { convertStylesToQueryString } from '../../utils/style';
 import { ElementsStyle } from '../../utils/shared-models';
 import { useOpenPayElements } from '../../hooks/use-openpay-elements';
@@ -12,7 +11,7 @@ type ElementFrameProps = {
 
 const ElementFrame: FC<ElementFrameProps> = (props) => {
   const { subPath, styles } = props;
-  const { formId, referer, formHeight, checkoutSecureToken, registerIframe } = useOpenPayElements();
+  const { formId, referer, formHeight, checkoutSecureToken, registerIframe, baseUrl } = useOpenPayElements();
 
   const [hasLoaded, setHasLoaded] = useState<boolean>(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -57,7 +56,7 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
   return (
     <iframe
       name={`${subPath}-element`}
-      src={`${FRAME_BASE_URL}/app/v1/${subPath}-element/?${queryString}`}
+      src={`${baseUrl}/app/v1/${subPath}-element/?${queryString}`}
       style={frameStyle}
       ref={iframeRef}
     />

@@ -1,5 +1,4 @@
 import { v4 as uuidv4 } from 'uuid';
-import { FRAME_BASE_URL } from './constants';
 import { ElementEvent, FieldName, EventType, EventPayload, SubmitEventPayload } from './shared-models';
 import { extractIssuesPerField } from './zod-errors';
 
@@ -50,7 +49,8 @@ export const emitEvent = (
   target: MessageEventSource,
   formId: string,
   elementId: string,
-  payload: EventPayload
+  payload: EventPayload,
+  baseUrl: string
 ): void => {
   const event: ElementEvent = {
     payload,
@@ -60,5 +60,6 @@ export const emitEvent = (
   };
 
   console.log(`[form ${formId}] Sending event to child ${elementId}:`, event);
-  target.postMessage(JSON.stringify(event), FRAME_BASE_URL);
+  // @ts-expect-error postMessage typing error?
+  target.postMessage(JSON.stringify(event), baseUrl);
 };

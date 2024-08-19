@@ -8,6 +8,7 @@ export type ElementsContextValue = {
   checkoutSecureToken?: string;
   stripeContext: StripeContext | null;
   registerIframe: (iframe: HTMLIFrameElement) => void;
+  baseUrl: string;
 };
 
 export const ElementsContext = createContext<ElementsContextValue>({
@@ -17,6 +18,7 @@ export const ElementsContext = createContext<ElementsContextValue>({
   checkoutSecureToken: undefined,
   stripeContext: null,
   registerIframe: () => {},
+  baseUrl: '',
 });
 
 export default { ElementsContext };
