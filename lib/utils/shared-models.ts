@@ -123,6 +123,7 @@ export const LoadedEventPayload = z.object({
   height: RequiredString,
   totalAmountAtoms: z.number(),
   currency: OptionalString,
+  stripePubKey: z.nullable(z.string()),
 });
 export type LoadedEventPayload = z.infer<typeof LoadedEventPayload>;
 
@@ -175,3 +176,13 @@ export const ElementEvent = z.object({
   elementId: RequiredString,
 });
 export type ElementEvent = z.infer<typeof ElementEvent>;
+
+/**
+ * Payment requests
+ */
+export const PaymentRequestStatus = z.object({
+  isLoading: z.boolean(),
+  isAvailable: z.boolean(),
+  startFlow: z.function(z.tuple([]), z.void()),
+});
+export type PaymentRequestStatus = z.infer<typeof PaymentRequestStatus>;

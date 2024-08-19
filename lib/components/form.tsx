@@ -5,6 +5,8 @@ import { ElementsFormProps } from '../utils/models';
 import { EventType, SubmitEventPayload } from '../utils/shared-models';
 import { FRAME_BASE_URL } from '../utils/constants';
 import { v4 as uuidv4 } from 'uuid';
+import { createStripeContext, StripeContext } from '../utils/stripe';
+import { usePaymentRequests } from '../hooks/use-payment-requests';
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
   const {
@@ -38,6 +40,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   // From load event
   const [currency, setCurrency] = useState<string | undefined>(undefined);
   const [totalAmountAtoms, setTotalAmountAtoms] = useState<number | undefined>(undefined);
+  const [stripeContext, setStripeContext] = useState<StripeContext | null>(null);
+  const paymentRequests = usePaymentRequests(stripeContext?.stripePubKey, totalAmountAtoms, currency);
 
   const formId = useMemo(() => `opjs-form-${uuidv4()}`, []);
   const formRef = useRef<HTMLDivElement | null>(null);
@@ -99,6 +103,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         setFormHeight(height);
         setTotalAmountAtoms(eventPayload.totalAmountAtoms);
         setCurrency(eventPayload.currency);
+        setStripeContext(createStripeContext(eventPayload));
 
         if (!sessionId) setSessionId(eventPayload.sessionId);
 
@@ -233,13 +238,14 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     formHeight,
     referer,
     checkoutSecureToken,
+    stripeContext,
     registerIframe,
   };
 
   return (
     <ElementsContext.Provider value={value}>
       <div className={className} ref={formRef}>
-        {children({ submit })}
+        {children({ submit, applePay: paymentRequests.apple_pay })}
       </div>
     </ElementsContext.Provider>
   );

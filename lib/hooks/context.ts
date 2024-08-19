@@ -1,10 +1,12 @@
 import { createContext } from 'react';
+import { StripeContext } from '../utils/stripe';
 
 export type ElementsContextValue = {
   formId: string;
   formHeight: string;
   referer?: string;
   checkoutSecureToken?: string;
+  stripeContext: StripeContext | null;
   registerIframe: (iframe: HTMLIFrameElement) => void;
 };
 
@@ -13,6 +15,7 @@ export const ElementsContext = createContext<ElementsContextValue>({
   formHeight: '',
   referer: undefined,
   checkoutSecureToken: undefined,
+  stripeContext: null,
   registerIframe: () => {},
 });
 
