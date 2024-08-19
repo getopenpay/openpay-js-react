@@ -22,4 +22,5 @@ export type ElementsFormProps = {
   onCheckoutStarted?: () => void;
   onCheckoutSuccess?: (invoiceUrls: string[]) => void;
   onCheckoutError?: (message: string) => void;
+  baseUrl?: string;
 };
