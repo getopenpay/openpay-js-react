@@ -16,7 +16,7 @@ import { loadStripe } from '@stripe/stripe-js';
 interface FormProps {
   token: string;
   separateFrames: boolean;
-  onCheckoutSuccess: (invoiceUrls: string[]) => void;
+  onCheckoutSuccess: (invoiceUrls: string[], subscriptionIds: string[]) => void;
 }
 
 const Form: FC<FormProps> = (props) => {
@@ -148,12 +148,14 @@ const ElementsExample: FC = () => {
   const [token, setToken] = useState<string | null>(null);
   const [separateFrames, setSeparateFrames] = useState<boolean>(false);
   const [invoiceUrls, setInvoiceUrls] = useState<string[] | null>(null);
+  const [subscriptionIds, setSubscriptionIds] = useState<string[] | null>(null);
 
   const tokenInputRef = useRef<HTMLInputElement | null>(null);
 
   const onCheckoutSuccess = useCallback(
-    (invoiceUrls: string[]) => {
+    (invoiceUrls: string[], subscriptionIds: string[]) => {
       setInvoiceUrls(invoiceUrls);
+      setSubscriptionIds(subscriptionIds);
       setToken(null);
 
       if (tokenInputRef.current) {
@@ -205,13 +207,13 @@ const ElementsExample: FC = () => {
         <div className="relative">
           <Form token={token} separateFrames={separateFrames} onCheckoutSuccess={onCheckoutSuccess} />
         </div>
-      ) : (
-        <div>
-          {invoiceUrls ? (
+      ) : invoiceUrls || subscriptionIds ? (
+        <>
+          <h2 className="text-xl font-bold">🎉 Checkout successful!</h2>
+          {invoiceUrls && (
             <>
-              <h2 className="text-xl font-bold">🎉 Checkout successful!</h2>
               <p className="my-2">Invoice URLs:</p>
-              <ul className="text-sm list-inside list-decimal">
+              <ul data-testid="invoice-list" className="text-sm list-inside list-decimal">
                 {invoiceUrls.map((url, index) => (
                   <li className="mb-2" key={index}>
                     <a href={url} target="_blank" rel="noreferrer" className="underline">
@@ -221,13 +223,25 @@ const ElementsExample: FC = () => {
                 ))}
               </ul>
             </>
-          ) : (
+          )}
+          {subscriptionIds && (
             <>
-              <p className="font-bold mb-2">No token provided</p>
-              <p className="text-sm">Please provide a checkout secure token in the input above</p>
+              <p className="my-2">Subscription IDs:</p>
+              <ul data-testid="subscription-list" className="text-sm list-inside list-decimal">
+                {subscriptionIds.map((id, index) => (
+                  <li className="mb-2" key={index}>
+                    {id}
+                  </li>
+                ))}
+              </ul>
             </>
           )}
-        </div>
+        </>
+      ) : (
+        <>
+          <p className="font-bold mb-2">No token provided</p>
+          <p className="text-sm">Please provide a checkout secure token in the input above</p>
+        </>
       )}
     </main>
   );
