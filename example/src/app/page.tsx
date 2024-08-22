@@ -13,10 +13,12 @@ import BillingDetails from '@/components/billing-details';
 import classNames from 'classnames';
 import { loadStripe } from '@stripe/stripe-js';
 
+type OnCheckoutSuccess = (invoiceUrls: string[], subscriptionIds: string[], customerId: string) => void;
+
 interface FormProps {
   token: string;
   separateFrames: boolean;
-  onCheckoutSuccess: (invoiceUrls: string[], subscriptionIds: string[]) => void;
+  onCheckoutSuccess: OnCheckoutSuccess;
 }
 
 const Form: FC<FormProps> = (props) => {
@@ -150,13 +152,15 @@ const ElementsExample: FC = () => {
   const [separateFrames, setSeparateFrames] = useState<boolean>(false);
   const [invoiceUrls, setInvoiceUrls] = useState<string[] | null>(null);
   const [subscriptionIds, setSubscriptionIds] = useState<string[] | null>(null);
+  const [customerId, setCustomerId] = useState<string | null>(null);
 
   const tokenInputRef = useRef<HTMLInputElement | null>(null);
 
-  const onCheckoutSuccess = useCallback(
-    (invoiceUrls: string[], subscriptionIds: string[]) => {
+  const onCheckoutSuccess = useCallback<OnCheckoutSuccess>(
+    (invoiceUrls, subscriptionIds, customerId) => {
       setInvoiceUrls(invoiceUrls);
       setSubscriptionIds(subscriptionIds);
+      setCustomerId(customerId);
       setToken(null);
 
       if (tokenInputRef.current) {
@@ -250,6 +254,14 @@ const ElementsExample: FC = () => {
                 ))}
               </ul>
             </>
+          )}
+          {customerId && (
+            <p className="mt-4 text-sm">
+              Customer ID:{' '}
+              <span data-testid="customer-id" className="font-bold">
+                {customerId}
+              </span>
+            </p>
           )}
         </>
       ) : (
