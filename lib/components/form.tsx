@@ -142,7 +142,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         setTokenized(0);
         setCheckoutFired(false);
 
-        if (onCheckoutSuccess) onCheckoutSuccess(eventPayload.invoiceUrls, eventPayload.subscriptionIds);
+        if (onCheckoutSuccess)
+          onCheckoutSuccess(eventPayload.invoiceUrls, eventPayload.subscriptionIds, eventPayload.customerId);
       } else if (eventType === EventType.enum.LOAD_ERROR) {
         console.error('[form] Error loading iframe:', eventPayload.message);
 
