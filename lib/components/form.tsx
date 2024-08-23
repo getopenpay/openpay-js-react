@@ -155,6 +155,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       } else if (eventType === EventType.enum.TOKENIZE_ERROR || eventType === EventType.enum.CHECKOUT_ERROR) {
         console.error('[form] API error from element:', eventPayload.message);
         setPreventClose(false);
+        setCheckoutFired(false);
 
         if (onCheckoutError) onCheckoutError(eventPayload.message);
       }
