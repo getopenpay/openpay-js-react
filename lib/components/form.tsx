@@ -1,12 +1,13 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ElementsContext, type ElementsContextValue } from '../hooks/context';
-import { constructTokenizeEventPayload, emitEvent, parseEventPayload } from '../utils/event';
-import { ElementsFormProps } from '../utils/models';
-import { EventType, SubmitEventPayload } from '../utils/shared-models';
+import { constructSubmitEventPayload, emitEvent, parseEventPayload } from '../utils/event';
+import { ElementsFormChildrenProps, ElementsFormProps } from '../utils/models';
+import { CheckoutPaymentMethod, EventType, SubmitEventPayload } from '../utils/shared-models';
 import { FRAME_BASE_URL } from '../utils/constants';
 import { v4 as uuidv4 } from 'uuid';
-import { createStripeContext, StripeContext } from '../utils/stripe';
 import { usePaymentRequests } from '../hooks/use-payment-requests';
+import { confirmPaymentFlowForStripePR } from '../utils/stripe';
+import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
   const {
@@ -42,8 +43,10 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   // From load event
   const [currency, setCurrency] = useState<string | undefined>(undefined);
   const [totalAmountAtoms, setTotalAmountAtoms] = useState<number | undefined>(undefined);
-  const [stripeContext, setStripeContext] = useState<StripeContext | null>(null);
-  const paymentRequests = usePaymentRequests(stripeContext?.stripePubKey, totalAmountAtoms, currency);
+  const [checkoutPaymentMethods, setCheckoutPaymentMethods] = useState<CheckoutPaymentMethod[] | undefined>(undefined);
+  const [stripePm, setStripePm] = useState<PaymentRequestPaymentMethodEvent | undefined>(undefined);
+
+  // TODO ASAP: usePaymentRequests should have access to setCheckoutFired and setExtraData
 
   const formId = useMemo(() => `opjs-form-${uuidv4()}`, []);
   const formRef = useRef<HTMLDivElement | null>(null);
@@ -105,7 +108,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         setFormHeight(height);
         setTotalAmountAtoms(eventPayload.totalAmountAtoms);
         setCurrency(eventPayload.currency);
-        setStripeContext(createStripeContext(eventPayload));
+        setCheckoutPaymentMethods(eventPayload.checkoutPaymentMethods);
 
         if (!sessionId) setSessionId(eventPayload.sessionId);
 
@@ -115,6 +118,19 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         setPreventClose(true);
 
         if (onCheckoutStarted) onCheckoutStarted();
+      } else if (eventType === EventType.enum.PAYMENT_FLOW_STARTED) {
+        if (!stripePm) {
+          throw new Error(`Stripe PM not set`);
+        }
+        if (!extraData) {
+          throw new Error(`extraData not populated`);
+        }
+        console.log('[form] Confirming payment flow');
+        confirmPaymentFlowForStripePR(eventPayload, stripePm);
+        console.log('[form] Starting checkout from payment flow');
+        emitEvent(eventSource, formId, elementId, { ...extraData, type: 'CHECKOUT' }, frameBaseUrl);
+        setCheckoutFired(true);
+        setExtraData(undefined);
       } else if (eventType === EventType.enum.TOKENIZE_SUCCESS && !!extraData) {
         // When using separate elements for card number, expiry, and CVC,
         // there are instances where CDE tokenizes all three successfully
@@ -176,13 +192,25 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       onCheckoutError,
       onValidationError,
       frameBaseUrl,
+      stripePm,
     ]
   );
 
-  const submit = useCallback(() => {
-    if (!formRef.current || !onValidationError || !sessionId) return;
+  const submitCard = useCallback(() => {
+    if (!formRef.current || !onValidationError || !sessionId || !checkoutPaymentMethods) return;
 
-    const extraData = constructTokenizeEventPayload(sessionId, formRef.current, onValidationError);
+    const cardCpm = checkoutPaymentMethods.find((cpm) => cpm.provider === 'credit_card');
+    if (!cardCpm) {
+      throw new Error('Card not available as a payment method in checkout');
+    }
+
+    const extraData = constructSubmitEventPayload(
+      EventType.enum.TOKENIZE,
+      sessionId,
+      formRef.current,
+      onValidationError,
+      cardCpm
+    );
     if (!extraData) return;
 
     console.log('[form] Submitting form:', extraData);
@@ -192,9 +220,10 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       emitEvent(target, formId, elementId, extraData, frameBaseUrl);
     }
 
+    // TODO: refactor this lol
     extraData.type = EventType.enum.CHECKOUT;
     setExtraData(extraData);
-  }, [formRef, eventTargets, formId, onValidationError, sessionId, frameBaseUrl]);
+  }, [formRef, eventTargets, formId, onValidationError, sessionId, frameBaseUrl, checkoutPaymentMethods]);
 
   const onBeforeUnload = useCallback(
     (e: BeforeUnloadEvent) => {
@@ -236,20 +265,56 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     [iframes]
   );
 
+  const onUserCompletePaymentRequestUI = async (
+    stripePm: PaymentRequestPaymentMethodEvent,
+    checkoutPaymentMethod: CheckoutPaymentMethod
+  ): Promise<void> => {
+    if (!formRef.current || !onValidationError || !sessionId || !checkoutPaymentMethods) return;
+    for (const [elementId, target] of Object.entries(eventTargets)) {
+      if (!target) continue;
+      const paymentFlowMetadata = {
+        stripePmId: stripePm.paymentMethod.id,
+      };
+      const startPaymentFlowEvent = constructSubmitEventPayload(
+        EventType.enum.START_PAYMENT_FLOW,
+        sessionId,
+        formRef.current,
+        onValidationError,
+        checkoutPaymentMethod,
+        paymentFlowMetadata
+      );
+      if (!startPaymentFlowEvent) continue;
+      setStripePm(stripePm);
+      emitEvent(target, formId, elementId, startPaymentFlowEvent, frameBaseUrl);
+    }
+  };
+
   const value: ElementsContextValue = {
     formId,
     formHeight,
     referer,
     checkoutSecureToken,
-    stripeContext,
     registerIframe,
     baseUrl: frameBaseUrl,
+  };
+
+  const paymentRequests = usePaymentRequests(
+    totalAmountAtoms,
+    currency,
+    checkoutPaymentMethods,
+    onUserCompletePaymentRequestUI
+  );
+
+  const childrenProps: ElementsFormChildrenProps = {
+    submit: submitCard,
+    applePay: paymentRequests.apple_pay,
+    googlePay: paymentRequests.google_pay,
   };
 
   return (
     <ElementsContext.Provider value={value}>
       <div className={className} ref={formRef}>
-        {children({ submit, applePay: paymentRequests.apple_pay })}
+        {children(childrenProps)}
       </div>
     </ElementsContext.Provider>
   );

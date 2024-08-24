@@ -4,9 +4,10 @@ export type ElementProps = {
   styles?: ElementsStyle;
 };
 
-type ElementsFormChildrenProps = {
+export type ElementsFormChildrenProps = {
   submit: () => void;
   applePay: PaymentRequestStatus;
+  googlePay: PaymentRequestStatus;
 };
 
 export type ElementsFormProps = {
