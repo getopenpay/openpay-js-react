@@ -158,7 +158,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         setTokenized(0);
         setCheckoutFired(false);
 
-        if (onCheckoutSuccess) onCheckoutSuccess(eventPayload.invoiceUrls, eventPayload.subscriptionIds);
+        if (onCheckoutSuccess)
+          onCheckoutSuccess(eventPayload.invoiceUrls, eventPayload.subscriptionIds, eventPayload.customerId);
       } else if (eventType === EventType.enum.LOAD_ERROR) {
         console.error('[form] Error loading iframe:', eventPayload.message);
 
@@ -170,6 +171,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       } else if (eventType === EventType.enum.TOKENIZE_ERROR || eventType === EventType.enum.CHECKOUT_ERROR) {
         console.error('[form] API error from element:', eventPayload.message);
         setPreventClose(false);
+        setCheckoutFired(false);
 
         if (onCheckoutError) onCheckoutError(eventPayload.message);
       }

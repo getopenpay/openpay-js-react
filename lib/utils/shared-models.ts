@@ -175,6 +175,7 @@ export const CheckoutSuccessEventPayload = z.object({
   type: z.literal(EventType.enum.CHECKOUT_SUCCESS),
   invoiceUrls: z.array(z.string()),
   subscriptionIds: z.array(z.string()),
+  customerId: z.string(),
 });
 export type CheckoutSuccessEventPayload = z.infer<typeof CheckoutSuccessEventPayload>;
 

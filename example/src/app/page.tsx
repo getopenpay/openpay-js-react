@@ -1,5 +1,5 @@
 'use client';
-import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ElementsForm,
   CardCvcElement,
@@ -13,10 +13,12 @@ import BillingDetails from '@/components/billing-details';
 import classNames from 'classnames';
 import { loadStripe } from '@stripe/stripe-js';
 
+type OnCheckoutSuccess = (invoiceUrls: string[], subscriptionIds: string[], customerId: string) => void;
+
 interface FormProps {
   token: string;
   separateFrames: boolean;
-  onCheckoutSuccess: (invoiceUrls: string[], subscriptionIds: string[]) => void;
+  onCheckoutSuccess: OnCheckoutSuccess;
 }
 
 const Form: FC<FormProps> = (props) => {
@@ -120,6 +122,7 @@ const Form: FC<FormProps> = (props) => {
           )}
 
           <button
+            data-testid="submit-button"
             onClick={submit}
             className="px-4 py-2 mt-2 w-full font-bold rounded-lg bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700"
           >
@@ -147,27 +150,34 @@ const Form: FC<FormProps> = (props) => {
 const ElementsExample: FC = () => {
   const [token, setToken] = useState<string | null>(null);
   const [separateFrames, setSeparateFrames] = useState<boolean>(false);
-  const [invoiceUrls, setInvoiceUrls] = useState<string[] | null>(null);
-  const [subscriptionIds, setSubscriptionIds] = useState<string[] | null>(null);
+  const [checkoutResponse, setCheckoutResponse] = useState<{
+    invoiceUrls: string[];
+    subscriptionIds: string[];
+    customerId: string;
+  } | null>(null);
 
-  const tokenInputRef = useRef<HTMLInputElement | null>(null);
-
-  const onCheckoutSuccess = useCallback(
-    (invoiceUrls: string[], subscriptionIds: string[]) => {
-      setInvoiceUrls(invoiceUrls);
-      setSubscriptionIds(subscriptionIds);
-      setToken(null);
-
-      if (tokenInputRef.current) {
-        tokenInputRef.current.value = '';
-      }
-    },
-    [tokenInputRef]
-  );
+  const onCheckoutSuccess = useCallback<OnCheckoutSuccess>((invoiceUrls, subscriptionIds, customerId) => {
+    setCheckoutResponse({ invoiceUrls, subscriptionIds, customerId });
+    setToken(null);
+  }, []);
 
   const onTokenChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setInvoiceUrls(null);
+    setCheckoutResponse(null);
     setToken(e.target.value === '' ? null : e.target.value);
+  }, []);
+
+  // read token from query params
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const separateFrames = urlParams.get('separateFrames');
+
+    if (token) {
+      setToken(token);
+    }
+    if (separateFrames) {
+      setSeparateFrames(separateFrames === 'true');
+    }
   }, []);
 
   return (
@@ -182,11 +192,11 @@ const ElementsExample: FC = () => {
           Checkout secure token
         </label>
         <input
-          ref={tokenInputRef}
           type="text"
           id="checkout-secure-token"
           placeholder="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
           className="w-full p-2 border-2 rounded-lg mt-2 text-black"
+          value={token ?? ''}
           onChange={onTokenChange}
         />
       </div>
@@ -207,40 +217,38 @@ const ElementsExample: FC = () => {
         <div className="relative">
           <Form token={token} separateFrames={separateFrames} onCheckoutSuccess={onCheckoutSuccess} />
         </div>
-      ) : invoiceUrls || subscriptionIds ? (
-        <>
-          <h2 className="text-xl font-bold">🎉 Checkout successful!</h2>
-          {invoiceUrls && (
-            <>
-              <p className="my-2">Invoice URLs:</p>
-              <ul data-testid="invoice-list" className="text-sm list-inside list-decimal">
-                {invoiceUrls.map((url, index) => (
-                  <li className="mb-2" key={index}>
-                    <a href={url} target="_blank" rel="noreferrer" className="underline">
-                      {url}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-          {subscriptionIds && (
-            <>
-              <p className="my-2">Subscription IDs:</p>
-              <ul data-testid="subscription-list" className="text-sm list-inside list-decimal">
-                {subscriptionIds.map((id, index) => (
-                  <li className="mb-2" key={index}>
-                    {id}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </>
       ) : (
-        <>
+        <div className="mb-4">
           <p className="font-bold mb-2">No token provided</p>
           <p className="text-sm">Please provide a checkout secure token in the input above</p>
+        </div>
+      )}
+
+      {checkoutResponse && (
+        <>
+          <h2 className="text-xl font-bold">🎉 Checkout successful!</h2>
+          <p className="my-2">Invoice URLs:</p>
+          <ul data-testid="invoice-list" className="text-sm list-inside list-decimal mb-4">
+            {checkoutResponse.invoiceUrls.map((url, index) => (
+              <li className="mb-2" key={index}>
+                <a href={url} target="_blank" rel="noreferrer" className="underline">
+                  {url}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <p className="my-2">Subscription IDs:</p>
+          <ul data-testid="subscription-list" className="text-sm list-inside list-decimal">
+            {checkoutResponse.subscriptionIds.map((id, index) => (
+              <li className="mb-2" key={index}>
+                {id}
+              </li>
+            ))}
+          </ul>
+          <p className="my-2">Customer ID:</p>
+          <p data-testid="customer-id" className="text-sm">
+            {checkoutResponse.customerId}
+          </p>
         </>
       )}
     </main>
