@@ -5,6 +5,7 @@ import useAsyncEffect from 'use-async-effect';
 import { z } from 'zod';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 import { createInputsDictFromForm } from '../utils/event';
+import { getErrorMessage } from '../utils/errors';
 
 const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay']);
 type PaymentRequestProvider = z.infer<typeof PaymentRequestProvider>;
@@ -42,7 +43,8 @@ export const usePaymentRequests = (
   onUserCompleteUIFlow: (
     stripePm: PaymentRequestPaymentMethodEvent,
     checkoutPaymentMethod: CheckoutPaymentMethod
-  ) => void
+  ) => void,
+  onError: (errMsg: string) => void
 ): Record<PaymentRequestProvider, PaymentRequestStatus> => {
   const [status, setStatus] = useMap<Record<PaymentRequestProvider, PaymentRequestStatus>>({
     apple_pay: PR_LOADING,
@@ -73,11 +75,16 @@ export const usePaymentRequests = (
         }
         // Callback when payment request is finished
         const startPaymentRequestUserFlow = async (): Promise<void> => {
-          const formInputs = createInputsDictFromForm(formDiv, {});
-          RequiredFormFields.parse(formInputs);
-          pr.show();
-          const pmAddedEvent = await waitForUserToAddPaymentMethod(pr);
-          onUserCompleteUIFlow(pmAddedEvent, stripeXPrCpm);
+          try {
+            const formInputs = createInputsDictFromForm(formDiv, {});
+            RequiredFormFields.parse(formInputs);
+            pr.show();
+            const pmAddedEvent = await waitForUserToAddPaymentMethod(pr);
+            onUserCompleteUIFlow(pmAddedEvent, stripeXPrCpm);
+          } catch (e) {
+            console.error(e);
+            onError(getErrorMessage(e));
+          }
         };
         setStatus.set(provider, {
           isLoading: false,

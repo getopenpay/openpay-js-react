@@ -291,6 +291,12 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     }
   };
 
+  const onPaymentRequestError = (errMsg: string): void => {
+    console.error('[form] Error from payment request:', errMsg);
+    setCheckoutFired(false);
+    if (onCheckoutError) onCheckoutError(errMsg);
+  };
+
   const value: ElementsContextValue = {
     formId,
     formHeight,
@@ -305,7 +311,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     currency,
     checkoutPaymentMethods,
     formRef.current,
-    onUserCompletePaymentRequestUI
+    onUserCompletePaymentRequestUI,
+    onPaymentRequestError
   );
 
   const childrenProps: ElementsFormChildrenProps = {
