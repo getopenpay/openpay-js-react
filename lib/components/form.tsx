@@ -304,6 +304,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     totalAmountAtoms,
     currency,
     checkoutPaymentMethods,
+    formRef.current,
     onUserCompletePaymentRequestUI
   );
 

@@ -2,6 +2,19 @@ import { v4 as uuidv4 } from 'uuid';
 import { ElementEvent, FieldName, EventPayload, SubmitEventPayload, CheckoutPaymentMethod } from './shared-models';
 import { extractIssuesPerField } from './zod-errors';
 
+export const createInputsDictFromForm = (
+  formDiv: HTMLDivElement,
+  initialDict: Record<string, unknown>
+): Record<string, unknown> => {
+  const includedInputs: HTMLInputElement[] = Array.from(formDiv.querySelectorAll('input[data-opid]') ?? []);
+  const extraData = includedInputs.reduce((acc, input) => {
+    const key = input.getAttribute('data-opid');
+    if (!key) return acc;
+    return { ...acc, [key]: input.value };
+  }, initialDict);
+  return extraData;
+};
+
 // TODO refactor
 export const constructSubmitEventPayload = (
   eventType: 'TOKENIZE' | 'CHECKOUT' | 'START_PAYMENT_FLOW',
@@ -11,20 +24,12 @@ export const constructSubmitEventPayload = (
   checkoutPaymentMethod: CheckoutPaymentMethod,
   paymentFlowMetadata?: Record<string, unknown>
 ): SubmitEventPayload | null => {
-  const includedInputs: HTMLInputElement[] = Array.from(formDiv.querySelectorAll('input[data-opid]') ?? []);
-  const extraData = includedInputs.reduce(
-    (acc, input) => {
-      const key = input.getAttribute('data-opid');
-      if (!key) return acc;
-      return { ...acc, [key]: input.value };
-    },
-    {
-      type: eventType,
-      sessionId,
-      checkoutPaymentMethod,
-      paymentFlowMetadata,
-    }
-  );
+  const extraData = createInputsDictFromForm(formDiv, {
+    type: eventType,
+    sessionId,
+    checkoutPaymentMethod,
+    paymentFlowMetadata,
+  });
 
   console.log(`[form] Constructing ${eventType} payload:`, extraData);
 

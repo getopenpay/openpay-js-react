@@ -1,12 +1,18 @@
 import { createStripePaymentRequest, parseStripePubKey, waitForUserToAddPaymentMethod } from '../utils/stripe';
-import { CheckoutPaymentMethod, PaymentRequestStatus } from '../utils/shared-models';
+import { CheckoutPaymentMethod, PaymentRequestStatus, RequiredFormFields } from '../utils/shared-models';
 import useMap from './use-map';
 import useAsyncEffect from 'use-async-effect';
 import { z } from 'zod';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
+import { createInputsDictFromForm } from '../utils/event';
 
 const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay']);
 type PaymentRequestProvider = z.infer<typeof PaymentRequestProvider>;
+
+const OUR_PROVIDER_TO_STRIPES: Record<PaymentRequestProvider, string> = {
+  apple_pay: 'applePay',
+  google_pay: 'googlePay',
+};
 
 const PR_LOADING: PaymentRequestStatus = {
   isLoading: true,
@@ -32,6 +38,7 @@ export const usePaymentRequests = (
   totalAmountAtom: number | undefined,
   currency: string | undefined,
   availableCPMs: CheckoutPaymentMethod[] | undefined,
+  formDiv: HTMLDivElement | null,
   onUserCompleteUIFlow: (
     stripePm: PaymentRequestPaymentMethodEvent,
     checkoutPaymentMethod: CheckoutPaymentMethod
@@ -41,7 +48,7 @@ export const usePaymentRequests = (
     apple_pay: PR_LOADING,
     google_pay: PR_LOADING,
   });
-  const isLoading = totalAmountAtom === undefined || currency === undefined || availableCPMs === undefined;
+  const isLoading = totalAmountAtom === undefined || currency === undefined || availableCPMs === undefined || !formDiv;
 
   // TODO: add more processors here once we have more processors supporting PaymentRequest API
 
@@ -66,13 +73,15 @@ export const usePaymentRequests = (
         }
         // Callback when payment request is finished
         const startPaymentRequestUserFlow = async (): Promise<void> => {
+          const formInputs = createInputsDictFromForm(formDiv, {});
+          RequiredFormFields.parse(formInputs);
           pr.show();
           const pmAddedEvent = await waitForUserToAddPaymentMethod(pr);
           onUserCompleteUIFlow(pmAddedEvent, stripeXPrCpm);
         };
         setStatus.set(provider, {
           isLoading: false,
-          isAvailable: true,
+          isAvailable: canMakePayment[OUR_PROVIDER_TO_STRIPES[provider]],
           startFlow: startPaymentRequestUserFlow,
         });
       } catch (e) {

@@ -150,19 +150,25 @@ export const PaymentFlowStartedEventPayload = z.object({
 });
 export type PaymentFlowStartedEventPayload = z.infer<typeof PaymentFlowStartedEventPayload>;
 
-const SubmitEventType = EventType.extract(['TOKENIZE', 'CHECKOUT', 'START_PAYMENT_FLOW']);
-type SubmitEventType = z.infer<typeof SubmitEventType>;
-export const SubmitEventPayload = z.object({
-  type: SubmitEventType,
-  sessionId: RequiredString,
+export const RequiredFormFields = z.object({
   [FieldName.FIRST_NAME]: RequiredString,
   [FieldName.LAST_NAME]: RequiredString,
   [FieldName.EMAIL]: RequiredString,
   [FieldName.ZIP_CODE]: RequiredString,
   [FieldName.COUNTRY]: RequiredString,
-  checkoutPaymentMethod: CheckoutPaymentMethod,
-  paymentFlowMetadata: z.any().optional(),
 });
+export type RequiredFormFields = z.infer<typeof RequiredFormFields>;
+
+const SubmitEventType = EventType.extract(['TOKENIZE', 'CHECKOUT', 'START_PAYMENT_FLOW']);
+type SubmitEventType = z.infer<typeof SubmitEventType>;
+export const SubmitEventPayload = z
+  .object({
+    type: SubmitEventType,
+    sessionId: RequiredString,
+    checkoutPaymentMethod: CheckoutPaymentMethod,
+    paymentFlowMetadata: z.any().optional(),
+  })
+  .extend(RequiredFormFields.shape);
 export type SubmitEventPayload = z.infer<typeof SubmitEventPayload>;
 
 export const TokenizeSuccessEventPayload = z.object({
