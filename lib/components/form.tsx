@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { usePaymentRequests } from '../hooks/use-payment-requests';
 import { confirmPaymentFlowForStripePR } from '../utils/stripe';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
+import { getErrorMessage } from '../utils/errors';
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
   const {
@@ -126,11 +127,21 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
           throw new Error(`extraData not populated`);
         }
         console.log('[form] Confirming payment flow');
-        confirmPaymentFlowForStripePR(eventPayload, stripePm);
-        console.log('[form] Starting checkout from payment flow');
-        emitEvent(eventSource, formId, elementId, { ...extraData, type: 'CHECKOUT' }, frameBaseUrl);
-        setCheckoutFired(true);
-        setExtraData(undefined);
+        confirmPaymentFlowForStripePR(eventPayload, stripePm)
+          .then(() => {
+            console.log('[form] Starting checkout from payment flow.');
+            emitEvent(eventSource, formId, elementId, { ...extraData, type: 'CHECKOUT' }, frameBaseUrl);
+            setCheckoutFired(true);
+            setExtraData(undefined);
+          })
+          .catch((e) => {
+            console.log('[form] Confirmation payment flow error');
+            const errMsg = getErrorMessage(e);
+            setPreventClose(false);
+            setCheckoutFired(false);
+
+            if (onCheckoutError) onCheckoutError(errMsg);
+          });
       } else if (eventType === EventType.enum.TOKENIZE_SUCCESS && !!extraData) {
         // When using separate elements for card number, expiry, and CVC,
         // there are instances where CDE tokenizes all three successfully
@@ -287,6 +298,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       );
       if (!startPaymentFlowEvent) continue;
       setStripePm(stripePm);
+      setExtraData(startPaymentFlowEvent);
       emitEvent(target, formId, elementId, startPaymentFlowEvent, frameBaseUrl);
     }
   };
