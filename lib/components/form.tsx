@@ -175,7 +175,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
         if (onLoadError) onLoadError(eventPayload.message);
       } else if (eventType === EventType.enum.VALIDATION_ERROR) {
-        if (extraData?.checkoutPaymentMethod.provider === 'credit_card') {
+        const provider = extraData?.checkoutPaymentMethod.provider;
+        if (provider === 'credit_card' || provider === undefined) {
           console.error(`[form] Validation error for ${eventPayload.elementType}:`, eventPayload.errors);
           if (onValidationError) onValidationError(eventPayload.elementType, eventPayload.errors, elementId);
         }
