@@ -82,7 +82,7 @@ export const usePaymentRequests = (
               // TODO refactor validation out of this construct function later
               const startPaymentFlowEvent = constructSubmitEventPayload(
                 EventType.enum.START_PAYMENT_FLOW,
-                // This is just to use the validation inside the construct method
+                // This is ok since we're just calling this function to use the validation function inside it
                 'dummy',
                 formDiv,
                 onValidationError,
