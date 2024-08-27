@@ -79,8 +79,10 @@ export const usePaymentRequests = (
           try {
             createInputsDictFromForm(formDiv, {});
             if (onValidationError) {
+              // TODO refactor validation out of this construct function later
               const startPaymentFlowEvent = constructSubmitEventPayload(
                 EventType.enum.START_PAYMENT_FLOW,
+                // This is just to use the validation inside the construct method
                 'dummy',
                 formDiv,
                 onValidationError,
