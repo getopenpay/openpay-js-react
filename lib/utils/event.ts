@@ -1,36 +1,47 @@
 import { v4 as uuidv4 } from 'uuid';
-import { ElementEvent, FieldName, EventType, EventPayload, SubmitEventPayload } from './shared-models';
+import { ElementEvent, FieldName, EventPayload, SubmitEventPayload, CheckoutPaymentMethod } from './shared-models';
 import { extractIssuesPerField } from './zod-errors';
 
-export const constructTokenizeEventPayload = (
+export const createInputsDictFromForm = (
+  formDiv: HTMLDivElement,
+  initialDict: Record<string, unknown>
+): Record<string, unknown> => {
+  const includedInputs: HTMLInputElement[] = Array.from(formDiv.querySelectorAll('input[data-opid]') ?? []);
+  const extraData = includedInputs.reduce((acc, input) => {
+    const key = input.getAttribute('data-opid');
+    if (!key) return acc;
+    return { ...acc, [key]: input.value };
+  }, initialDict);
+  return extraData;
+};
+
+// TODO refactor
+export const constructSubmitEventPayload = (
+  eventType: 'TOKENIZE' | 'CHECKOUT' | 'START_PAYMENT_FLOW',
   sessionId: string,
   formDiv: HTMLDivElement,
-  onValidationError: (field: FieldName, errors: string[], elementId?: string) => void
-): SubmitEventPayload | undefined => {
-  const includedInputs: HTMLInputElement[] = Array.from(formDiv.querySelectorAll('input[data-opid]') ?? []);
-  const extraData = includedInputs.reduce(
-    (acc, input) => {
-      const key = input.getAttribute('data-opid');
-      if (!key) return acc;
-      return { ...acc, [key]: input.value };
-    },
-    {
-      type: EventType.enum.TOKENIZE,
-      sessionId,
-    }
-  );
+  onValidationError: (field: FieldName, errors: string[], elementId?: string) => void,
+  checkoutPaymentMethod: CheckoutPaymentMethod,
+  paymentFlowMetadata?: Record<string, unknown>
+): SubmitEventPayload | null => {
+  const extraData = createInputsDictFromForm(formDiv, {
+    type: eventType,
+    sessionId,
+    checkoutPaymentMethod,
+    paymentFlowMetadata,
+  });
 
-  console.log('[form] Constructing tokenization payload:', extraData);
+  console.log(`[form] Constructing ${eventType} payload:`, extraData);
 
   const payload = SubmitEventPayload.safeParse(extraData);
 
   if (!payload.success) {
     const formatted = payload.error.format();
     const issues = extractIssuesPerField(formatted);
-
     for (const [fieldName, errors] of Object.entries(issues)) {
       onValidationError(fieldName as FieldName, errors, fieldName);
     }
+    return null;
   } else {
     return payload.data;
   }

@@ -1,8 +1,19 @@
-import { useEffect, useState } from 'react';
-import { createStripePaymentRequest } from '../utils/stripe';
-import { PaymentRequestStatus } from '../utils/shared-models';
+import { createStripePaymentRequest, parseStripePubKey, waitForUserToAddPaymentMethod } from '../utils/stripe';
+import { CheckoutPaymentMethod, PaymentRequestStatus, RequiredFormFields } from '../utils/shared-models';
+import useMap from './use-map';
+import useAsyncEffect from 'use-async-effect';
+import { z } from 'zod';
+import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
+import { createInputsDictFromForm } from '../utils/event';
+import { getErrorMessage } from '../utils/errors';
 
-type PaymentRequestProvider = 'apple_pay';
+const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay']);
+type PaymentRequestProvider = z.infer<typeof PaymentRequestProvider>;
+
+const OUR_PROVIDER_TO_STRIPES: Record<PaymentRequestProvider, string> = {
+  apple_pay: 'applePay',
+  google_pay: 'googlePay',
+};
 
 const PR_LOADING: PaymentRequestStatus = {
   isLoading: true,
@@ -25,37 +36,67 @@ const PR_ERROR: PaymentRequestStatus = {
 };
 
 export const usePaymentRequests = (
-  stripePubKey: string | undefined,
   totalAmountAtom: number | undefined,
-  currency: string | undefined
+  currency: string | undefined,
+  availableCPMs: CheckoutPaymentMethod[] | undefined,
+  formDiv: HTMLDivElement | null,
+  onUserCompleteUIFlow: (
+    stripePm: PaymentRequestPaymentMethodEvent,
+    checkoutPaymentMethod: CheckoutPaymentMethod
+  ) => void,
+  onError: (errMsg: string) => void
 ): Record<PaymentRequestProvider, PaymentRequestStatus> => {
-  const [status, setStatus] = useState<Record<PaymentRequestProvider, PaymentRequestStatus>>({ apple_pay: PR_LOADING });
+  const [status, setStatus] = useMap<Record<PaymentRequestProvider, PaymentRequestStatus>>({
+    apple_pay: PR_LOADING,
+    google_pay: PR_LOADING,
+  });
+  const isLoading = totalAmountAtom === undefined || currency === undefined || availableCPMs === undefined || !formDiv;
 
-  useEffect(() => {
-    const runStripeSetup = async (): Promise<void> => {
+  // TODO: add more processors here once we have more processors supporting PaymentRequest API
+
+  // Stripe-based Payment Requests
+  useAsyncEffect(async () => {
+    if (isLoading) {
+      // Do nothing
+      return;
+    }
+    for (const provider of PaymentRequestProvider.options) {
+      const providerFriendlyName = provider.replace('_', '');
       try {
-        if (stripePubKey === undefined || totalAmountAtom === undefined || currency === undefined) {
-          throw new Error(`Cannot setup stripe yet: missing params`);
+        const stripeXPrCpm = availableCPMs.find((cpm) => cpm.provider === provider && cpm.processor_name === 'stripe');
+        if (!stripeXPrCpm) {
+          throw new Error(`${providerFriendlyName} is not available as a checkout method`);
         }
+        const stripePubKey = parseStripePubKey(stripeXPrCpm.metadata);
         const pr = await createStripePaymentRequest(stripePubKey, totalAmountAtom, currency);
         const canMakePayment = await pr.canMakePayment();
-        const PR_SUCCESS = {
-          isLoading: false,
-          isAvailable: true,
-          startFlow: () => pr.show(),
+        if (!canMakePayment) {
+          throw new Error(`Cannot make payment with ${providerFriendlyName} for this session`);
+        }
+        // Callback when payment request is finished
+        const startPaymentRequestUserFlow = async (): Promise<void> => {
+          try {
+            const formInputs = createInputsDictFromForm(formDiv, {});
+            RequiredFormFields.parse(formInputs);
+            pr.show();
+            const pmAddedEvent = await waitForUserToAddPaymentMethod(pr);
+            onUserCompleteUIFlow(pmAddedEvent, stripeXPrCpm);
+          } catch (e) {
+            console.error(e);
+            onError(getErrorMessage(e));
+          }
         };
-        setStatus({
-          apple_pay: canMakePayment?.['applePay'] ? PR_SUCCESS : PR_ERROR,
+        setStatus.set(provider, {
+          isLoading: false,
+          isAvailable: canMakePayment[OUR_PROVIDER_TO_STRIPES[provider]],
+          startFlow: startPaymentRequestUserFlow,
         });
       } catch (e) {
-        setStatus({
-          apple_pay: PR_ERROR,
-        });
+        console.error(e);
+        setStatus.set(provider, PR_ERROR);
       }
-    };
-
-    runStripeSetup();
-  }, [stripePubKey, totalAmountAtom, currency]);
+    }
+  }, [isLoading, availableCPMs]);
 
   return status;
 };

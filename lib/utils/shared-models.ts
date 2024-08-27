@@ -7,6 +7,8 @@ import { z } from 'zod';
 
 const RequiredString = z.string().trim().min(1, { message: `Cannot be blank` });
 const OptionalString = z.string().trim().optional();
+export const nullOrUndefOr = <T extends z.ZodType>(zType: T): z.ZodNullable<z.ZodOptional<T>> =>
+  z.nullable(zType.optional());
 
 /**
  * Expected input fields
@@ -40,6 +42,18 @@ export const AllFieldNames = z.union([FieldNameEnum, PrivateFieldNameEnum]);
 export type AllFieldNames = z.infer<typeof AllFieldNames>;
 
 /**
+ * Core models
+ */
+
+// CheckoutPaymentMethod
+export const CheckoutPaymentMethod = z.object({
+  provider: z.string(),
+  processor_name: nullOrUndefOr(z.string()),
+  metadata: nullOrUndefOr(z.record(z.string(), z.any())),
+});
+export type CheckoutPaymentMethod = z.infer<typeof CheckoutPaymentMethod>;
+
+/**
  * Styles
  */
 
@@ -68,6 +82,7 @@ export const EventType = z.enum([
   'CHANGE',
   'TOKENIZE_STARTED',
   'CHECKOUT_STARTED',
+  'PAYMENT_FLOW_STARTED',
   'TOKENIZE_SUCCESS',
   'CHECKOUT_SUCCESS',
   'LOAD_ERROR',
@@ -78,6 +93,7 @@ export const EventType = z.enum([
   // Form -> Element
   'TOKENIZE',
   'CHECKOUT',
+  'START_PAYMENT_FLOW',
 ]);
 
 /**
@@ -123,21 +139,36 @@ export const LoadedEventPayload = z.object({
   height: RequiredString,
   totalAmountAtoms: z.number(),
   currency: OptionalString,
-  stripePubKey: z.nullable(z.string()),
+  checkoutPaymentMethods: z.array(CheckoutPaymentMethod),
 });
 export type LoadedEventPayload = z.infer<typeof LoadedEventPayload>;
 
-const SubmitEventType = EventType.extract(['TOKENIZE', 'CHECKOUT']);
-type SubmitEventType = z.infer<typeof SubmitEventType>;
-export const SubmitEventPayload = z.object({
-  type: SubmitEventType,
-  sessionId: RequiredString,
+export const PaymentFlowStartedEventPayload = z.object({
+  type: z.literal(EventType.enum.PAYMENT_FLOW_STARTED),
+  nextActionMetadata: z.record(z.string(), z.any()),
+  paymentFlowMetadata: z.any().optional(),
+});
+export type PaymentFlowStartedEventPayload = z.infer<typeof PaymentFlowStartedEventPayload>;
+
+export const RequiredFormFields = z.object({
   [FieldName.FIRST_NAME]: RequiredString,
   [FieldName.LAST_NAME]: RequiredString,
   [FieldName.EMAIL]: RequiredString,
   [FieldName.ZIP_CODE]: RequiredString,
   [FieldName.COUNTRY]: RequiredString,
 });
+export type RequiredFormFields = z.infer<typeof RequiredFormFields>;
+
+const SubmitEventType = EventType.extract(['TOKENIZE', 'CHECKOUT', 'START_PAYMENT_FLOW']);
+type SubmitEventType = z.infer<typeof SubmitEventType>;
+export const SubmitEventPayload = z
+  .object({
+    type: SubmitEventType,
+    sessionId: RequiredString,
+    checkoutPaymentMethod: CheckoutPaymentMethod,
+    paymentFlowMetadata: z.any().optional(),
+  })
+  .extend(RequiredFormFields.shape);
 export type SubmitEventPayload = z.infer<typeof SubmitEventPayload>;
 
 export const TokenizeSuccessEventPayload = z.object({
@@ -164,6 +195,7 @@ export const EventPayload = z.discriminatedUnion('type', [
   SubmitEventPayload,
   TokenizeSuccessEventPayload,
   CheckoutSuccessEventPayload,
+  PaymentFlowStartedEventPayload,
 ]);
 export type EventPayload = z.infer<typeof EventPayload>;
 
