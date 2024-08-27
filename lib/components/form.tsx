@@ -328,6 +328,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     checkoutPaymentMethods,
     formRef.current,
     onUserCompletePaymentRequestUI,
+    onValidationError,
     onPaymentRequestError
   );
 
