@@ -1,10 +1,10 @@
 import { createStripePaymentRequest, parseStripePubKey, waitForUserToAddPaymentMethod } from '../utils/stripe';
-import { CheckoutPaymentMethod, PaymentRequestStatus, RequiredFormFields } from '../utils/shared-models';
+import { CheckoutPaymentMethod, EventType, FieldName, PaymentRequestStatus } from '../utils/shared-models';
 import useMap from './use-map';
 import useAsyncEffect from 'use-async-effect';
 import { z } from 'zod';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
-import { createInputsDictFromForm } from '../utils/event';
+import { constructSubmitEventPayload, createInputsDictFromForm } from '../utils/event';
 import { getErrorMessage } from '../utils/errors';
 
 const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay']);
@@ -44,6 +44,7 @@ export const usePaymentRequests = (
     stripePm: PaymentRequestPaymentMethodEvent,
     checkoutPaymentMethod: CheckoutPaymentMethod
   ) => void,
+  onValidationError: undefined | ((field: FieldName, errors: string[], elementId?: string) => void),
   onError: (errMsg: string) => void
 ): Record<PaymentRequestProvider, PaymentRequestStatus> => {
   const [status, setStatus] = useMap<Record<PaymentRequestProvider, PaymentRequestStatus>>({
@@ -76,8 +77,17 @@ export const usePaymentRequests = (
         // Callback when payment request is finished
         const startPaymentRequestUserFlow = async (): Promise<void> => {
           try {
-            const formInputs = createInputsDictFromForm(formDiv, {});
-            RequiredFormFields.parse(formInputs);
+            createInputsDictFromForm(formDiv, {});
+            if (onValidationError) {
+              const startPaymentFlowEvent = constructSubmitEventPayload(
+                EventType.enum.START_PAYMENT_FLOW,
+                'dummy',
+                formDiv,
+                onValidationError,
+                stripeXPrCpm
+              );
+              if (!startPaymentFlowEvent) return;
+            }
             pr.show();
             const pmAddedEvent = await waitForUserToAddPaymentMethod(pr);
             onUserCompleteUIFlow(pmAddedEvent, stripeXPrCpm);
