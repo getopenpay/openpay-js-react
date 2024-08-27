@@ -120,6 +120,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
         if (onCheckoutStarted) onCheckoutStarted();
       } else if (eventType === EventType.enum.PAYMENT_FLOW_STARTED) {
+        // TODO ASAP this is being called twice
         if (!stripePm) {
           throw new Error(`Stripe PM not set`);
         }
@@ -133,6 +134,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
             emitEvent(eventSource, formId, elementId, { ...extraData, type: 'CHECKOUT' }, frameBaseUrl);
             setCheckoutFired(true);
             setExtraData(undefined);
+            if (onCheckoutStarted) onCheckoutStarted();
           })
           .catch((e) => {
             console.log('[form] Confirmation payment flow error');
@@ -176,9 +178,10 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
         if (onLoadError) onLoadError(eventPayload.message);
       } else if (eventType === EventType.enum.VALIDATION_ERROR) {
-        console.error(`[form] Validation error for ${eventPayload.elementType}:`, eventPayload.errors);
-
-        if (onValidationError) onValidationError(eventPayload.elementType, eventPayload.errors, elementId);
+        if (extraData?.checkoutPaymentMethod.provider === 'credit_card') {
+          console.error(`[form] Validation error for ${eventPayload.elementType}:`, eventPayload.errors);
+          if (onValidationError) onValidationError(eventPayload.elementType, eventPayload.errors, elementId);
+        }
       } else if (eventType === EventType.enum.TOKENIZE_ERROR || eventType === EventType.enum.CHECKOUT_ERROR) {
         console.error('[form] API error from element:', eventPayload.message);
         setPreventClose(false);
@@ -283,6 +286,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     checkoutPaymentMethod: CheckoutPaymentMethod
   ): Promise<void> => {
     if (!formRef.current || !onValidationError || !sessionId || !checkoutPaymentMethods) return;
+    // Try all iframe targets, note that this loop will break as soon as one succeeds
     for (const [elementId, target] of Object.entries(eventTargets)) {
       if (!target) continue;
       const paymentFlowMetadata = {
@@ -298,8 +302,11 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       );
       if (!startPaymentFlowEvent) continue;
       setStripePm(stripePm);
+      setCheckoutFired(true);
       setExtraData(startPaymentFlowEvent);
       emitEvent(target, formId, elementId, startPaymentFlowEvent, frameBaseUrl);
+      // If first one succeeds, break
+      break;
     }
   };
 
