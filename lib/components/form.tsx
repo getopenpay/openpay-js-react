@@ -47,8 +47,6 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const [checkoutPaymentMethods, setCheckoutPaymentMethods] = useState<CheckoutPaymentMethod[] | undefined>(undefined);
   const [stripePm, setStripePm] = useState<PaymentRequestPaymentMethodEvent | undefined>(undefined);
 
-  // TODO ASAP: usePaymentRequests should have access to setCheckoutFired and setExtraData
-
   const formId = useMemo(() => `opjs-form-${uuidv4()}`, []);
   const formRef = useRef<HTMLDivElement | null>(null);
 
@@ -120,7 +118,6 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
         if (onCheckoutStarted) onCheckoutStarted();
       } else if (eventType === EventType.enum.PAYMENT_FLOW_STARTED) {
-        // TODO ASAP this is being called twice
         if (!stripePm) {
           throw new Error(`Stripe PM not set`);
         }
