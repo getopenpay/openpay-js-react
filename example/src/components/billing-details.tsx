@@ -32,6 +32,8 @@ const BillingDetails: FC = () => (
       <Input placeholder="Country" openPayId={FieldName.COUNTRY} />
       <Input placeholder="ZIP" openPayId={FieldName.ZIP_CODE} />
     </div>
+    <HorizontalRule />
+    <Input placeholder="Promotion code" openPayId={FieldName.PROMOTION_CODE} />
   </InputField>
 );
 
