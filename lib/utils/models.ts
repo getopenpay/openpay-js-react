@@ -1,7 +1,21 @@
-import { ElementsStyle, AllFieldNames, PaymentRequestStatus } from './shared-models';
+import { ElementsStyle, AllFieldNames, PaymentRequestStatus, CardPlaceholder } from './shared-models';
+
+type GenericElementStyle = Omit<ElementsStyle, 'placeholder'>;
 
 export type ElementProps = {
-  styles?: ElementsStyle;
+  styles?: GenericElementStyle;
+};
+
+export type StandaloneElementProps = ElementProps & {
+  styles?: GenericElementStyle & {
+    placeholder?: string;
+  };
+};
+
+export type InlineElementProps = ElementProps & {
+  styles?: GenericElementStyle & {
+    placeholder?: CardPlaceholder;
+  };
 };
 
 export type ElementsFormChildrenProps = {

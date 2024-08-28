@@ -53,6 +53,14 @@ export const CheckoutPaymentMethod = z.object({
 });
 export type CheckoutPaymentMethod = z.infer<typeof CheckoutPaymentMethod>;
 
+export const CardPlaceholder = z.object({
+  cardNumber: OptionalString,
+  expiry: OptionalString,
+  cvc: OptionalString,
+});
+
+export type CardPlaceholder = z.infer<typeof CardPlaceholder>;
+
 /**
  * Styles
  */
@@ -65,6 +73,7 @@ export const ElementsStyle = z.object({
   fontWeight: OptionalString,
   margin: OptionalString,
   padding: OptionalString,
+  placeholder: z.union([OptionalString, CardPlaceholder]),
 });
 export type ElementsStyle = z.infer<typeof ElementsStyle>;
 
