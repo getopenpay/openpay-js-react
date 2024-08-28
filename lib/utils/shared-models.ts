@@ -77,12 +77,14 @@ export const BaseElementsStyle = z.object({
 
 export type BaseElementsStyle = z.infer<typeof BaseElementsStyle>;
 
+// Just inferencing the type here for simplicity
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export const ElementsStyle = <T extends z.ZodTypeAny>(placeholderType: T) =>
   BaseElementsStyle.extend({
     placeholder: placeholderType,
   });
 
+// Generic type for ElementsStyle where T is the placeholder type
 export type ElementsStyle<T extends z.ZodTypeAny> = z.infer<ReturnType<typeof ElementsStyle<T>>>;
 
 /**
