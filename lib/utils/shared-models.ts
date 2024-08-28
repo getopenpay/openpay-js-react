@@ -65,7 +65,7 @@ export type CardPlaceholder = z.infer<typeof CardPlaceholder>;
  * Styles
  */
 
-export const ElementsStyle = z.object({
+export const BaseElementsStyle = z.object({
   backgroundColor: OptionalString,
   color: OptionalString,
   fontFamily: OptionalString,
@@ -73,9 +73,17 @@ export const ElementsStyle = z.object({
   fontWeight: OptionalString,
   margin: OptionalString,
   padding: OptionalString,
-  placeholder: z.union([OptionalString, CardPlaceholder]),
 });
-export type ElementsStyle = z.infer<typeof ElementsStyle>;
+
+export type BaseElementsStyle = z.infer<typeof BaseElementsStyle>;
+
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+export const ElementsStyle = <T extends z.ZodTypeAny>(placeholderType: T) =>
+  BaseElementsStyle.extend({
+    placeholder: placeholderType,
+  });
+
+export type ElementsStyle<T extends z.ZodTypeAny> = z.infer<ReturnType<typeof ElementsStyle<T>>>;
 
 /**
  * Event types

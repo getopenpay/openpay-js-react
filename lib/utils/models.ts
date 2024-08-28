@@ -1,21 +1,8 @@
-import { ElementsStyle, AllFieldNames, PaymentRequestStatus, CardPlaceholder } from './shared-models';
+import { z } from 'zod';
+import { AllFieldNames, type ElementsStyle, PaymentRequestStatus } from './shared-models';
 
-type GenericElementStyle = Omit<ElementsStyle, 'placeholder'>;
-
-export type ElementProps = {
-  styles?: GenericElementStyle;
-};
-
-export type StandaloneElementProps = ElementProps & {
-  styles?: GenericElementStyle & {
-    placeholder?: string;
-  };
-};
-
-export type InlineElementProps = ElementProps & {
-  styles?: GenericElementStyle & {
-    placeholder?: CardPlaceholder;
-  };
+export type ElementProps<PlaceholderType extends z.ZodTypeAny = z.ZodString> = {
+  styles?: ElementsStyle<z.ZodOptional<PlaceholderType>>;
 };
 
 export type ElementsFormChildrenProps = {

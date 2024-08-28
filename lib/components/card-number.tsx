@@ -1,8 +1,8 @@
 import { FC } from 'react';
-import { type StandaloneElementProps } from '../utils/models';
+import { type ElementProps } from '../utils/models';
 import ElementFrame from './_common/frame';
 
-const CardNumberElement: FC<StandaloneElementProps> = ({ styles }) => {
+const CardNumberElement: FC<ElementProps> = ({ styles }) => {
   return <ElementFrame styles={styles} subPath="card-number" />;
 };
 
