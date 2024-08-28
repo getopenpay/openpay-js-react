@@ -25,6 +25,7 @@ export enum FieldName {
   COUNTRY = 'country',
   ADDRESS = 'address',
   PHONE = 'phone',
+  PROMOTION_CODE = 'promotionCode',
 }
 export const FieldNameEnum = z.nativeEnum(FieldName);
 export type FieldNameEnum = z.infer<typeof FieldNameEnum>;
@@ -156,6 +157,7 @@ export const RequiredFormFields = z.object({
   [FieldName.EMAIL]: RequiredString,
   [FieldName.ZIP_CODE]: RequiredString,
   [FieldName.COUNTRY]: RequiredString,
+  [FieldName.PROMOTION_CODE]: OptionalString,
 });
 export type RequiredFormFields = z.infer<typeof RequiredFormFields>;
 
