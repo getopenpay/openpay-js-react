@@ -54,11 +54,19 @@ export const CheckoutPaymentMethod = z.object({
 });
 export type CheckoutPaymentMethod = z.infer<typeof CheckoutPaymentMethod>;
 
+export const CardPlaceholder = z.object({
+  cardNumber: OptionalString,
+  expiry: OptionalString,
+  cvc: OptionalString,
+});
+
+export type CardPlaceholder = z.infer<typeof CardPlaceholder>;
+
 /**
  * Styles
  */
 
-export const ElementsStyle = z.object({
+export const BaseElementsStyle = z.object({
   backgroundColor: OptionalString,
   color: OptionalString,
   fontFamily: OptionalString,
@@ -67,7 +75,18 @@ export const ElementsStyle = z.object({
   margin: OptionalString,
   padding: OptionalString,
 });
-export type ElementsStyle = z.infer<typeof ElementsStyle>;
+
+export type BaseElementsStyle = z.infer<typeof BaseElementsStyle>;
+
+// Just inferencing the type here for simplicity
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+export const ElementsStyle = <T extends z.ZodTypeAny>(placeholderType: T) =>
+  BaseElementsStyle.extend({
+    placeholder: placeholderType,
+  });
+
+// Generic type for ElementsStyle where T is the placeholder type
+export type ElementsStyle<T extends z.ZodTypeAny> = z.infer<ReturnType<typeof ElementsStyle<T>>>;
 
 /**
  * Event types

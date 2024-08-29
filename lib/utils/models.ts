@@ -1,7 +1,8 @@
-import { ElementsStyle, AllFieldNames, PaymentRequestStatus } from './shared-models';
+import { z } from 'zod';
+import { AllFieldNames, type ElementsStyle, PaymentRequestStatus } from './shared-models';
 
-export type ElementProps = {
-  styles?: ElementsStyle;
+export type ElementProps<PlaceholderType extends z.ZodTypeAny = z.ZodString> = {
+  styles?: ElementsStyle<z.ZodOptional<PlaceholderType>>;
 };
 
 export type ElementsFormChildrenProps = {

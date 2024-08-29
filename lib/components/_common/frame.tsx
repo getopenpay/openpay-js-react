@@ -1,12 +1,13 @@
 import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { convertStylesToQueryString } from '../../utils/style';
-import { ElementsStyle } from '../../utils/shared-models';
+import { CardPlaceholder, ElementsStyle } from '../../utils/shared-models';
 import { useOpenPayElements } from '../../hooks/use-openpay-elements';
+import { z } from 'zod';
 
-type ElementFrameProps = {
+type ElementFrameProps<T extends z.ZodTypeAny = z.ZodOptional<z.ZodString | typeof CardPlaceholder>> = {
   checkoutSecureToken?: string;
   subPath: string;
-  styles?: ElementsStyle;
+  styles?: ElementsStyle<T>;
 };
 
 const ElementFrame: FC<ElementFrameProps> = (props) => {
