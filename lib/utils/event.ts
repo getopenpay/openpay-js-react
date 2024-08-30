@@ -1,5 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
-import { ElementEvent, FieldName, EventPayload, SubmitEventPayload, CheckoutPaymentMethod } from './shared-models';
+import {
+  ElementEvent,
+  FieldName,
+  EventPayload,
+  SubmitEventPayload,
+  CheckoutPaymentMethod,
+  ThreeDSFramePayload,
+} from './shared-models';
 import { extractIssuesPerField } from './zod-errors';
 
 export const createInputsDictFromForm = (
@@ -73,4 +80,13 @@ export const emitEvent = (
   console.log(`[form ${formId}] Sending event to child ${elementId}:`, event);
   // @ts-expect-error postMessage typing error?
   target.postMessage(JSON.stringify(event), baseUrl);
+};
+
+export const parse3DSFramePayload = (eventData: object): ThreeDSFramePayload => {
+  try {
+    return ThreeDSFramePayload.parse(eventData);
+  } catch (error) {
+    console.error('Error parsing 3DS frame payload:', eventData, error);
+    throw error;
+  }
 };

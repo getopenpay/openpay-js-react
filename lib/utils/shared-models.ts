@@ -109,6 +109,7 @@ export const EventType = z.enum([
   'VALIDATION_ERROR',
   'TOKENIZE_ERROR',
   'CHECKOUT_ERROR',
+  'THREE_DS_AUTHENTICATION',
 
   // Form -> Element
   'TOKENIZE',
@@ -170,6 +171,13 @@ export const PaymentFlowStartedEventPayload = z.object({
 });
 export type PaymentFlowStartedEventPayload = z.infer<typeof PaymentFlowStartedEventPayload>;
 
+export const ThreeDSecureAuthenticationEventPayload = z.object({
+  type: z.literal(EventType.enum['THREE_DS_AUTHENTICATION']),
+  url: z.string(),
+});
+
+export type ThreeDSecureAuthenticationEventPayload = z.infer<typeof ThreeDSecureAuthenticationEventPayload>;
+
 export const RequiredFormFields = z.object({
   [FieldName.FIRST_NAME]: RequiredString,
   [FieldName.LAST_NAME]: RequiredString,
@@ -217,6 +225,7 @@ export const EventPayload = z.discriminatedUnion('type', [
   TokenizeSuccessEventPayload,
   CheckoutSuccessEventPayload,
   PaymentFlowStartedEventPayload,
+  ThreeDSecureAuthenticationEventPayload,
 ]);
 export type EventPayload = z.infer<typeof EventPayload>;
 
@@ -241,3 +250,9 @@ export const PaymentRequestStatus = z.object({
   startFlow: z.function(z.tuple([]), z.void()),
 });
 export type PaymentRequestStatus = z.infer<typeof PaymentRequestStatus>;
+
+export const ThreeDSFramePayload = z.object({
+  type: z.literal('3ds:complete'),
+});
+
+export type ThreeDSFramePayload = z.infer<typeof ThreeDSFramePayload>;

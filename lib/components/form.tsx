@@ -9,6 +9,10 @@ import { usePaymentRequests } from '../hooks/use-payment-requests';
 import { confirmPaymentFlowForStripePR } from '../utils/stripe';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 import { getErrorMessage } from '../utils/errors';
+import ThreeDSecureFrame from './3ds-frame';
+import { Provider } from 'react-redux';
+import { store } from '../store';
+import { showFrame } from '../store/reducers/three-ds';
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
   const {
@@ -186,6 +190,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         setCheckoutFired(false);
 
         if (onCheckoutError) onCheckoutError(eventPayload.message);
+      } else if (eventType === EventType.enum.THREE_DS_AUTHENTICATION) {
+        store.dispatch(showFrame(eventPayload.url));
       }
     },
     [
@@ -340,11 +346,14 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   };
 
   return (
-    <ElementsContext.Provider value={value}>
-      <div className={className} ref={formRef}>
-        {children(childrenProps)}
-      </div>
-    </ElementsContext.Provider>
+    <Provider store={store}>
+      <ElementsContext.Provider value={value}>
+        <div className={className} ref={formRef}>
+          {children(childrenProps)}
+        </div>
+        <ThreeDSecureFrame />
+      </ElementsContext.Provider>
+    </Provider>
   );
 };
 
