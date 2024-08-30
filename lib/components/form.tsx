@@ -351,8 +351,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         <div className={className} ref={formRef}>
           {children(childrenProps)}
         </div>
-        <ThreeDSecureFrame />
       </ElementsContext.Provider>
+      <ThreeDSecureFrame />
     </Provider>
   );
 };

@@ -99,6 +99,7 @@ const Form: FC<FormProps> = (props) => {
       onCheckoutStarted={onCheckoutStarted}
       onCheckoutSuccess={onCheckoutSuccess}
       onCheckoutError={onCheckoutError}
+      baseUrl="https://cde.getopenpay.com"
     >
       {({ submit, applePay, googlePay }) => (
         <FormWrapper error={validationError}>

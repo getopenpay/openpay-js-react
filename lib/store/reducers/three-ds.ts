@@ -6,7 +6,7 @@ export interface ThreeDSState {
 }
 
 const initialState: ThreeDSState = {
-  frameUrl: undefined,
+  frameUrl: 'https://youtu.be/FDywkYREjCk?list=RDULdVqlmWDPE',
 };
 
 export const threeDSSlice = createSlice({
