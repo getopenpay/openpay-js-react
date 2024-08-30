@@ -46,21 +46,40 @@ export const ThreeDSecureFrame: FC = () => {
           <div
             style={{
               backgroundColor: 'white',
-              padding: '1rem',
               borderRadius: '0.5rem',
               width: '100%',
-              maxWidth: '400px',
-              boxShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
-              height: '100%',
-              maxHeight: '600px',
+              maxWidth: '600px',
+              color: 'black',
             }}
           >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+              }}
+            >
+              <button
+                style={{
+                  padding: '0.5rem',
+                  margin: '0.5rem',
+                  color: 'white',
+                  backgroundColor: 'red',
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                }}
+                onClick={() => {
+                  dispatch(hideFrame());
+                }}
+              >
+                Cancel
+              </button>
+            </div>
             <iframe
               src={frameUrl}
               style={{
                 border: 'none',
-                width: '100%',
-                height: '100%',
+                width: '600px',
+                height: '400px',
               }}
             />
           </div>
