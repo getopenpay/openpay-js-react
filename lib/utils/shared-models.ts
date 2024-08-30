@@ -251,7 +251,7 @@ export const PaymentRequestStatus = z.object({
 });
 export type PaymentRequestStatus = z.infer<typeof PaymentRequestStatus>;
 
-enum ThreeDSStatus {
+export enum ThreeDSStatus {
   SUCCESS = 'success',
   FAIL = 'fail',
 }

@@ -9,7 +9,7 @@ import { usePaymentRequests } from '../hooks/use-payment-requests';
 import { confirmPaymentFlowForStripePR } from '../utils/stripe';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 import { getErrorMessage } from '../utils/errors';
-import ThreeDSecureFrame from './3ds-frame';
+import { ThreeDSecureFrame } from './3ds-frame';
 import { Provider } from 'react-redux';
 import { store } from '../store';
 import { showFrame } from '../store/reducers/three-ds';
