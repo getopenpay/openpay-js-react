@@ -4,25 +4,32 @@ import { useDispatch, useSelector } from 'react-redux';
 import { hideFrame } from '../store/reducers/three-ds';
 import { RootState } from '../store';
 import { createPortal } from 'react-dom';
+import { FRAME_BASE_URL } from '../utils/constants';
+
+const FRAME_ACTIONS = {
+  '3ds:complete': hideFrame,
+};
 
 export const ThreeDSecureFrame: FC = () => {
   const frameUrl = useSelector((state: RootState) => state.threeDS.frameUrl);
   const dispatch = useDispatch();
 
   useEffect(() => {
+    // this event handler is messing up with the one in form.tsx
+    // Should be refactored
     const onMessage = (event: MessageEvent): void => {
-      // TODO: check origin
-      console.log('[3DSFrame]origin ', event.origin);
-      return;
+      if (event.origin !== FRAME_BASE_URL) return;
 
-      const actions = {
-        '3ds:complete': hideFrame(),
-      };
+      const { data, success, error } = parse3DSFramePayload(event.data);
 
-      const data = parse3DSFramePayload(event.data);
+      if (!success) {
+        console.error('[3DSFrame] Error parsing message:', error);
+        return;
+      }
+
       console.log('[3DSFrame] Received message:', data);
-      // run action
-      dispatch(actions[data.type]);
+
+      dispatch(FRAME_ACTIONS[data.type]());
     };
 
     window.addEventListener('message', onMessage);

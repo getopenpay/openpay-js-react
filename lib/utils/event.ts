@@ -82,11 +82,8 @@ export const emitEvent = (
   target.postMessage(JSON.stringify(event), baseUrl);
 };
 
-export const parse3DSFramePayload = (eventData: object): ThreeDSFramePayload => {
-  try {
-    return ThreeDSFramePayload.parse(eventData);
-  } catch (error) {
-    console.error('Error parsing 3DS frame payload:', eventData, error);
-    throw error;
-  }
+export const parse3DSFramePayload = (
+  eventData: object
+): Zod.SafeParseReturnType<ThreeDSFramePayload, ThreeDSFramePayload> => {
+  return ThreeDSFramePayload.safeParse(eventData);
 };

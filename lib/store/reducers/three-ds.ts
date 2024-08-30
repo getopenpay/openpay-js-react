@@ -6,7 +6,7 @@ export interface ThreeDSState {
 }
 
 const initialState: ThreeDSState = {
-  frameUrl: 'https://react.dev/reference/react-dom/createPortal',
+  frameUrl: undefined,
 };
 
 export const threeDSSlice = createSlice({
