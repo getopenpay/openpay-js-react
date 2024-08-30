@@ -10,7 +10,7 @@
     "lint:fix": "next lint --fix"
   },
   "dependencies": {
-    "@getopenpay/openpay-js-react": "file:..",
+    "@getopenpay/openpay-js-react": "^0.0.10",
     "@stripe/stripe-js": "^4.3.0",
     "classnames": "^2.5.1",
     "next": "14.2.5",
