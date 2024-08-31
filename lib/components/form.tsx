@@ -6,7 +6,7 @@ import { CheckoutPaymentMethod, EventType, SubmitEventPayload } from '../utils/s
 import { FRAME_BASE_URL } from '../utils/constants';
 import { v4 as uuidv4 } from 'uuid';
 import { usePaymentRequests } from '../hooks/use-payment-requests';
-import { confirmPaymentFlowForStripePR } from '../utils/stripe';
+import { confirmPaymentFlowFor3DS, confirmPaymentFlowForStripePR } from '../utils/stripe';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 import { getErrorMessage } from '../utils/errors';
 
@@ -129,10 +129,12 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
         const confirmPaymentFlow = async (): Promise<void> => {
           const nextActionType = eventPayload.nextActionMetadata['type'];
+          console.log('BINGBING CONFIRM', nextActionType);
           if (nextActionType === undefined) {
             // Nothing to do
           } else if (nextActionType === 'stripe_3ds') {
             // TODO ASAP
+            await confirmPaymentFlowFor3DS(eventPayload);
           } else if (nextActionType === 'stripe_payment_request') {
             if (!stripePm) {
               // This is only applicable for PRs
@@ -148,7 +150,13 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         confirmPaymentFlow()
           .then(() => {
             console.log('[form] Starting checkout from payment flow.');
-            emitEvent(eventSource, formId, elementId, { ...extraData, type: 'CHECKOUT' }, frameBaseUrl);
+            emitEvent(
+              eventSource,
+              formId,
+              elementId,
+              { ...extraData, type: 'CHECKOUT', doNotUseLegacyCCFlow: true },
+              frameBaseUrl
+            );
             setCheckoutFired(true);
             setExtraData(undefined);
             if (onCheckoutStarted) onCheckoutStarted();
@@ -216,7 +224,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
               onValidationError,
               // Only stripe supports frontend 3DS right now,
               // so we pass processor_name: 'stripe' to tell delegator to only use stripe
-              { ...cardCpm, processor_name: 'stripe' }
+              { ...cardCpm, processor_name: 'stripe' },
+              false
             );
             if (!startPaymentFlowEvent) continue;
             setCheckoutFired(true);
@@ -268,7 +277,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       sessionId,
       formRef.current,
       onValidationError,
-      cardCpm
+      cardCpm,
+      false
     );
     if (!extraData) return;
 
@@ -341,6 +351,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         formRef.current,
         onValidationError,
         checkoutPaymentMethod,
+        false,
         paymentFlowMetadata
       );
       if (!startPaymentFlowEvent) continue;

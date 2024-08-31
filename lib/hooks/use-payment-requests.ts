@@ -86,7 +86,8 @@ export const usePaymentRequests = (
                 'dummy',
                 formDiv,
                 onValidationError,
-                stripeXPrCpm
+                stripeXPrCpm,
+                false
               );
               if (!startPaymentFlowEvent) return;
             }

@@ -188,6 +188,7 @@ export const SubmitEventPayload = z
     sessionId: RequiredString,
     checkoutPaymentMethod: CheckoutPaymentMethod,
     paymentFlowMetadata: z.any().optional(),
+    doNotUseLegacyCCFlow: z.boolean(),
   })
   .extend(RequiredFormFields.shape);
 export type SubmitEventPayload = z.infer<typeof SubmitEventPayload>;

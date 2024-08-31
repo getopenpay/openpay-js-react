@@ -113,3 +113,21 @@ export const confirmPaymentFlowForStripePR = async (
     stripePm.complete('success');
   }
 };
+
+export const confirmPaymentFlowFor3DS = async (payload: PaymentFlowStartedEventPayload): Promise<void> => {
+  const nextActionMetadata = payload.nextActionMetadata;
+  const stripe = getLoadedStripe(nextActionMetadata.stripe_pk);
+  const confirmResult = await stripe.confirmCardSetup(nextActionMetadata.client_secret, {
+    payment_method: nextActionMetadata.stripe_pm_id,
+    return_url: 'https://google.com',
+  });
+  console.log('BINGUBINGU confirm result', confirmResult);
+  const resultStatus = confirmResult.setupIntent?.status;
+  if (resultStatus === 'succeeded') {
+    // Nice
+  } else if (resultStatus === 'canceled') {
+    throw new Error(`Payment cancelled, please click Submit again to pay`);
+  } else {
+    throw new Error(`Payment error: ${confirmResult.setupIntent?.last_setup_error?.message ?? 'unknown'}`);
+  }
+};

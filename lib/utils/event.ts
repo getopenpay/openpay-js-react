@@ -22,6 +22,7 @@ export const constructSubmitEventPayload = (
   formDiv: HTMLDivElement,
   onValidationError: (field: FieldName, errors: string[], elementId?: string) => void,
   checkoutPaymentMethod: CheckoutPaymentMethod,
+  doNotUseLegacyCCFlow: boolean,
   paymentFlowMetadata?: Record<string, unknown>
 ): SubmitEventPayload | null => {
   const extraData = createInputsDictFromForm(formDiv, {
@@ -29,6 +30,7 @@ export const constructSubmitEventPayload = (
     sessionId,
     checkoutPaymentMethod,
     paymentFlowMetadata,
+    doNotUseLegacyCCFlow,
   });
 
   console.log(`[form] Constructing ${eventType} payload:`, extraData);
