@@ -91,9 +91,11 @@ const Form: FC<FormProps> = (props) => {
       {({ submit, applePay, googlePay }) => (
         <FormWrapper error={validationError}>
           {(loading || overlayMessage) && (
-            <div className="absolute top-0 left-0 z-50 w-full h-full flex flex-col gap-2 items-center justify-center bg-emerald-100/50 dark:bg-emerald-800/50 backdrop-blur rounded-lg cursor-not-allowed">
-              {loading && <span className="text-4xl animate-spin">⏳︎</span>}
-              <p className="text-lg text-center font-bold max-w-md w-full">{overlayMessage ?? 'Loading...'}</p>
+            <div data-testid="overlay" className="w-full py-2 my-2 h-full flex flex-col gap-2 items-center justify-center bg-emerald-100/50 dark:bg-emerald-800/50 backdrop-blur rounded-lg cursor-not-allowed">
+              {loading && <span className="text-xl animate-spin">⏳︎</span>}
+              <pre data-opid="overlay-message" className="block font-bold max-w-md w-full text-wrap my-3">
+                {JSON.stringify(overlayMessage ?? '', null, 2)}
+              </pre>
             </div>
           )}
 
