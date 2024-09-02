@@ -50,11 +50,6 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const formId = useMemo(() => `opjs-form-${uuidv4()}`, []);
   const formRef = useRef<HTMLDivElement | null>(null);
 
-  // const start3dsCardPaymentFlow = async (checkoutPaymentMethod: CheckoutPaymentMethod): Promise<void> => {
-  //   if (!formRef.current || !onValidationError || !sessionId || !checkoutPaymentMethods) return;
-
-  // };
-
   const onMessage = useCallback(
     (event: MessageEvent) => {
       // Since window.postMessage allows any source to post messages
