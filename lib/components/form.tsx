@@ -129,11 +129,9 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
         const confirmPaymentFlow = async (): Promise<void> => {
           const nextActionType = eventPayload.nextActionMetadata['type'];
-          console.log('BINGBING CONFIRM', nextActionType);
           if (nextActionType === undefined) {
             // Nothing to do
           } else if (nextActionType === 'stripe_3ds') {
-            // TODO ASAP
             await confirmPaymentFlowFor3DS(eventPayload);
           } else if (nextActionType === 'stripe_payment_request') {
             if (!stripePm) {
@@ -150,11 +148,20 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         confirmPaymentFlow()
           .then(() => {
             console.log('[form] Starting checkout from payment flow.');
+
+            let existingCCPMId: string | undefined;
+            if (extraData.checkoutPaymentMethod.provider === 'credit_card') {
+              existingCCPMId = eventPayload.startPFMetadata?.cc_pm_id;
+              if (!existingCCPMId) {
+                throw new Error(`CC PM ID not found`);
+              }
+            }
+
             emitEvent(
               eventSource,
               formId,
               elementId,
-              { ...extraData, type: 'CHECKOUT', doNotUseLegacyCCFlow: true },
+              { ...extraData, type: 'CHECKOUT', doNotUseLegacyCCFlow: true, existingCCPMId },
               frameBaseUrl
             );
             setCheckoutFired(true);

@@ -119,12 +119,12 @@ export const confirmPaymentFlowFor3DS = async (payload: PaymentFlowStartedEventP
   const stripe = getLoadedStripe(nextActionMetadata.stripe_pk);
   const confirmResult = await stripe.confirmCardSetup(nextActionMetadata.client_secret, {
     payment_method: nextActionMetadata.stripe_pm_id,
-    return_url: 'https://google.com',
   });
-  console.log('BINGUBINGU confirm result', confirmResult);
+  console.log('[3DS] CONFIRMING PM:', nextActionMetadata.stripe_pm_id);
   const resultStatus = confirmResult.setupIntent?.status;
   if (resultStatus === 'succeeded') {
     // Nice
+    console.log('[3DS] Setup intent created:', confirmResult.setupIntent);
   } else if (resultStatus === 'canceled') {
     throw new Error(`Payment cancelled, please click Submit again to pay`);
   } else {
