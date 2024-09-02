@@ -25,7 +25,10 @@ const Form: FC<FormProps> = (props) => {
   const { token, separateFrames, onCheckoutSuccess } = props;
   const [loading, setLoading] = useState<boolean>(true);
   const [amount, setAmount] = useState<string | null>(null);
-  const [overlayMessage, setOverlayMessage] = useState<string | null>(null);
+  const [overlayMessage, setOverlayMessage] = useState<{
+    type: 'checkout-error' | 'load-error' | 'process-payment' | 'loading';
+    message: string;
+  } | null>(null);
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const validationError = useMemo(() => {
@@ -45,12 +48,18 @@ const Form: FC<FormProps> = (props) => {
 
   const onCheckoutStarted = (): void => {
     setLoading(true);
-    setOverlayMessage('Processing payment...');
+    setOverlayMessage({
+      type: 'process-payment',
+      message: 'Processing payment...',
+    });
   };
 
   const onCheckoutError = (message: string): void => {
     setLoading(false);
-    setOverlayMessage(`Could not process payment. Raw error: ${message}`);
+    setOverlayMessage({
+      type: 'checkout-error',
+      message,
+    });
   };
 
   const onLoad = (totalAmountAtoms: number, currency?: string): void => {
@@ -61,7 +70,10 @@ const Form: FC<FormProps> = (props) => {
 
   const onLoadError = (message: string): void => {
     setLoading(false);
-    setOverlayMessage(`Could not load form. Is the session valid and not expired? Raw error: ${message}`);
+    setOverlayMessage({
+      type: 'load-error',
+      message,
+    });
   };
 
   const onValidationError = (elementType: string, errors: string[]): void => {
