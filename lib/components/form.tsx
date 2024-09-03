@@ -165,6 +165,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
           })
           .catch((e) => {
             console.log('[form] Confirmation payment flow error');
+            console.error(e);
             const errMsg = getErrorMessage(e);
             setPreventClose(false);
             setCheckoutFired(false);

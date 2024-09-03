@@ -120,14 +120,16 @@ export const confirmPaymentFlowFor3DS = async (payload: PaymentFlowStartedEventP
   const confirmResult = await stripe.confirmCardSetup(nextActionMetadata.client_secret, {
     payment_method: nextActionMetadata.stripe_pm_id,
   });
-  console.log('[3DS] CONFIRMING PM:', nextActionMetadata.stripe_pm_id);
   const resultStatus = confirmResult.setupIntent?.status;
   if (resultStatus === 'succeeded') {
     // Nice
+    console.log('[3DS] CONFIRMING PM:', nextActionMetadata.stripe_pm_id);
     console.log('[3DS] Setup intent created:', confirmResult.setupIntent);
   } else if (resultStatus === 'canceled') {
     throw new Error(`Payment cancelled, please click Submit again to pay`);
   } else {
-    throw new Error(`Payment error: ${confirmResult.setupIntent?.last_setup_error?.message ?? 'unknown'}`);
+    throw new Error(
+      `${confirmResult.error?.message ?? confirmResult.setupIntent?.last_setup_error?.message ?? 'Payment failed, please click submit again to pay.'}`
+    );
   }
 };
