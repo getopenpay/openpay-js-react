@@ -167,6 +167,7 @@ export const PaymentFlowStartedEventPayload = z.object({
   type: z.literal(EventType.enum.PAYMENT_FLOW_STARTED),
   nextActionMetadata: z.record(z.string(), z.any()),
   paymentFlowMetadata: z.any().optional(),
+  startPFMetadata: z.optional(z.record(z.string(), z.any())),
 });
 export type PaymentFlowStartedEventPayload = z.infer<typeof PaymentFlowStartedEventPayload>;
 
@@ -188,6 +189,8 @@ export const SubmitEventPayload = z
     sessionId: RequiredString,
     checkoutPaymentMethod: CheckoutPaymentMethod,
     paymentFlowMetadata: z.any().optional(),
+    doNotUseLegacyCCFlow: z.boolean(),
+    existingCCPMId: OptionalString,
   })
   .extend(RequiredFormFields.shape);
 export type SubmitEventPayload = z.infer<typeof SubmitEventPayload>;
