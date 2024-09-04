@@ -24,6 +24,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     onCheckoutStarted,
     onCheckoutSuccess,
     onCheckoutError,
+    onSetupCheckoutSuccess,
     baseUrl,
   } = props;
 
@@ -163,13 +164,20 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
           setTokenized(totalTokenized);
         }
       } else if (eventType === EventType.enum.CHECKOUT_SUCCESS) {
-        console.log('[form] Checkout complete:', eventPayload.invoiceUrls);
+        console.log('[form] Checkout complete:', eventPayload);
         setPreventClose(false);
         setTokenized(0);
         setCheckoutFired(false);
 
         if (onCheckoutSuccess)
           onCheckoutSuccess(eventPayload.invoiceUrls, eventPayload.subscriptionIds, eventPayload.customerId);
+      } else if (eventType === EventType.enum.SETUP_CHECKOUT_SUCCESS) {
+        console.log('[form] Checkout setup complete:', eventPayload);
+        setPreventClose(false);
+        setTokenized(0);
+        setCheckoutFired(false);
+
+        if (onSetupCheckoutSuccess) onSetupCheckoutSuccess(eventPayload.paymentMethodId);
       } else if (eventType === EventType.enum.LOAD_ERROR) {
         console.error('[form] Error loading iframe:', eventPayload.message);
 
@@ -203,6 +211,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       onLoadError,
       onCheckoutStarted,
       onCheckoutSuccess,
+      onSetupCheckoutSuccess,
       onCheckoutError,
       onValidationError,
       frameBaseUrl,
