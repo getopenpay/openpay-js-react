@@ -313,12 +313,16 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     [preventClose]
   );
 
+  /**
+   * Check if all iframes have loaded and invoke `onLoad` callback
+   */
   useEffect(() => {
-    if (loaded || !formRef.current || !totalAmountAtoms) return;
+    if (loaded || !formRef.current) return;
 
-    if (iframes.length === Object.keys(eventTargets).length) {
+    if (iframes.length > 0 && iframes.length === Object.keys(eventTargets).length) {
       console.log('[form] All elements loaded');
       setLoaded(true);
+      // Total amount will be undefined if mode is 'setup'
       if (onLoad) onLoad(totalAmountAtoms, currency);
     }
   }, [iframes, eventTargets, loaded, onLoad, totalAmountAtoms, currency]);

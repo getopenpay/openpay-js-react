@@ -64,10 +64,10 @@ const Form: FC<FormProps> = (props) => {
     });
   };
 
-  const onLoad = (totalAmountAtoms: number, currency?: string): void => {
+  const onLoad = (totalAmountAtoms?: number, currency?: string): void => {
     setLoading(false);
     resetErrors();
-    setAmount(`${currency ? `${currency.toUpperCase()} ` : '$'}${totalAmountAtoms / 100}`);
+    if (totalAmountAtoms) setAmount(`${currency ? `${currency.toUpperCase()} ` : '$'}${totalAmountAtoms / 100}`);
   };
 
   const onLoadError = (message: string): void => {
@@ -87,6 +87,7 @@ const Form: FC<FormProps> = (props) => {
 
   useEffect(() => {
     console.log(`Stripe JS can be loaded as a <script> in head (recommended), or loaded through ${loadStripe.name}`);
+    if (!token) return;
     setLoading(true);
     setOverlayMessage(null);
   }, [token]);
