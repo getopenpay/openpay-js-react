@@ -6,7 +6,7 @@ import { CheckoutPaymentMethod, EventType, SubmitEventPayload } from '../utils/s
 import { FRAME_BASE_URL } from '../utils/constants';
 import { v4 as uuidv4 } from 'uuid';
 import { usePaymentRequests } from '../hooks/use-payment-requests';
-import { confirmPaymentFlowForStripePR } from '../utils/stripe';
+import { confirmPaymentFlowFor3DS, confirmPaymentFlowForStripePR } from '../utils/stripe';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 import { getErrorMessage } from '../utils/errors';
 
@@ -119,23 +119,54 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
         if (onCheckoutStarted) onCheckoutStarted();
       } else if (eventType === EventType.enum.PAYMENT_FLOW_STARTED) {
-        if (!stripePm) {
-          throw new Error(`Stripe PM not set`);
-        }
         if (!extraData) {
           throw new Error(`extraData not populated`);
         }
-        console.log('[form] Confirming payment flow');
-        confirmPaymentFlowForStripePR(eventPayload, stripePm)
+
+        const confirmPaymentFlow = async (): Promise<void> => {
+          const nextActionType = eventPayload.nextActionMetadata['type'];
+          if (nextActionType === undefined) {
+            // Nothing to do
+          } else if (nextActionType === 'stripe_3ds') {
+            await confirmPaymentFlowFor3DS(eventPayload);
+          } else if (nextActionType === 'stripe_payment_request') {
+            if (!stripePm) {
+              // This is only applicable for PRs
+              throw new Error(`Stripe PM not set`);
+            }
+            console.log('[form] Confirming payment flow');
+            await confirmPaymentFlowForStripePR(eventPayload, stripePm);
+          } else {
+            throw new Error(`Unknown next action type: ${nextActionType}`);
+          }
+        };
+
+        confirmPaymentFlow()
           .then(() => {
             console.log('[form] Starting checkout from payment flow.');
-            emitEvent(eventSource, formId, elementId, { ...extraData, type: 'CHECKOUT' }, frameBaseUrl);
+
+            let existingCCPMId: string | undefined;
+            if (extraData.checkoutPaymentMethod.provider === 'credit_card') {
+              existingCCPMId = eventPayload.startPFMetadata?.cc_pm_id;
+              if (!existingCCPMId) {
+                throw new Error(`CC PM ID not found`);
+              }
+            }
+
+            emitEvent(
+              eventSource,
+              formId,
+              elementId,
+              { ...extraData, type: 'CHECKOUT', doNotUseLegacyCCFlow: true, existingCCPMId },
+              frameBaseUrl
+            );
             setCheckoutFired(true);
             setExtraData(undefined);
             if (onCheckoutStarted) onCheckoutStarted();
           })
           .catch((e) => {
             console.log('[form] Confirmation payment flow error');
+            console.error(e);
             const errMsg = getErrorMessage(e);
             setPreventClose(false);
             setCheckoutFired(false);
@@ -190,10 +221,35 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         }
       } else if (eventType === EventType.enum.TOKENIZE_ERROR || eventType === EventType.enum.CHECKOUT_ERROR) {
         console.error('[form] API error from element:', eventPayload.message);
-        setPreventClose(false);
-        setCheckoutFired(false);
-
-        if (onCheckoutError) onCheckoutError(eventPayload.message);
+        if (eventPayload.message === '3DS_REQUIRED') {
+          // TODO refactor later
+          const cardCpm = checkoutPaymentMethods?.find((cpm) => cpm.provider === 'credit_card');
+          if (!sessionId || !formRef.current || !onValidationError || !cardCpm) return;
+          // Try all iframe targets, note that this loop will break as soon as one succeeds
+          for (const [elementId, target] of Object.entries(eventTargets)) {
+            if (!target) continue;
+            const startPaymentFlowEvent = constructSubmitEventPayload(
+              EventType.enum.START_PAYMENT_FLOW,
+              sessionId,
+              formRef.current,
+              onValidationError,
+              // Only stripe supports frontend 3DS right now,
+              // so we pass processor_name: 'stripe' to tell delegator to only use stripe
+              { ...cardCpm, processor_name: 'stripe' },
+              false
+            );
+            if (!startPaymentFlowEvent) continue;
+            setCheckoutFired(true);
+            setExtraData(startPaymentFlowEvent);
+            emitEvent(target, formId, elementId, startPaymentFlowEvent, frameBaseUrl);
+            // If first one succeeds, break
+            break;
+          }
+        } else {
+          setPreventClose(false);
+          setCheckoutFired(false);
+          if (onCheckoutError) onCheckoutError(eventPayload.message);
+        }
       }
     },
     [
@@ -216,6 +272,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       onValidationError,
       frameBaseUrl,
       stripePm,
+      checkoutPaymentMethods,
     ]
   );
 
@@ -232,7 +289,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       sessionId,
       formRef.current,
       onValidationError,
-      cardCpm
+      cardCpm,
+      false
     );
     if (!extraData) return;
 
@@ -305,6 +363,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         formRef.current,
         onValidationError,
         checkoutPaymentMethod,
+        false,
         paymentFlowMetadata
       );
       if (!startPaymentFlowEvent) continue;
