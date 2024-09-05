@@ -1,7 +1,7 @@
 import { FC, PropsWithChildren } from 'react';
 
 interface FormWrapperProps extends PropsWithChildren {
-  error: string | null;
+  error?: Record<string, string[]>;
 }
 
 const FormWrapper: FC<FormWrapperProps> = (props) => {
@@ -12,7 +12,12 @@ const FormWrapper: FC<FormWrapperProps> = (props) => {
       <div className="max-w-lg w-full mb-4">{children}</div>
 
       {error ? (
-        <p className="text-red-600 dark:text-red-400 font-bold text-xs">{error}</p>
+        <pre
+          data-testid="validation-error"
+          className="text-red-600 dark:text-red-400 font-bold text-xs block text-wrap"
+        >
+          {JSON.stringify(error)}
+        </pre>
       ) : (
         <p className="text-emerald-800 dark:text-emerald-400 text-xs">You won&apos;t be charged real money.</p>
       )}
