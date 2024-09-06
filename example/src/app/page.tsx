@@ -33,15 +33,6 @@ const Form: FC<FormProps> = (props) => {
   } | null>(null);
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
-  // const validationError = useMemo(() => {
-  //   if (!validationErrors) return null;
-
-  //   const errorMessages = Object.entries(validationErrors).map(([elementType, errors]) => {
-  //     return `${elementType}: ${errors.join(", ")}`;
-  //   });
-
-  //   return errorMessages.join("; ");
-  // }, [validationErrors]);
 
   const resetErrors = useCallback(() => {
     setValidationErrors({});
