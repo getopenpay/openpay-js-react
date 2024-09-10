@@ -33,12 +33,68 @@ The library provides separate card elements (Card number, expiry, CVV) and a com
 - `<CardCvcElement />`
 - `<CardElement />` (Combined)
 
+<br />
+
+### Callbacks
+
+`ElementsForm` component, which is responsible for managing the form elements involved in the payment checkout process. This provides optional callback functions and properties that help customize the behavior of the form.
+
+`onFocus?: (elementId: string) => void`  
+Triggered when a form element gains focus.  
+Parameters:  
+`elementId`: The ID of the element that gained focus.
+
+`onBlur?: (elementId: string) => void`  
+Triggered when a form element loses focus.  
+Parameters:  
+`elementId`: The ID of the element that lost focus.
+
+`onChange?: (elementId: string) => void`  
+Triggered when a form element's value changes.  
+Parameters:  
+`elementId`: The ID of the element whose value changed.
+
+`onLoad?: (totalAmountAtoms: number, currency?: string) => void`  
+Triggered when the form is successfully loaded.  
+Parameters:  
+`totalAmountAtoms`: The total amount to be processed in atomic units (usually the smallest denomination of the currency).  
+`currency`: (Optional) The currency code in which the transaction is being processed.
+
+`onLoadError?: (message: string) => void`  
+Triggered if there is an error loading the form.  
+Parameters:  
+`message`: A string describing the error that occurred during form loading.
+
+`onValidationError?: (field: FieldNames, errors: string[], elementId?: string) => void`  
+Triggered when there is a validation error in any of the form fields.  
+Parameters:  
+`field`: The name of the field that failed validation.  
+`errors:` An array of error messages describing the validation issues.  
+`elementId:` (Optional) The ID of the element where the validation error occurred.
+
+`onCheckoutStarted?: () => void`  
+Triggered when the checkout process begins.
+
+`onCheckoutSuccess?: (invoiceUrls: string[], subscriptionIds: string[], customerId: string) => void`  
+Triggered when the checkout process is successfully completed.  
+Parameters:  
+`invoiceUrls`: An array of URLs to the generated invoices.
+
+`onCheckoutError?: (message: string) => void`  
+Triggered when an error occurs during the checkout process.  
+Parameters:  
+`message`: A string describing the error that occurred during checkout.
+
+<br />
+
 ### Billing information
 
 Customer billing information is required to proceed checkout. You can implement the input fields for billing information in your own way. Since you're in control of these fields, you can perform custom validations, custom styling and auto-fill with user account information.  
-For OpenPay to access the input fields, please include `data-opid` attribute with predefined field names which can be accessed via `FieldName`.
+For OpenPay to access the input fields, please include `data-opid` attribute with predefined field names which can be accessed via `FieldName`. 
 
-Available field names:
+Fields must be rendered inside `<ElementsForm>`
+
+Available field names: 
 
 - `FieldName.FIRST_NAME`
 - `FieldName.LAST_NAME`
@@ -49,17 +105,48 @@ Available field names:
 - `FieldName.COUNTRY`
 - `FieldName.ADDRESS`
 - `FieldName.PHONE`
+- `FieldName.PROMOTION_CODE`
+
+<br />
 
 ### Styling
 
 By default, the elements provided are "Unstyled". They will have transparent background and text color adaptive to system's color scheme. You can wrap an element inside a container to which you can apply customized styling ([Examples](doc:examples)).
 
-If you want to customize the styling of the element itself you can apply via the optional `styles` prop. The following are supported properties. These support any valid CSS values.
+ If you want to customize the styling of the element itself you can apply via the optional `styles` prop. The following are supported properties. These support any valid CSS values.
 
-- `backgroundColor`
+- `backgroundColor` 
 - `color`
 - `fontFamily`
 - `fontSize`
 - `fontWeight`
 - `margin`
 - `padding`
+
+Optionally, placeholder can be configured via a property of `styles`.  
+
+- `placeholder` : `string | { cardNumber: string, expiry: string, cvc: string }`
+
+For individual card elements: placeholder accepts  a `string`  
+For the combined`<CardElement>`: placeholder accepts an object `{ cardNumber: string, expiry: string, cvc: string }`
+
+
+## Release | Publish
+
+### Alpha version 
+
+Default CDE environment for alpha version is `staging`
+
+A new alpha version is automatically released when a commit is pushed to main. 
+
+### Stable version
+
+Default CDE environment for stable version is `production`
+
+To release a new version:
+- the version in `package.json` need to be upgraded 
+- merge the commit containing the version update to main
+- create a new release in github 
+  - create new tag with updated version (e.g. if version in package.json is `0.0.10`, create a tag named `v0.0.10`)
+  - publish the release
+It will publish a new stable version to npm
