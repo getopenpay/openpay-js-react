@@ -197,7 +197,7 @@ export const SubmitEventPayload = z
     sessionId: RequiredString,
     checkoutPaymentMethod: CheckoutPaymentMethod,
     paymentFlowMetadata: z.any().optional(),
-    doNotUseLegacyCCFlow: z.boolean(),
+    doNotUseLegacyCCFlow: z.boolean().optional(),
     existingCCPMId: OptionalString,
   })
   .extend(RequiredFormFields.shape);
