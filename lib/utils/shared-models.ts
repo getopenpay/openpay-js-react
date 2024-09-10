@@ -109,7 +109,7 @@ export const EventType = z.enum([
   'VALIDATION_ERROR',
   'TOKENIZE_ERROR',
   'CHECKOUT_ERROR',
-  'SETUP_CHECKOUT_SUCCESS',
+  'SETUP_PAYMENT_METHOD',
 
   // Form -> Element
   'TOKENIZE',
@@ -173,7 +173,7 @@ export const PaymentFlowStartedEventPayload = z.object({
 export type PaymentFlowStartedEventPayload = z.infer<typeof PaymentFlowStartedEventPayload>;
 
 export const SetupCheckoutSuccessEventPayload = z.object({
-  type: z.literal(EventType.enum.SETUP_CHECKOUT_SUCCESS),
+  type: z.literal(EventType.enum.SETUP_PAYMENT_METHOD),
   paymentMethodId: z.string(),
 });
 

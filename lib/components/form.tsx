@@ -24,7 +24,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     onCheckoutStarted,
     onCheckoutSuccess,
     onCheckoutError,
-    onSetupCheckoutSuccess,
+    onSetupPaymentMethodSuccess,
     baseUrl,
   } = props;
 
@@ -202,13 +202,13 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
         if (onCheckoutSuccess)
           onCheckoutSuccess(eventPayload.invoiceUrls, eventPayload.subscriptionIds, eventPayload.customerId);
-      } else if (eventType === EventType.enum.SETUP_CHECKOUT_SUCCESS) {
+      } else if (eventType === EventType.enum.SETUP_PAYMENT_METHOD) {
         console.log('[form] Checkout setup complete:', eventPayload);
         setPreventClose(false);
         setTokenized(0);
         setCheckoutFired(false);
 
-        if (onSetupCheckoutSuccess) onSetupCheckoutSuccess(eventPayload.paymentMethodId);
+        if (onSetupPaymentMethodSuccess) onSetupPaymentMethodSuccess(eventPayload.paymentMethodId);
       } else if (eventType === EventType.enum.LOAD_ERROR) {
         console.error('[form] Error loading iframe:', eventPayload.message);
 
@@ -267,7 +267,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       onLoadError,
       onCheckoutStarted,
       onCheckoutSuccess,
-      onSetupCheckoutSuccess,
+      onSetupPaymentMethodSuccess,
       onCheckoutError,
       onValidationError,
       frameBaseUrl,

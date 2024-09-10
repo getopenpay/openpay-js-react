@@ -14,17 +14,17 @@ import classNames from 'classnames';
 import { loadStripe } from '@stripe/stripe-js';
 
 type OnCheckoutSuccess = (invoiceUrls: string[], subscriptionIds: string[], customerId: string) => void;
-type OnSetupCheckoutSuccess = (paymentMethodId: string) => void;
+type OnSetupPaymentMethodSuccess = (paymentMethodId: string) => void;
 interface FormProps {
   token: string;
   separateFrames: boolean;
   onCheckoutSuccess: OnCheckoutSuccess;
-  onSetupCheckoutSuccess: OnSetupCheckoutSuccess;
+  onSetupPaymentMethodSuccess: OnSetupPaymentMethodSuccess;
   baseUrl?: string;
 }
 
 const Form: FC<FormProps> = (props) => {
-  const { token, separateFrames, onCheckoutSuccess, onSetupCheckoutSuccess } = props;
+  const { token, separateFrames, onCheckoutSuccess, onSetupPaymentMethodSuccess: onSetupCheckoutSuccess } = props;
   const [loading, setLoading] = useState<boolean>(true);
   const [amount, setAmount] = useState<string | null>(null);
   const [overlayMessage, setOverlayMessage] = useState<{
@@ -92,11 +92,10 @@ const Form: FC<FormProps> = (props) => {
       onValidationError={onValidationError}
       onCheckoutStarted={onCheckoutStarted}
       onCheckoutSuccess={onCheckoutSuccess}
-      onSetupCheckoutSuccess={(paymentMethodID) => {
+      onSetupPaymentMethodSuccess={(paymentMethodID) => {
         onSetupCheckoutSuccess(paymentMethodID);
       }}
       onCheckoutError={onCheckoutError}
-      baseUrl={'http://localhost:3030'}
     >
       {({ submit, applePay, googlePay }) => (
         <FormWrapper error={validationErrors}>
@@ -195,7 +194,7 @@ const ElementsExample: FC = () => {
     setToken(null);
   }, []);
 
-  const onSetupCheckoutSuccess = useCallback<OnSetupCheckoutSuccess>((paymentMethodId) => {
+  const onSetupCheckoutSuccess = useCallback<OnSetupPaymentMethodSuccess>((paymentMethodId) => {
     setSetupResponse({
       paymentMethodId,
     });
@@ -264,7 +263,7 @@ const ElementsExample: FC = () => {
             token={token}
             separateFrames={separateFrames}
             onCheckoutSuccess={onCheckoutSuccess}
-            onSetupCheckoutSuccess={onSetupCheckoutSuccess}
+            onSetupPaymentMethodSuccess={onSetupCheckoutSuccess}
             baseUrl={baseUrl}
           />
         </div>

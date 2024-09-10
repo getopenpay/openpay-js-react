@@ -23,7 +23,7 @@ export type ElementsFormProps = {
   onValidationError?: (field: AllFieldNames, errors: string[], elementId?: string) => void;
   onCheckoutStarted?: () => void;
   onCheckoutSuccess?: (invoiceUrls: string[], subscriptionIds: string[], customerId: string) => void;
-  onSetupCheckoutSuccess?: (paymentMethodId: string) => void;
+  onSetupPaymentMethodSuccess?: (paymentMethodId: string) => void;
   onCheckoutError?: (message: string) => void;
   baseUrl?: string;
 };
