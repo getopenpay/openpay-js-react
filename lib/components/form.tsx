@@ -202,7 +202,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
         if (onCheckoutSuccess)
           onCheckoutSuccess(eventPayload.invoiceUrls, eventPayload.subscriptionIds, eventPayload.customerId);
-      } else if (eventType === EventType.enum.SETUP_PAYMENT_METHOD) {
+      } else if (eventType === EventType.enum.SETUP_PAYMENT_METHOD_SUCCESS) {
         console.log('[form] Setup payment method complete:', eventPayload);
         setPreventClose(false);
         setTokenized(0);
