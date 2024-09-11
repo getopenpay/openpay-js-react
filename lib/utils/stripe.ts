@@ -16,10 +16,10 @@ const ourCurrencyToTheirs: Record<string, string> = {
   brl: 'brl',
 };
 
-const getLoadedStripe = (publishableKey: string): StripeType => {
+const getLoadedStripe = async (publishableKey: string): Promise<StripeType> => {
   for (let i = 0; i < 10; i++) {
     if (!isStripeJsPresent()) {
-      sleep(200);
+      await sleep(500);
     }
   }
   if (!isStripeJsPresent()) {
@@ -36,7 +36,7 @@ export const createStripePaymentRequest = async (
   totalAmountAtom: number,
   currency: string
 ): Promise<PaymentRequest> => {
-  const stripe = getLoadedStripe(stripePubKey);
+  const stripe = await getLoadedStripe(stripePubKey);
   const stripeCurrency = ourCurrencyToTheirs[currency];
   const paymentRequest = stripe.paymentRequest({
     // TODO: replace this with stripe account country as soon as we support it
@@ -102,7 +102,7 @@ export const confirmPaymentFlowForStripePR = async (
   if (stripePm.paymentMethod.id !== payload.paymentFlowMetadata['stripePmId']) {
     throw new Error(`PM ID mismatch: ${stripePm.paymentMethod.id} != ${payload.paymentFlowMetadata['stripePmId']}`);
   }
-  const stripe = getLoadedStripe(nextActionMetadata.stripe_pk);
+  const stripe = await getLoadedStripe(nextActionMetadata.stripe_pk);
   const confirmResult = await stripe.confirmCardSetup(nextActionMetadata.client_secret, {
     payment_method: payload.paymentFlowMetadata['stripePmId'],
   });
@@ -116,7 +116,7 @@ export const confirmPaymentFlowForStripePR = async (
 
 export const confirmPaymentFlowFor3DS = async (payload: PaymentFlowStartedEventPayload): Promise<void> => {
   const nextActionMetadata = payload.nextActionMetadata;
-  const stripe = getLoadedStripe(nextActionMetadata.stripe_pk);
+  const stripe = await getLoadedStripe(nextActionMetadata.stripe_pk);
   const confirmResult = await stripe.confirmCardSetup(nextActionMetadata.client_secret, {
     payment_method: nextActionMetadata.stripe_pm_id,
   });

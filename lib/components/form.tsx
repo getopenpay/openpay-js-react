@@ -124,16 +124,19 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
         const confirmPaymentFlow = async (): Promise<void> => {
           const nextActionType = eventPayload.nextActionMetadata['type'];
+          console.log('[form] Confirm payment flow: next actions:', eventPayload.nextActionMetadata);
           if (nextActionType === undefined) {
+            console.log('[form] Confirming payment flow (No-op)');
             // Nothing to do
           } else if (nextActionType === 'stripe_3ds') {
+            console.log('[form] Confirming payment flow (Stripe 3DS');
             await confirmPaymentFlowFor3DS(eventPayload);
           } else if (nextActionType === 'stripe_payment_request') {
             if (!stripePm) {
               // This is only applicable for PRs
               throw new Error(`Stripe PM not set`);
             }
-            console.log('[form] Confirming payment flow');
+            console.log('[form] Confirming payment flow (Stripe PR');
             await confirmPaymentFlowForStripePR(eventPayload, stripePm);
           } else {
             throw new Error(`Unknown next action type: ${nextActionType}`);
