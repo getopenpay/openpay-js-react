@@ -319,7 +319,9 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   useEffect(() => {
     if (loaded || !formRef.current) return;
 
-    if (iframes.length > 0 && iframes.length === Object.keys(eventTargets).length) {
+    const areIframesLoaded = iframes.length > 0 && iframes.length === Object.keys(eventTargets).length;
+
+    if (areIframesLoaded) {
       console.log('[form] All elements loaded');
       setLoaded(true);
       // Total amount will be undefined if mode is 'setup'
