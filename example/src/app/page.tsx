@@ -26,7 +26,7 @@ interface FormProps {
 }
 
 const Form: FC<FormProps> = (props) => {
-  const { token, separateFrames, onCheckoutSuccess, onSetupPaymentMethodSuccess: onSetupCheckoutSuccess } = props;
+  const { token, separateFrames, onCheckoutSuccess, onSetupPaymentMethodSuccess } = props;
   const [loading, setLoading] = useState<boolean>(true);
   const [amount, setAmount] = useState<string | null>(null);
   const [overlayMessage, setOverlayMessage] = useState<{
@@ -100,9 +100,7 @@ const Form: FC<FormProps> = (props) => {
       onValidationError={onValidationError}
       onCheckoutStarted={onCheckoutStarted}
       onCheckoutSuccess={onCheckoutSuccess}
-      onSetupPaymentMethodSuccess={(paymentMethodID) => {
-        onSetupCheckoutSuccess(paymentMethodID);
-      }}
+      onSetupPaymentMethodSuccess={onSetupPaymentMethodSuccess}
       onCheckoutError={onCheckoutError}
     >
       {({ submit, applePay, googlePay, loaded }) => (
