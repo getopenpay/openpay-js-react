@@ -13,6 +13,7 @@
     "@getopenpay/openpay-js-react": "file:..",
     "@stripe/stripe-js": "^4.3.0",
     "classnames": "^2.5.1",
+    "fraction.js": "^4.3.7",
     "next": "14.2.5",
     "react": "^18",
     "react-dom": "^18"

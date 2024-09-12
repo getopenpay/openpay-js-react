@@ -12,6 +12,8 @@ import InputField from '@/components/input-field';
 import BillingDetails from '@/components/billing-details';
 import classNames from 'classnames';
 import { loadStripe } from '@stripe/stripe-js';
+import { CurrencySymbolMap } from '@/utils/currency';
+import { atomToCurrency } from '@/utils/math';
 
 type OnCheckoutSuccess = (invoiceUrls: string[], subscriptionIds: string[], customerId: string) => void;
 type OnSetupPaymentMethodSuccess = (paymentMethodId: string) => void;
@@ -55,11 +57,13 @@ const Form: FC<FormProps> = (props) => {
     });
   };
 
-  const onLoad = (totalAmountAtoms?: number, currency?: string): void => {
+  const onLoad = (totalAmountAtoms?: number, loadedCurrency?: string): void => {
     setLoading(false);
     resetErrors();
     if (totalAmountAtoms) {
-      setAmount(`${currency ? `${currency.toUpperCase()} ` : '$'}${totalAmountAtoms / 100}`);
+      const currency = loadedCurrency ?? 'usd';
+      const amount = CurrencySymbolMap[currency] + atomToCurrency(totalAmountAtoms, currency);
+      setAmount(amount);
     }
   };
 
