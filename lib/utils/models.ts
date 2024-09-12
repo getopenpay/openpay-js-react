@@ -9,6 +9,7 @@ export type ElementsFormChildrenProps = {
   submit: () => void;
   applePay: PaymentRequestStatus;
   googlePay: PaymentRequestStatus;
+  loaded: boolean;
 };
 
 export type ElementsFormProps = {

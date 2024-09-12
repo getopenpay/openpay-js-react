@@ -88,7 +88,11 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
       console.log(`[form] Received ${eventType} event from ${elementId}:`, eventData.payload);
 
-      if (eventType === EventType.enum.FOCUS && !!onFocus) {
+      if (eventType === EventType.enum.LAYOUT) {
+        const height = eventPayload.height ? `${eventPayload.height}px` : '100%';
+        setFormHeight(height);
+        console.log(`[form] Element height set to: ${height}`);
+      } else if (eventType === EventType.enum.FOCUS && !!onFocus) {
         onFocus(eventData.elementId);
       } else if (eventType === EventType.enum.BLUR && !!onBlur) {
         onBlur(eventData.elementId);
@@ -104,15 +108,13 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         }
         setEventTargets((prevTargets) => ({ ...prevTargets, [elementId]: eventSource }));
 
-        const height = eventPayload.height ? `${eventPayload.height}px` : '100%';
-        setFormHeight(height);
         setTotalAmountAtoms(eventPayload.totalAmountAtoms);
         setCurrency(eventPayload.currency);
         setCheckoutPaymentMethods(eventPayload.checkoutPaymentMethods);
 
         if (!sessionId) setSessionId(eventPayload.sessionId);
 
-        console.log(`[form] Element ${elementId} loaded with height ${height}`);
+        console.log(`[form] Element loaded with prefill data:`, eventPayload);
       } else if (eventType === EventType.enum.TOKENIZE_STARTED) {
         console.log('[form] Tokenization started');
         setPreventClose(true);
@@ -414,6 +416,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     submit: submitCard,
     applePay: paymentRequests.apple_pay,
     googlePay: paymentRequests.google_pay,
+    loaded,
   };
 
   return (
