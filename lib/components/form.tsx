@@ -24,6 +24,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     onCheckoutStarted,
     onCheckoutSuccess,
     onCheckoutError,
+    onSetupPaymentMethodSuccess,
     baseUrl,
   } = props;
 
@@ -197,13 +198,20 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
           setTokenized(totalTokenized);
         }
       } else if (eventType === EventType.enum.CHECKOUT_SUCCESS) {
-        console.log('[form] Checkout complete:', eventPayload.invoiceUrls);
+        console.log('[form] Checkout complete:', eventPayload);
         setPreventClose(false);
         setTokenized(0);
         setCheckoutFired(false);
 
         if (onCheckoutSuccess)
           onCheckoutSuccess(eventPayload.invoiceUrls, eventPayload.subscriptionIds, eventPayload.customerId);
+      } else if (eventType === EventType.enum.SETUP_PAYMENT_METHOD_SUCCESS) {
+        console.log('[form] Setup payment method complete:', eventPayload);
+        setPreventClose(false);
+        setTokenized(0);
+        setCheckoutFired(false);
+
+        if (onSetupPaymentMethodSuccess) onSetupPaymentMethodSuccess(eventPayload.paymentMethodId);
       } else if (eventType === EventType.enum.LOAD_ERROR) {
         console.error('[form] Error loading iframe:', eventPayload.message);
 
@@ -262,6 +270,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       onLoadError,
       onCheckoutStarted,
       onCheckoutSuccess,
+      onSetupPaymentMethodSuccess,
       onCheckoutError,
       onValidationError,
       frameBaseUrl,
@@ -307,12 +316,18 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     [preventClose]
   );
 
+  /**
+   * Check if all iframes have loaded and invoke `onLoad` callback
+   */
   useEffect(() => {
-    if (loaded || !formRef.current || !totalAmountAtoms) return;
+    if (loaded || !formRef.current) return;
 
-    if (iframes.length === Object.keys(eventTargets).length) {
+    const areIframesLoaded = iframes.length > 0 && iframes.length === Object.keys(eventTargets).length;
+
+    if (areIframesLoaded) {
       console.log('[form] All elements loaded');
       setLoaded(true);
+      // Total amount will be undefined if mode is 'setup'
       if (onLoad) onLoad(totalAmountAtoms, currency);
     }
   }, [iframes, eventTargets, loaded, onLoad, totalAmountAtoms, currency]);

@@ -109,6 +109,7 @@ export const EventType = z.enum([
   'VALIDATION_ERROR',
   'TOKENIZE_ERROR',
   'CHECKOUT_ERROR',
+  'SETUP_PAYMENT_METHOD_SUCCESS',
 
   // Form -> Element
   'TOKENIZE',
@@ -171,6 +172,13 @@ export const PaymentFlowStartedEventPayload = z.object({
 });
 export type PaymentFlowStartedEventPayload = z.infer<typeof PaymentFlowStartedEventPayload>;
 
+export const SetupCheckoutSuccessEventPayload = z.object({
+  type: z.literal(EventType.enum.SETUP_PAYMENT_METHOD_SUCCESS),
+  paymentMethodId: z.string(),
+});
+
+export type SetupCheckoutSuccessEventPayload = z.infer<typeof SetupCheckoutSuccessEventPayload>;
+
 export const RequiredFormFields = z.object({
   [FieldName.FIRST_NAME]: RequiredString,
   [FieldName.LAST_NAME]: RequiredString,
@@ -189,7 +197,7 @@ export const SubmitEventPayload = z
     sessionId: RequiredString,
     checkoutPaymentMethod: CheckoutPaymentMethod,
     paymentFlowMetadata: z.any().optional(),
-    doNotUseLegacyCCFlow: z.boolean(),
+    doNotUseLegacyCCFlow: z.boolean().optional(),
     existingCCPMId: OptionalString,
   })
   .extend(RequiredFormFields.shape);
@@ -220,6 +228,7 @@ export const EventPayload = z.discriminatedUnion('type', [
   TokenizeSuccessEventPayload,
   CheckoutSuccessEventPayload,
   PaymentFlowStartedEventPayload,
+  SetupCheckoutSuccessEventPayload,
 ]);
 export type EventPayload = z.infer<typeof EventPayload>;
 

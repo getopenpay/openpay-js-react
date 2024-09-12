@@ -18,11 +18,12 @@ export type ElementsFormProps = {
   onFocus?: (elementId: string) => void;
   onBlur?: (elementId: string) => void;
   onChange?: (elementId: string) => void;
-  onLoad?: (totalAmountAtoms: number, currency?: string) => void;
+  onLoad?: (totalAmountAtoms?: number, currency?: string) => void;
   onLoadError?: (message: string) => void;
   onValidationError?: (field: AllFieldNames, errors: string[], elementId?: string) => void;
   onCheckoutStarted?: () => void;
   onCheckoutSuccess?: (invoiceUrls: string[], subscriptionIds: string[], customerId: string) => void;
+  onSetupPaymentMethodSuccess?: (paymentMethodId: string) => void;
   onCheckoutError?: (message: string) => void;
   baseUrl?: string;
 };

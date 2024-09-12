@@ -1,5 +1,5 @@
 'use client';
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, useCallback, useEffect, useState } from 'react';
 import {
   ElementsForm,
   CardCvcElement,
@@ -12,17 +12,21 @@ import InputField from '@/components/input-field';
 import BillingDetails from '@/components/billing-details';
 import classNames from 'classnames';
 import { loadStripe } from '@stripe/stripe-js';
+import { CurrencySymbolMap } from '@/utils/currency';
+import { atomToCurrency } from '@/utils/math';
 
 type OnCheckoutSuccess = (invoiceUrls: string[], subscriptionIds: string[], customerId: string) => void;
-
+type OnSetupPaymentMethodSuccess = (paymentMethodId: string) => void;
 interface FormProps {
   token: string;
   separateFrames: boolean;
   onCheckoutSuccess: OnCheckoutSuccess;
+  onSetupPaymentMethodSuccess: OnSetupPaymentMethodSuccess;
+  baseUrl?: string;
 }
 
 const Form: FC<FormProps> = (props) => {
-  const { token, separateFrames, onCheckoutSuccess } = props;
+  const { token, separateFrames, onCheckoutSuccess, onSetupPaymentMethodSuccess: onSetupCheckoutSuccess } = props;
   const [loading, setLoading] = useState<boolean>(true);
   const [amount, setAmount] = useState<string | null>(null);
   const [overlayMessage, setOverlayMessage] = useState<{
@@ -31,15 +35,6 @@ const Form: FC<FormProps> = (props) => {
   } | null>(null);
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
-  const validationError = useMemo(() => {
-    if (!validationErrors) return null;
-
-    const errorMessages = Object.entries(validationErrors).map(([elementType, errors]) => {
-      return `${elementType}: ${errors.join(', ')}`;
-    });
-
-    return errorMessages.join('; ');
-  }, [validationErrors]);
 
   const resetErrors = useCallback(() => {
     setValidationErrors({});
@@ -62,10 +57,14 @@ const Form: FC<FormProps> = (props) => {
     });
   };
 
-  const onLoad = (totalAmountAtoms: number, currency?: string): void => {
+  const onLoad = (totalAmountAtoms?: number, loadedCurrency?: string): void => {
     setLoading(false);
     resetErrors();
-    setAmount(`${currency ? `${currency.toUpperCase()} ` : '$'}${totalAmountAtoms / 100}`);
+    if (totalAmountAtoms) {
+      const currency = loadedCurrency ?? 'usd';
+      const amount = CurrencySymbolMap[currency] + atomToCurrency(totalAmountAtoms, currency);
+      setAmount(amount);
+    }
   };
 
   const onLoadError = (message: string): void => {
@@ -85,6 +84,9 @@ const Form: FC<FormProps> = (props) => {
 
   useEffect(() => {
     console.log(`Stripe JS can be loaded as a <script> in head (recommended), or loaded through ${loadStripe.name}`);
+    if (!token) {
+      return;
+    }
     setLoading(true);
     setOverlayMessage(null);
   }, [token]);
@@ -98,18 +100,23 @@ const Form: FC<FormProps> = (props) => {
       onValidationError={onValidationError}
       onCheckoutStarted={onCheckoutStarted}
       onCheckoutSuccess={onCheckoutSuccess}
+      onSetupPaymentMethodSuccess={(paymentMethodID) => {
+        onSetupCheckoutSuccess(paymentMethodID);
+      }}
       onCheckoutError={onCheckoutError}
     >
       {({ submit, applePay, googlePay }) => (
-        <FormWrapper error={validationError}>
-          {(loading || overlayMessage) && (
-            <div
-              data-testid="overlay"
-              className="w-full py-2 my-2 h-full flex flex-col gap-2 items-center justify-center bg-emerald-100/50 dark:bg-emerald-800/50 backdrop-blur rounded-lg cursor-not-allowed"
-            >
-              {loading && <span className="text-xl animate-spin">⏳︎</span>}
-              <pre data-opid="overlay-message" className="block font-bold max-w-md w-full text-wrap my-3">
-                {JSON.stringify(overlayMessage ?? '', null, 2)}
+        <FormWrapper error={validationErrors}>
+          {loading && (
+            <div data-testid="loading" className="flex items-center">
+              <span className="text-xl animate-spin">⏳︎</span>
+              Loading...
+            </div>
+          )}
+          {overlayMessage && (
+            <div className="w-full py-2 my-2 h-full flex items-center justify-center bg-emerald-100/50 dark:bg-emerald-800/50 backdrop-blur rounded-lg cursor-not-allowed">
+              <pre data-testid="overlay-message" className="block font-bold max-w-md w-full text-wrap my-3">
+                {JSON.stringify(overlayMessage, null, 2)}
               </pre>
             </div>
           )}
@@ -180,14 +187,25 @@ const Form: FC<FormProps> = (props) => {
 const ElementsExample: FC = () => {
   const [token, setToken] = useState<string | null>(null);
   const [separateFrames, setSeparateFrames] = useState<boolean>(false);
+  const [baseUrl, setBaseUrl] = useState<string>();
   const [checkoutResponse, setCheckoutResponse] = useState<{
     invoiceUrls: string[];
     subscriptionIds: string[];
     customerId: string;
   } | null>(null);
+  const [setupResponse, setSetupResponse] = useState<{
+    paymentMethodId: string;
+  } | null>(null);
 
   const onCheckoutSuccess = useCallback<OnCheckoutSuccess>((invoiceUrls, subscriptionIds, customerId) => {
     setCheckoutResponse({ invoiceUrls, subscriptionIds, customerId });
+    setToken(null);
+  }, []);
+
+  const onSetupCheckoutSuccess = useCallback<OnSetupPaymentMethodSuccess>((paymentMethodId) => {
+    setSetupResponse({
+      paymentMethodId,
+    });
     setToken(null);
   }, []);
 
@@ -201,12 +219,16 @@ const ElementsExample: FC = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
     const separateFrames = urlParams.get('separateFrames');
+    const baseUrl = urlParams.get('baseUrl');
 
     if (token) {
       setToken(token);
     }
     if (separateFrames) {
       setSeparateFrames(separateFrames === 'true');
+    }
+    if (baseUrl) {
+      setBaseUrl(baseUrl);
     }
   }, []);
 
@@ -245,7 +267,13 @@ const ElementsExample: FC = () => {
 
       {token ? (
         <div className="relative">
-          <Form token={token} separateFrames={separateFrames} onCheckoutSuccess={onCheckoutSuccess} />
+          <Form
+            token={token}
+            separateFrames={separateFrames}
+            onCheckoutSuccess={onCheckoutSuccess}
+            onSetupPaymentMethodSuccess={onSetupCheckoutSuccess}
+            baseUrl={baseUrl}
+          />
         </div>
       ) : (
         <div className="mb-4">
@@ -278,6 +306,15 @@ const ElementsExample: FC = () => {
           <p className="my-2">Customer ID:</p>
           <p data-testid="customer-id" className="text-sm">
             {checkoutResponse.customerId}
+          </p>
+        </>
+      )}
+      {setupResponse && (
+        <>
+          <h2 className="text-xl font-bold">🎉 Setup/Update successful!</h2>
+          <p className="my-2">Payment method ID:</p>
+          <p data-testid="payment-method-id" className="text-sm">
+            {setupResponse.paymentMethodId}
           </p>
         </>
       )}
