@@ -96,6 +96,7 @@ export type ElementsStyle<T extends z.ZodTypeAny> = z.infer<ReturnType<typeof El
 
 export const EventType = z.enum([
   // Element -> Form
+  'LAYOUT',
   'LOADED',
   'BLUR',
   'FOCUS',
@@ -154,10 +155,16 @@ export const ValidationErrorEventPayload = z.object({
 });
 export type ValidationErrorEventPayload = z.infer<typeof ValidationErrorEventPayload>;
 
+export const LayoutEventPayload = z.object({
+  type: z.literal(EventType.enum.LAYOUT),
+  height: RequiredString,
+});
+
+export type LayoutEventPayload = z.infer<typeof LayoutEventPayload>;
+
 export const LoadedEventPayload = z.object({
   type: z.literal(EventType.enum.LOADED),
   sessionId: RequiredString,
-  height: RequiredString,
   totalAmountAtoms: z.number(),
   currency: OptionalString,
   checkoutPaymentMethods: z.array(CheckoutPaymentMethod),
@@ -223,6 +230,7 @@ export const EventPayload = z.discriminatedUnion('type', [
   InputEventPayload,
   ErrorEventPayload,
   ValidationErrorEventPayload,
+  LayoutEventPayload,
   LoadedEventPayload,
   SubmitEventPayload,
   TokenizeSuccessEventPayload,
