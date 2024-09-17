@@ -34,7 +34,6 @@
     "react-dom": "^16.x || ^17.x || ^18.x"
   },
   "devDependencies": {
-    "@playwright/test": "^1.46.0",
     "@stripe/stripe-js": "^4.3.0",
     "@types/node": "^22.0.2",
     "@types/react": "^18.2.0",
