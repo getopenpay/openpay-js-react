@@ -14,7 +14,7 @@ export type ElementsFormChildrenProps = {
 
 export type ElementsFormProps = {
   className?: string;
-  checkoutSecureToken?: string;
+  checkoutSecureToken: string;
   children: (props: ElementsFormChildrenProps) => JSX.Element;
   onFocus?: (elementId: string) => void;
   onBlur?: (elementId: string) => void;
