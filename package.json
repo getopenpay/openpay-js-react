@@ -1,57 +1,24 @@
 {
-  "name": "@getopenpay/openpay-js-react",
-  "version": "0.0.13",
-  "description": "Accept payments through OpenPay, right on your site",
-  "author": "OpenPay <info@getopenpay.com> (https://getopenpay.com)",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "license": "ISC",
-  "files": [
-    "dist"
-  ],
-  "keywords": [
-    "getopenpay",
-    "openpay",
-    "payments"
-  ],
+  "name": "my-turborepo",
+  "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && vite build",
-    "build:alpha": "npm run build -- --mode staging",
-    "build:dev": "tsc -p tsconfig.build.json && NODE_ENV=development vite build --mode development --watch",
-    "lint": "eslint . --ignore-path=.eslintignore --report-unused-disable-directives --max-warnings 0",
-    "lint:fix": "eslint . --fix --ignore-path=.eslintignore --report-unused-disable-directives --max-warnings 0",
-    "test": "NODE_ENV=development npm run build -- --mode development && playwright test",
-    "prepare": "husky"
-  },
-  "dependencies": {
-    "use-async-effect": "^2.2.7",
-    "uuid": "^10.0.0",
-    "zod": "^3.23.8"
-  },
-  "peerDependencies": {
-    "react": "^16.x || ^17.x || ^18.x",
-    "react-dom": "^16.x || ^17.x || ^18.x"
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "lint:fix": "turbo lint -- --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
-    "@stripe/stripe-js": "^4.3.0",
-    "@types/node": "^22.0.2",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@types/uuid": "^10.0.0",
-    "@typescript-eslint/eslint-plugin": "^7.15.0",
-    "@typescript-eslint/parser": "^7.15.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-jsx-a11y": "^6.9.0",
-    "eslint-plugin-prettier": "^5.2.1",
-    "eslint-plugin-react": "^7.35.0",
-    "eslint-plugin-react-hooks": "^4.6.2",
-    "eslint-plugin-react-refresh": "^0.4.7",
-    "husky": "^9.1.4",
-    "typescript": "^5.2.2",
-    "vite": "^5.3.4",
-    "vite-plugin-dts": "^4.0.0-beta.2"
-  }
+    "prettier": "^3.2.5",
+    "turbo": "^2.1.2",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "npm@10.5.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
 }
