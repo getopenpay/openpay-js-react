@@ -1,5 +1,5 @@
 {
-  "name": "@repo/react",
+  "name": "@getopenpay/react",
   "version": "0.0.13",
   "description": "Accept payments through OpenPay, right on your site",
   "author": "OpenPay <info@getopenpay.com> (https://getopenpay.com)",
@@ -34,9 +34,9 @@
     "react-dom": "^16.x || ^17.x || ^18.x"
   },
   "devDependencies": {
-    "@repo/eslint-config": "*",
-    "@repo/typescript-config": "*",
-    "@repo/utils": "*",
+    "@getopenpay/eslint-config": "*",
+    "@getopenpay/typescript-config": "*",
+    "@getopenpay/utils": "*",
     "@stripe/stripe-js": "^4.3.0",
     "@types/node": "^22.0.2",
     "@types/react": "^18.2.0",

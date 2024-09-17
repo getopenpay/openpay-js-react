@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { type ElementProps } from '@repo/utils';
+import { type ElementProps } from '@getopenpay/utils';
 import ElementFrame from './_common/frame';
 
 const CardExpiryElement: FC<ElementProps> = ({ styles }) => {

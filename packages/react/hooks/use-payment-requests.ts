@@ -1,11 +1,11 @@
-import { createStripePaymentRequest, parseStripePubKey, waitForUserToAddPaymentMethod } from '@repo/utils';
-import { CheckoutPaymentMethod, EventType, FieldName, PaymentRequestStatus } from '@repo/utils';
+import { createStripePaymentRequest, parseStripePubKey, waitForUserToAddPaymentMethod } from '@getopenpay/utils';
+import { CheckoutPaymentMethod, EventType, FieldName, PaymentRequestStatus } from '@getopenpay/utils';
 import useMap from './use-map';
 import useAsyncEffect from 'use-async-effect';
 import { z } from 'zod';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
-import { constructSubmitEventPayload, createInputsDictFromForm } from '@repo/utils';
-import { getErrorMessage } from '@repo/utils';
+import { constructSubmitEventPayload, createInputsDictFromForm } from '@getopenpay/utils';
+import { getErrorMessage } from '@getopenpay/utils';
 
 const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay']);
 type PaymentRequestProvider = z.infer<typeof PaymentRequestProvider>;

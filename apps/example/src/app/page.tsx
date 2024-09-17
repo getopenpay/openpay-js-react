@@ -1,6 +1,6 @@
 'use client';
 import { FC, useCallback, useEffect, useState } from 'react';
-import { ElementsForm, CardCvcElement, CardElement, CardNumberElement, CardExpiryElement } from '@repo/react';
+import { ElementsForm, CardCvcElement, CardElement, CardNumberElement, CardExpiryElement } from '@getopenpay/react';
 import FormWrapper from '@/components/form-wrapper';
 import InputField from '@/components/input-field';
 import BillingDetails from '@/components/billing-details';

@@ -1,6 +1,6 @@
 import { FC, useEffect, useMemo, useRef, useState } from 'react';
-import { convertStylesToQueryString } from '@repo/utils';
-import { CardPlaceholder, ElementsStyle } from '@repo/utils';
+import { convertStylesToQueryString } from '@getopenpay/utils';
+import { CardPlaceholder, ElementsStyle } from '@getopenpay/utils';
 import { useOpenPayElements } from '../../hooks/use-openpay-elements';
 import { z } from 'zod';
 

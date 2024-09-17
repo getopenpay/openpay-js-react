@@ -1,14 +1,14 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ElementsContext, type ElementsContextValue } from '../hooks/context';
-import { constructSubmitEventPayload, emitEvent, parseEventPayload } from '@repo/utils';
-import { ElementsFormChildrenProps, ElementsFormProps } from '@repo/utils';
-import { CheckoutPaymentMethod, EventType, SubmitEventPayload } from '@repo/utils';
-import { FRAME_BASE_URL } from '@repo/utils';
+import { constructSubmitEventPayload, emitEvent, parseEventPayload } from '@getopenpay/utils';
+import { ElementsFormChildrenProps, ElementsFormProps } from '@getopenpay/utils';
+import { CheckoutPaymentMethod, EventType, SubmitEventPayload } from '@getopenpay/utils';
+import { FRAME_BASE_URL } from '@getopenpay/utils';
 import { v4 as uuidv4 } from 'uuid';
 import { usePaymentRequests } from '../hooks/use-payment-requests';
-import { confirmPaymentFlowFor3DS, confirmPaymentFlowForStripePR } from '@repo/utils';
+import { confirmPaymentFlowFor3DS, confirmPaymentFlowForStripePR } from '@getopenpay/utils';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
-import { getErrorMessage } from '@repo/utils';
+import { getErrorMessage } from '@getopenpay/utils';
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
   const {
