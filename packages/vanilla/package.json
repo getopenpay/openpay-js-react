@@ -1,12 +1,13 @@
 {
-  "name": "@getopenpay/react",
+  "name": "@getopenpay/js",
   "version": "0.0.13",
   "description": "Accept payments through OpenPay, right on your site",
   "author": "OpenPay <info@getopenpay.com> (https://getopenpay.com)",
   "license": "ISC",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "dist/index.cjs.js",
   "types": "dist/index.d.ts",
+  "module": "dist/index.esm.js",
   "files": [
     "dist"
   ],
@@ -16,27 +17,21 @@
     "payments"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && vite build",
-    "build:alpha": "npm run build -- --mode staging",
-    "dev": "tsc -p tsconfig.build.json && NODE_ENV=development vite build --mode development --watch",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --fix --report-unused-disable-directives --max-warnings 0",
-    "test": "NODE_ENV=development npm run build -- --mode development && playwright test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "build": "rm -rf dist && npm run build:dts && npm run build:esm && npm run build:cjs",
+    "build:dts": "tsc -p tsconfig.build.json --outDir ./dist",
+    "build:esm": "esbuild --bundle index.ts --format=esm --outfile=./dist/index.esm.js --packages=external",
+    "build:cjs": "esbuild --bundle index.ts --format=cjs --outfile=./dist/index.cjs.js --packages=external",
+    "dev": "tsc -p tsconfig.build.json --watch && esbuild --bundle index.ts --format=esm --outfile=./dist/index.esm.js --watch --packages=external"
   },
   "dependencies": {
-    "use-async-effect": "^2.2.7",
-    "uuid": "^10.0.0",
-    "zod": "^3.23.8"
-  },
-  "peerDependencies": {
-    "react": "^16.x || ^17.x || ^18.x",
-    "react-dom": "^16.x || ^17.x || ^18.x"
+    "@getopenpay/utils": "*"
   },
   "devDependencies": {
     "@getopenpay/eslint-config": "*",
     "@getopenpay/typescript-config": "*",
-    "@getopenpay/utils": "*",
     "@stripe/stripe-js": "^4.3.0",
     "@types/node": "^22.0.2",
     "@types/react": "^18.2.0",
@@ -45,6 +40,7 @@
     "@typescript-eslint/eslint-plugin": "^7.15.0",
     "@typescript-eslint/parser": "^7.15.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "esbuild": "^0.23.1",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-jsx-a11y": "^6.9.0",
@@ -53,8 +49,6 @@
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.7",
     "husky": "^9.1.4",
-    "typescript": "^5.2.2",
-    "vite": "^5.3.4",
-    "vite-plugin-dts": "^4.0.0-beta.2"
+    "typescript": "^5.2.2"
   }
 }

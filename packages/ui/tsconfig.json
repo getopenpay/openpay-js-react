@@ -1,5 +1,5 @@
 {
-  "extends": "@getopenpay/typescript-config/react-library.json",
+  "extends": "@getopenpay/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "dist"
   },
