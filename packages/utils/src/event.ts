@@ -3,7 +3,7 @@ import { ElementEvent, FieldName, EventPayload, SubmitEventPayload, CheckoutPaym
 import { extractIssuesPerField } from './zod-errors';
 
 export const createInputsDictFromForm = (
-  formDiv: HTMLDivElement,
+  formDiv: HTMLElement,
   initialDict: Record<string, unknown>
 ): Record<string, unknown> => {
   const includedInputs: HTMLInputElement[] = Array.from(formDiv.querySelectorAll('input[data-opid]') ?? []);
@@ -19,7 +19,7 @@ export const createInputsDictFromForm = (
 export const constructSubmitEventPayload = (
   eventType: 'TOKENIZE' | 'CHECKOUT' | 'START_PAYMENT_FLOW',
   sessionId: string,
-  formDiv: HTMLDivElement,
+  formDiv: HTMLElement,
   onValidationError: (field: FieldName, errors: string[], elementId?: string) => void,
   checkoutPaymentMethod: CheckoutPaymentMethod,
   doNotUseLegacyCCFlow: boolean,

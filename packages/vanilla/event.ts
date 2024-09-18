@@ -1,9 +1,11 @@
 import {
   CheckoutSuccessEventPayload,
+  constructSubmitEventPayload,
   ElementEvent,
   emitEvent,
   ErrorEventPayload,
   EventPayload,
+  EventType,
   LayoutEventPayload,
   LoadedEventPayload,
   parseEventPayload,
@@ -21,6 +23,8 @@ export class OpenPayFormEventHandler {
   extraData: object | null;
   config: OpenPayForm['config'];
   checkoutFired: boolean;
+  tokenized: number;
+  tokenizedData: object | null;
 
   constructor(formInstance: OpenPayForm) {
     this.formInstance = formInstance;
@@ -30,6 +34,8 @@ export class OpenPayFormEventHandler {
     this.nonces = new Set();
     this.extraData = null;
     this.checkoutFired = false;
+    this.tokenizedData = null;
+    this.tokenized = 0;
   }
 
   handleMessage(event: MessageEvent) {
@@ -148,11 +154,16 @@ export class OpenPayFormEventHandler {
   }
 
   handleTokenizeSuccessEvent(source: MessageEventSource, elementId: string) {
-    if (!this.checkoutFired && this.extraData) {
+    const totalTokenized = this.tokenized + 1;
+    const allTokenized = totalTokenized === Object.keys(this.eventTargets).length;
+
+    if (!this.checkoutFired && this.tokenizedData && allTokenized) {
       console.log('[form] Tokenized card is ready for checkout');
-      this.emitEvent(source, elementId, this.extraData as EventPayload);
+      this.emitEvent(source, elementId, this.tokenizedData as EventPayload);
       this.checkoutFired = true;
-      this.extraData = null;
+      this.tokenizedData = null;
+    } else {
+      this.tokenized = totalTokenized;
     }
   }
 
@@ -191,6 +202,37 @@ export class OpenPayFormEventHandler {
     // this.formInstance.setPreventClose(false);
     // this.checkoutFired = false;
     if (this.formInstance.config.onCheckoutError) this.formInstance.config.onCheckoutError(payload.message);
+  }
+
+  handleFormSubmit() {
+    if (
+      !this.formInstance.sessionId ||
+      !this.formInstance.checkoutPaymentMethods?.length ||
+      !this.config.onValidationError
+    )
+      return;
+    const cardCpm = this.formInstance.checkoutPaymentMethods.find((cpm) => cpm.provider === 'credit_card');
+
+    if (!cardCpm) {
+      throw new Error('Card not available as a payment method in checkout');
+    }
+
+    const tokenizeData = constructSubmitEventPayload(
+      EventType.enum.TOKENIZE,
+      this.formInstance.sessionId!,
+      document.querySelector(this.formInstance.formTarget) ?? document.body,
+      this.config.onValidationError,
+      cardCpm,
+      false
+    );
+    if (!tokenizeData) {
+      throw new Error('Error constructing tokenize data');
+    }
+    for (const [elementId, target] of Object.entries(this.eventTargets)) {
+      if (!target) continue;
+      this.emitEvent(target, elementId, tokenizeData);
+    }
+    this.tokenizedData = tokenizeData;
   }
 
   emitEvent(source: MessageEventSource, elementId: string, data: EventPayload) {

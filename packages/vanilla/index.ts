@@ -2,7 +2,9 @@ import { CheckoutPaymentMethod, convertStylesToQueryString, ElementProps, Elemen
 import { OpenPayFormEventHandler } from './event';
 export type ElementType = 'card' | 'card-number' | 'card-expiry' | 'card-cvc';
 
-export type Config = Omit<ElementsFormProps, 'children'>;
+export type Config = Omit<ElementsFormProps, 'children'> & {
+  formTarget?: string;
+};
 export class OpenPayForm {
   config: Config;
   elements: Record<
@@ -21,6 +23,7 @@ export class OpenPayForm {
   };
   sessionId: null | string;
   checkoutPaymentMethods: Array<CheckoutPaymentMethod>;
+  formTarget: string;
 
   constructor(config: Config) {
     this.config = config;
@@ -29,6 +32,7 @@ export class OpenPayForm {
     this.formId = `opjs-form-${window.crypto.randomUUID()}`;
     this.referer = window.location.origin;
     this.eventHandler = new OpenPayFormEventHandler(this);
+    this.formTarget = config.formTarget ?? 'body';
     this.formProperties = new Proxy(
       {
         height: '1px',
@@ -97,6 +101,8 @@ export class OpenPayForm {
   }
 
   submit() {
+    this.eventHandler.handleFormSubmit();
+
     // console.log('Submitting form...');
     // if (this.config.onCheckoutStarted) {
     //   this.config.onCheckoutStarted();

@@ -16,3 +16,7 @@ formInstance
     },
   })
   .mount('#card-element');
+
+document.querySelector('#submit')?.addEventListener('click', () => {
+  formInstance.submit();
+});
