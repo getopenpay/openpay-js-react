@@ -35,7 +35,7 @@ module.exports = {
     'jsx-a11y/no-autofocus': 'off',
     'jsx-a11y/click-events-have-key-events': 'off',
     '@typescript-eslint/explicit-function-return-type': [
-      'warn',
+      'off',
       {
         allowExpressions: true,
         allowConciseArrowFunctionExpressionsStartingWithVoid: true,
