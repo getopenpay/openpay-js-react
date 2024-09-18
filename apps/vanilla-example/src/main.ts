@@ -4,8 +4,11 @@ import './style.css';
 // import { setupCounter } from './counter.ts';
 import { OpenPayForm } from '@getopenpay/js';
 
+const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get('token');
+
 const formInstance = new OpenPayForm({
-  checkoutSecureToken: '4262a7a5-97c2-415a-98b8-4fb2a1161cd0',
+  checkoutSecureToken: token ?? '',
 });
 
 formInstance
