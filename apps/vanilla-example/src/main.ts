@@ -21,5 +21,6 @@ formInstance
   .mount('#card-element');
 
 document.querySelector('#submit')?.addEventListener('click', () => {
+  console.log('Submitting form...');
   formInstance.submit();
 });

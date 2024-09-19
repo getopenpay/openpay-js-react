@@ -108,6 +108,7 @@ export class OpenPayFormEventHandler {
     }
 
     this.nonces.add(eventData.nonce);
+
     return true;
   }
 
@@ -159,7 +160,7 @@ export class OpenPayFormEventHandler {
 
     if (!this.checkoutFired && this.tokenizedData && allTokenized) {
       console.log('[form] Tokenized card is ready for checkout');
-      this.emitEvent(source, elementId, this.tokenizedData as EventPayload);
+      this.postEventToFrame(source, elementId, this.tokenizedData as EventPayload);
       this.checkoutFired = true;
       this.tokenizedData = null;
     } else {
@@ -209,8 +210,9 @@ export class OpenPayFormEventHandler {
       !this.formInstance.sessionId ||
       !this.formInstance.checkoutPaymentMethods?.length ||
       !this.config.onValidationError
-    )
+    ) {
       return;
+    }
     const cardCpm = this.formInstance.checkoutPaymentMethods.find((cpm) => cpm.provider === 'credit_card');
 
     if (!cardCpm) {
@@ -230,12 +232,12 @@ export class OpenPayFormEventHandler {
     }
     for (const [elementId, target] of Object.entries(this.eventTargets)) {
       if (!target) continue;
-      this.emitEvent(target, elementId, tokenizeData);
+      this.postEventToFrame(target, elementId, tokenizeData);
     }
     this.tokenizedData = tokenizeData;
   }
 
-  emitEvent(source: MessageEventSource, elementId: string, data: EventPayload) {
+  postEventToFrame(source: MessageEventSource, elementId: string, data: EventPayload) {
     // Implement event emission logic here
     console.log(`Emitting event to ${elementId}:`, data);
     emitEvent(source, this.formId, elementId, data, this.config.baseUrl!);
