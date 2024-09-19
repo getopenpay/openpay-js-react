@@ -1,5 +1,4 @@
 {
   "extends": "@getopenpay/typescript-config/base.json",
-  "include": ["./", "turbo"],
   "exclude": ["node_modules", "dist"]
 }

@@ -1,5 +1,4 @@
 {
-  "extends": "@getopenpay/typescript-config/react-library.json",
-  "include": ["./"],
+  "extends": "@getopenpay/typescript-config/build.json",
   "exclude": ["node_modules", "dist"]
 }
