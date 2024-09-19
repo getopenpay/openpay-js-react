@@ -11,6 +11,7 @@ import {
   parseEventPayload,
   PaymentFlowStartedEventPayload,
   SetupCheckoutSuccessEventPayload,
+  SubmitEventPayload,
   ValidationErrorEventPayload,
 } from '@getopenpay/utils';
 import { OpenPayForm } from './index';
@@ -22,9 +23,8 @@ export class OpenPayFormEventHandler {
   eventTargets: Record<string, MessageEventSource>;
   extraData: object | null;
   config: OpenPayForm['config'];
-  checkoutFired: boolean;
   tokenized: number;
-  tokenizedData: object | null;
+  tokenizedData: SubmitEventPayload | null;
 
   constructor(formInstance: OpenPayForm) {
     this.formInstance = formInstance;
@@ -33,7 +33,6 @@ export class OpenPayFormEventHandler {
     this.eventTargets = {};
     this.nonces = new Set();
     this.extraData = null;
-    this.checkoutFired = false;
     this.tokenizedData = null;
     this.tokenized = 0;
   }
@@ -155,13 +154,16 @@ export class OpenPayFormEventHandler {
   }
 
   handleTokenizeSuccessEvent(source: MessageEventSource, elementId: string) {
+    if (!this.tokenizedData) {
+      throw new Error('Tokenized data not found');
+    }
     const totalTokenized = this.tokenized + 1;
     const allTokenized = totalTokenized === Object.keys(this.eventTargets).length;
 
-    if (!this.checkoutFired && this.tokenizedData && allTokenized) {
+    if (allTokenized) {
+      this.tokenizedData.type = EventType.enum.CHECKOUT;
       console.log('[form] Tokenized card is ready for checkout');
       this.postEventToFrame(source, elementId, this.tokenizedData as EventPayload);
-      this.checkoutFired = true;
       this.tokenizedData = null;
     } else {
       this.tokenized = totalTokenized;
@@ -170,8 +172,6 @@ export class OpenPayFormEventHandler {
 
   handleCheckoutSuccessEvent(payload: CheckoutSuccessEventPayload) {
     console.log('[form] Checkout complete:', payload);
-    // this.formInstance.setPreventClose(false);
-    // this.checkoutFired = false;
     if (this.formInstance.config.onCheckoutSuccess) {
       this.formInstance.config.onCheckoutSuccess(payload.invoiceUrls, payload.subscriptionIds, payload.customerId);
     }
@@ -179,8 +179,6 @@ export class OpenPayFormEventHandler {
 
   handleSetupPaymentMethodSuccessEvent(payload: SetupCheckoutSuccessEventPayload) {
     console.log('[form] Setup payment method complete:', payload);
-    // this.formInstance.setPreventClose(false);
-    // this.checkoutFired = false;
     if (this.formInstance.config.onSetupPaymentMethodSuccess) {
       this.formInstance.config.onSetupPaymentMethodSuccess(payload.paymentMethodId);
     }
@@ -200,8 +198,6 @@ export class OpenPayFormEventHandler {
 
   handleErrorEvent(payload: ErrorEventPayload) {
     console.error('[form] API error from element:', payload.message);
-    // this.formInstance.setPreventClose(false);
-    // this.checkoutFired = false;
     if (this.formInstance.config.onCheckoutError) this.formInstance.config.onCheckoutError(payload.message);
   }
 
