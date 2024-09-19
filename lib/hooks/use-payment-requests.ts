@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 import { constructSubmitEventPayload, createInputsDictFromForm } from '../utils/event';
 import { getErrorMessage } from '../utils/errors';
+import { CdeConnection } from '../utils/cde-connection';
+import { getCheckoutPreview } from '../utils/cde-client';
 
 const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay']);
 type PaymentRequestProvider = z.infer<typeof PaymentRequestProvider>;
@@ -36,6 +38,7 @@ const PR_ERROR: PaymentRequestStatus = {
 };
 
 export const usePaymentRequests = (
+  cdeConn: CdeConnection | null,
   totalAmountAtom: number | undefined,
   currency: string | undefined,
   availableCPMs: CheckoutPaymentMethod[] | undefined,
@@ -51,7 +54,8 @@ export const usePaymentRequests = (
     apple_pay: PR_LOADING,
     google_pay: PR_LOADING,
   });
-  const isLoading = totalAmountAtom === undefined || currency === undefined || availableCPMs === undefined || !formDiv;
+  const isLoading =
+    totalAmountAtom === undefined || currency === undefined || availableCPMs === undefined || !formDiv || !cdeConn;
 
   // TODO: add more processors here once we have more processors supporting PaymentRequest API
 
@@ -63,14 +67,18 @@ export const usePaymentRequests = (
     }
     for (const provider of PaymentRequestProvider.options) {
       const providerFriendlyName = provider.replace('_', '');
+      console.log(`Processing provider ${providerFriendlyName}`);
       try {
         const stripeXPrCpm = availableCPMs.find((cpm) => cpm.provider === provider && cpm.processor_name === 'stripe');
         if (!stripeXPrCpm) {
           throw new Error(`${providerFriendlyName} is not available as a checkout method`);
         }
         const stripePubKey = parseStripePubKey(stripeXPrCpm.metadata);
-        const pr = await createStripePaymentRequest(stripePubKey, totalAmountAtom, currency);
-        const canMakePayment = await pr.canMakePayment();
+        const DUMMY_AMOUNT_ATOM = 1000; // Just to check if PR is available
+        const testerPR = await createStripePaymentRequest(stripePubKey, DUMMY_AMOUNT_ATOM, currency);
+        const canMakePayment = await testerPR.canMakePayment();
+        console.log(`- Can make payment? ${JSON.stringify(canMakePayment)}`);
+        testerPR.abort();
         if (!canMakePayment) {
           throw new Error(`Cannot make payment with ${providerFriendlyName} for this session`);
         }
@@ -91,6 +99,27 @@ export const usePaymentRequests = (
               );
               if (!startPaymentFlowEvent) return;
             }
+            // if (validTarget === null) {
+            //   throw new Error(`Submit called while elements are not fully loaded yet.`);
+            // }
+            // console.log(eventTargets);
+            // for (const evtTgt of eventTargets) {
+            //   try {
+            //     await getCheckoutPreview(evtTgt);
+            //   } catch (e) {
+            //     console.error('next');
+            //   }
+            // }
+            // const checkoutPreview = await getCheckoutPreview(eventTargets[0]);
+            // console.log('Checkout preview', checkoutPreview);
+            await getCheckoutPreview(cdeConn);
+            const x = 1;
+            if (x + 1 === 2) {
+              throw new Error('Pause');
+            }
+            const realAmountAtom = 0; // TODO ASAP get checkout preview here
+            const pr = await createStripePaymentRequest(stripePubKey, realAmountAtom, currency);
+            await pr.canMakePayment(); // Required
             pr.show();
             const pmAddedEvent = await waitForUserToAddPaymentMethod(pr);
             onUserCompleteUIFlow(pmAddedEvent, stripeXPrCpm);

@@ -9,6 +9,8 @@ import { usePaymentRequests } from '../hooks/use-payment-requests';
 import { confirmPaymentFlowFor3DS, confirmPaymentFlowForStripePR } from '../utils/stripe';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 import { getErrorMessage } from '../utils/errors';
+import { useCDEConnection } from '../utils/cde-connection';
+import { isJsonString } from '../utils/types';
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
   const {
@@ -51,6 +53,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const formId = useMemo(() => `opjs-form-${uuidv4()}`, []);
   const formRef = useRef<HTMLDivElement | null>(null);
 
+  const { cdeConn, connectToCdeIframe } = useCDEConnection();
+
   const onMessage = useCallback(
     (event: MessageEvent) => {
       // Since window.postMessage allows any source to post messages
@@ -68,7 +72,19 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       if (!event.source) return;
       const eventSource = event.source;
 
-      const eventData = parseEventPayload(JSON.parse(event.data));
+      if (!isJsonString(event.data)) {
+        return;
+      }
+
+      const raw = JSON.parse(event.data);
+
+      // TODO ASAP clean up
+      if (raw.__postRobot__) {
+        // postRobot messages should not be handled manually
+        return;
+      }
+
+      const eventData = parseEventPayload(raw);
       const elementId = eventData.elementId;
       const targetFormId = eventData.formId;
 
@@ -352,9 +368,13 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       if (existingIframe) return;
 
       console.log('[form] Registering iframe:', iframe);
+      if (iframes.length === 0) {
+        // Only do the first iframe
+        connectToCdeIframe(iframe);
+      }
       setIframes((prevIframes) => [...prevIframes, iframe]);
     },
-    [iframes]
+    [iframes, connectToCdeIframe]
   );
 
   const onUserCompletePaymentRequestUI = async (
@@ -403,6 +423,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   };
 
   const paymentRequests = usePaymentRequests(
+    cdeConn,
     totalAmountAtoms,
     currency,
     checkoutPaymentMethods,
