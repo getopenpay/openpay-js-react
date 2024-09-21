@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { CdeConnection, CdeMessage } from './cde-connection';
+import { CheckoutPreviewRequest } from './shared-models';
+import { PreviewCheckoutResponse } from './cde_models';
 // import postRobot from 'post-robot';
 
 // const queryCDE = async <T extends z.ZodType>(
@@ -43,6 +45,7 @@ const queryCDE = async <T extends z.ZodType>(
   // const response = await postRobot.send('ojs-card-number-element', path, data, { timeout: 10_000 });
   // console.log('Got response');
   const response = await cdeConn.send(data);
+  console.log('Got response from CDE', response);
   if (!checkIfConformsToSchema(response, responseSchema)) {
     const result = responseSchema.safeParse(response);
     if (result.success) throw new Error('Invalid state');
@@ -57,10 +60,9 @@ const checkIfConformsToSchema = <T extends z.ZodType>(value: unknown, schema: T)
 
 // Endpoints start here
 
-export const CheckoutPreviewResponse = z.object({});
-export type CheckoutPreviewResponse = z.infer<typeof CheckoutPreviewResponse>;
-
-export const getCheckoutPreview = async (cdeConn: CdeConnection): Promise<CheckoutPreviewResponse> => {
-  // TODO ASAP: change params
-  return await queryCDE(cdeConn, { type: 'get_checkout' }, CheckoutPreviewResponse);
+export const getCheckoutPreview = async (
+  cdeConn: CdeConnection,
+  request: CheckoutPreviewRequest
+): Promise<PreviewCheckoutResponse> => {
+  return await queryCDE(cdeConn, { type: 'get_checkout_preview', payload: request }, PreviewCheckoutResponse);
 };

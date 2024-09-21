@@ -424,8 +424,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
   const paymentRequests = usePaymentRequests(
     cdeConn,
-    totalAmountAtoms,
-    currency,
+    checkoutSecureToken,
     checkoutPaymentMethods,
     formRef.current,
     onUserCompletePaymentRequestUI,

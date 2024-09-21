@@ -1,5 +1,11 @@
 import { createStripePaymentRequest, parseStripePubKey, waitForUserToAddPaymentMethod } from '../utils/stripe';
-import { CheckoutPaymentMethod, EventType, FieldName, PaymentRequestStatus } from '../utils/shared-models';
+import {
+  CheckoutPaymentMethod,
+  EventType,
+  FieldName,
+  OptionalString,
+  PaymentRequestStatus,
+} from '../utils/shared-models';
 import useMap from './use-map';
 import useAsyncEffect from 'use-async-effect';
 import { z } from 'zod';
@@ -8,6 +14,7 @@ import { constructSubmitEventPayload, createInputsDictFromForm } from '../utils/
 import { getErrorMessage } from '../utils/errors';
 import { CdeConnection } from '../utils/cde-connection';
 import { getCheckoutPreview } from '../utils/cde-client';
+import { sum } from '../utils/math';
 
 const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay']);
 type PaymentRequestProvider = z.infer<typeof PaymentRequestProvider>;
@@ -39,8 +46,7 @@ const PR_ERROR: PaymentRequestStatus = {
 
 export const usePaymentRequests = (
   cdeConn: CdeConnection | null,
-  totalAmountAtom: number | undefined,
-  currency: string | undefined,
+  secureToken: string | undefined,
   availableCPMs: CheckoutPaymentMethod[] | undefined,
   formDiv: HTMLDivElement | null,
   onUserCompleteUIFlow: (
@@ -54,8 +60,7 @@ export const usePaymentRequests = (
     apple_pay: PR_LOADING,
     google_pay: PR_LOADING,
   });
-  const isLoading =
-    totalAmountAtom === undefined || currency === undefined || availableCPMs === undefined || !formDiv || !cdeConn;
+  const isLoading = secureToken === undefined || availableCPMs === undefined || !formDiv || !cdeConn;
 
   // TODO: add more processors here once we have more processors supporting PaymentRequest API
 
@@ -73,11 +78,11 @@ export const usePaymentRequests = (
         if (!stripeXPrCpm) {
           throw new Error(`${providerFriendlyName} is not available as a checkout method`);
         }
+        // TODO refactor this
         const stripePubKey = parseStripePubKey(stripeXPrCpm.metadata);
         const DUMMY_AMOUNT_ATOM = 1000; // Just to check if PR is available
-        const testerPR = await createStripePaymentRequest(stripePubKey, DUMMY_AMOUNT_ATOM, currency);
+        const testerPR = await createStripePaymentRequest(stripePubKey, DUMMY_AMOUNT_ATOM, 'usd');
         const canMakePayment = await testerPR.canMakePayment();
-        console.log(`- Can make payment? ${JSON.stringify(canMakePayment)}`);
         testerPR.abort();
         if (!canMakePayment) {
           throw new Error(`Cannot make payment with ${providerFriendlyName} for this session`);
@@ -85,7 +90,7 @@ export const usePaymentRequests = (
         // Callback when payment request is finished
         const startPaymentRequestUserFlow = async (): Promise<void> => {
           try {
-            createInputsDictFromForm(formDiv, {});
+            const formData = createInputsDictFromForm(formDiv, {});
             if (onValidationError) {
               // TODO refactor validation out of this construct function later
               const startPaymentFlowEvent = constructSubmitEventPayload(
@@ -99,26 +104,12 @@ export const usePaymentRequests = (
               );
               if (!startPaymentFlowEvent) return;
             }
-            // if (validTarget === null) {
-            //   throw new Error(`Submit called while elements are not fully loaded yet.`);
-            // }
-            // console.log(eventTargets);
-            // for (const evtTgt of eventTargets) {
-            //   try {
-            //     await getCheckoutPreview(evtTgt);
-            //   } catch (e) {
-            //     console.error('next');
-            //   }
-            // }
-            // const checkoutPreview = await getCheckoutPreview(eventTargets[0]);
-            // console.log('Checkout preview', checkoutPreview);
-            await getCheckoutPreview(cdeConn);
-            const x = 1;
-            if (x + 1 === 2) {
-              throw new Error('Pause');
+            const promoCodeParsed = OptionalString.safeParse(formData[FieldName.PROMOTION_CODE]);
+            if (!promoCodeParsed.success) {
+              throw new Error(`Unknown promo code type: ${promoCodeParsed.error.message}`);
             }
-            const realAmountAtom = 0; // TODO ASAP get checkout preview here
-            const pr = await createStripePaymentRequest(stripePubKey, realAmountAtom, currency);
+            const { amountAtom, currency } = await getCheckoutValue(cdeConn, secureToken, promoCodeParsed.data);
+            const pr = await createStripePaymentRequest(stripePubKey, amountAtom, currency);
             await pr.canMakePayment(); // Required
             pr.show();
             const pmAddedEvent = await waitForUserToAddPaymentMethod(pr);
@@ -141,4 +132,25 @@ export const usePaymentRequests = (
   }, [isLoading, availableCPMs]);
 
   return status;
+};
+
+const getCheckoutValue = async (
+  cdeConn: CdeConnection,
+  secureToken: string,
+  promoCode: string | undefined
+): Promise<{ currency: string; amountAtom: number }> => {
+  const checkoutPreview = await getCheckoutPreview(cdeConn, {
+    secure_token: secureToken,
+    promotion_code: promoCode,
+  });
+  const currencies = new Set(checkoutPreview.preview.invoices.map((inv) => inv.currency));
+  if (currencies.size !== 1) {
+    throw new Error(`Expected exactly one currency, got ${currencies.size}`);
+  }
+  const currency = currencies.values().next().value;
+  const amountAtom = sum(checkoutPreview.preview.invoices.map((inv) => inv.remaining_amount_atom));
+  return {
+    currency,
+    amountAtom,
+  };
 };

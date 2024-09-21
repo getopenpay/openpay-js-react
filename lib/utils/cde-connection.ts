@@ -2,9 +2,9 @@ import { CallSender, Connection, connectToChild } from 'penpal';
 import { useState } from 'react';
 import useAsyncEffect from 'use-async-effect';
 
-export interface CdeMessage {
+export type CdeMessage = {
   type: string;
-}
+} & Record<string, unknown>;
 
 export type CdeConnection = {
   send: (data: CdeMessage) => Promise<unknown>;

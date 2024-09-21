@@ -6,7 +6,7 @@ import { z } from 'zod';
  */
 
 const RequiredString = z.string().trim().min(1, { message: `Cannot be blank` });
-const OptionalString = z.string().trim().optional();
+export const OptionalString = z.string().trim().optional();
 export const nullOrUndefOr = <T extends z.ZodType>(zType: T): z.ZodNullable<z.ZodOptional<T>> =>
   z.nullable(zType.optional());
 
@@ -261,3 +261,10 @@ export const PaymentRequestStatus = z.object({
   startFlow: z.function(z.tuple([]), z.void()),
 });
 export type PaymentRequestStatus = z.infer<typeof PaymentRequestStatus>;
+
+// CheckoutPreviewRequest
+export const CheckoutPreviewRequest = z.object({
+  secure_token: z.string(),
+  promotion_code: z.string().optional(),
+});
+export type CheckoutPreviewRequest = z.infer<typeof CheckoutPreviewRequest>;
