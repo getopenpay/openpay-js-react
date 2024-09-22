@@ -83,5 +83,5 @@ const checkIfValidCdeConnectionObject = async (obj: unknown): Promise<boolean> =
 
 // Work around as an async type guard
 const isResultValid = (obj: unknown, isValid: boolean): obj is CdeConnection => {
-  return isValid;
+  return !!obj && isValid;
 };
