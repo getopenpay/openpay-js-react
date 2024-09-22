@@ -77,13 +77,6 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       }
 
       const raw = JSON.parse(event.data);
-
-      // TODO ASAP clean up
-      if (raw.__postRobot__) {
-        // postRobot messages should not be handled manually
-        return;
-      }
-
       const eventData = parseEventPayload(raw);
       const elementId = eventData.elementId;
       const targetFormId = eventData.formId;
