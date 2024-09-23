@@ -1,11 +1,20 @@
 import { createStripePaymentRequest, parseStripePubKey, waitForUserToAddPaymentMethod } from '../utils/stripe';
-import { CheckoutPaymentMethod, EventType, FieldName, PaymentRequestStatus } from '../utils/shared-models';
+import {
+  CheckoutPaymentMethod,
+  EventType,
+  FieldName,
+  OptionalString,
+  PaymentRequestStatus,
+} from '../utils/shared-models';
 import useMap from './use-map';
 import useAsyncEffect from 'use-async-effect';
 import { z } from 'zod';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 import { constructSubmitEventPayload, createInputsDictFromForm } from '../utils/event';
 import { getErrorMessage } from '../utils/errors';
+import { CdeConnection } from '../utils/cde-connection';
+import { getCheckoutPreview } from '../utils/cde-client';
+import { sum } from '../utils/math';
 
 const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay']);
 type PaymentRequestProvider = z.infer<typeof PaymentRequestProvider>;
@@ -36,8 +45,8 @@ const PR_ERROR: PaymentRequestStatus = {
 };
 
 export const usePaymentRequests = (
-  totalAmountAtom: number | undefined,
-  currency: string | undefined,
+  cdeConn: CdeConnection | null,
+  secureToken: string | undefined,
   availableCPMs: CheckoutPaymentMethod[] | undefined,
   formDiv: HTMLDivElement | null,
   onUserCompleteUIFlow: (
@@ -51,7 +60,7 @@ export const usePaymentRequests = (
     apple_pay: PR_LOADING,
     google_pay: PR_LOADING,
   });
-  const isLoading = totalAmountAtom === undefined || currency === undefined || availableCPMs === undefined || !formDiv;
+  const isLoading = secureToken === undefined || availableCPMs === undefined || !formDiv || !cdeConn;
 
   // TODO: add more processors here once we have more processors supporting PaymentRequest API
 
@@ -63,46 +72,28 @@ export const usePaymentRequests = (
     }
     for (const provider of PaymentRequestProvider.options) {
       const providerFriendlyName = provider.replace('_', '');
+      console.log(`Processing provider ${providerFriendlyName}`);
       try {
         const stripeXPrCpm = availableCPMs.find((cpm) => cpm.provider === provider && cpm.processor_name === 'stripe');
         if (!stripeXPrCpm) {
           throw new Error(`${providerFriendlyName} is not available as a checkout method`);
         }
         const stripePubKey = parseStripePubKey(stripeXPrCpm.metadata);
-        const pr = await createStripePaymentRequest(stripePubKey, totalAmountAtom, currency);
-        const canMakePayment = await pr.canMakePayment();
-        if (!canMakePayment) {
-          throw new Error(`Cannot make payment with ${providerFriendlyName} for this session`);
-        }
-        // Callback when payment request is finished
-        const startPaymentRequestUserFlow = async (): Promise<void> => {
-          try {
-            createInputsDictFromForm(formDiv, {});
-            if (onValidationError) {
-              // TODO refactor validation out of this construct function later
-              const startPaymentFlowEvent = constructSubmitEventPayload(
-                EventType.enum.START_PAYMENT_FLOW,
-                // This is ok since we're just calling this function to use the validation function inside it
-                'dummy',
-                formDiv,
-                onValidationError,
-                stripeXPrCpm,
-                false
-              );
-              if (!startPaymentFlowEvent) return;
-            }
-            pr.show();
-            const pmAddedEvent = await waitForUserToAddPaymentMethod(pr);
-            onUserCompleteUIFlow(pmAddedEvent, stripeXPrCpm);
-          } catch (e) {
-            console.error(e);
-            onError(getErrorMessage(e));
-          }
-        };
+        const isAvailable = await checkIfProviderIsAvailable(stripePubKey, provider);
         setStatus.set(provider, {
           isLoading: false,
-          isAvailable: canMakePayment[OUR_PROVIDER_TO_STRIPES[provider]],
-          startFlow: startPaymentRequestUserFlow,
+          isAvailable,
+          startFlow: () =>
+            startPaymentRequestUserFlow(
+              cdeConn,
+              secureToken,
+              formDiv,
+              stripeXPrCpm,
+              stripePubKey,
+              onUserCompleteUIFlow,
+              onValidationError,
+              onError
+            ),
         });
       } catch (e) {
         console.error(e);
@@ -112,4 +103,80 @@ export const usePaymentRequests = (
   }, [isLoading, availableCPMs]);
 
   return status;
+};
+
+const getCheckoutValue = async (
+  cdeConn: CdeConnection,
+  secureToken: string,
+  promoCode: string | undefined
+): Promise<{ currency: string; amountAtom: number }> => {
+  const checkoutPreview = await getCheckoutPreview(cdeConn, {
+    secure_token: secureToken,
+    promotion_code: promoCode,
+  });
+  const currencies = new Set(checkoutPreview.preview.invoices.map((inv) => inv.currency));
+  if (currencies.size !== 1) {
+    throw new Error(`Expected exactly one currency, got ${currencies.size}`);
+  }
+  const currency = currencies.values().next().value;
+  const amountAtom = sum(checkoutPreview.preview.invoices.map((inv) => inv.remaining_amount_atom));
+  return {
+    currency,
+    amountAtom,
+  };
+};
+
+const checkIfProviderIsAvailable = async (stripePubKey: string, provider: PaymentRequestProvider): Promise<boolean> => {
+  const DUMMY_AMOUNT_ATOM = 1000; // Just to check if PR is available
+  const testerPR = await createStripePaymentRequest(stripePubKey, DUMMY_AMOUNT_ATOM, 'usd');
+  const canMakePayment = await testerPR.canMakePayment();
+  testerPR.abort();
+  if (!canMakePayment) {
+    throw new Error(`Cannot make payment with ${provider} for this session`);
+  }
+  return canMakePayment[OUR_PROVIDER_TO_STRIPES[provider]];
+};
+
+const startPaymentRequestUserFlow = async (
+  cdeConn: CdeConnection,
+  secureToken: string,
+  formDiv: HTMLDivElement,
+  stripeXPrCpm: CheckoutPaymentMethod,
+  stripePubKey: string,
+  onUserCompleteUIFlow: (
+    stripePm: PaymentRequestPaymentMethodEvent,
+    checkoutPaymentMethod: CheckoutPaymentMethod
+  ) => void,
+  onValidationError: undefined | ((field: FieldName, errors: string[], elementId?: string) => void),
+  onError: (errMsg: string) => void
+): Promise<void> => {
+  try {
+    const formData = createInputsDictFromForm(formDiv, {});
+    if (onValidationError) {
+      // TODO refactor validation out of this construct function later
+      const startPaymentFlowEvent = constructSubmitEventPayload(
+        EventType.enum.START_PAYMENT_FLOW,
+        // This is ok since we're just calling this function to use the validation function inside it
+        'dummy',
+        formDiv,
+        onValidationError,
+        stripeXPrCpm,
+        false
+      );
+      if (!startPaymentFlowEvent) return;
+    }
+    const promoCodeParsed = OptionalString.safeParse(formData[FieldName.PROMOTION_CODE]);
+    if (!promoCodeParsed.success) {
+      throw new Error(`Unknown promo code type: ${promoCodeParsed.error.message}`);
+    }
+    const { amountAtom, currency } = await getCheckoutValue(cdeConn, secureToken, promoCodeParsed.data);
+    const pr = await createStripePaymentRequest(stripePubKey, amountAtom, currency);
+    await pr.canMakePayment(); // Required
+    pr.show();
+    const pmAddedEvent = await waitForUserToAddPaymentMethod(pr);
+    onUserCompleteUIFlow(pmAddedEvent, stripeXPrCpm);
+  } catch (e) {
+    console.error(e);
+    onError(getErrorMessage(e));
+  }
 };

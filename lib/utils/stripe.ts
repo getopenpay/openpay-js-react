@@ -37,7 +37,7 @@ export const createStripePaymentRequest = async (
   currency: string
 ): Promise<PaymentRequest> => {
   const stripe = await getLoadedStripe(stripePubKey);
-  const stripeCurrency = ourCurrencyToTheirs[currency];
+  const stripeCurrency = ourCurrencyToTheirs[currency.toLowerCase().trim()];
   const paymentRequest = stripe.paymentRequest({
     // TODO: replace this with stripe account country as soon as we support it
     country: 'US',
