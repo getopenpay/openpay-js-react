@@ -6,3 +6,4 @@ export * from './src/shared-models';
 export * from './src/stripe';
 export * from './src/style';
 export * from './src/event';
+export * from './src/cde-connection';

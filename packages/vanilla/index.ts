@@ -1,4 +1,10 @@
-import { CheckoutPaymentMethod, convertStylesToQueryString, ElementProps, ElementsFormProps } from '@getopenpay/utils';
+import {
+  CheckoutPaymentMethod,
+  connectToCdeIframe,
+  convertStylesToQueryString,
+  ElementProps,
+  ElementsFormProps,
+} from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
 export type ElementType = 'card' | 'card-number' | 'card-expiry' | 'card-cvc';
 
@@ -27,7 +33,7 @@ export class OpenPayForm {
 
   constructor(config: Config) {
     this.config = config;
-    this.config.baseUrl = config.baseUrl ?? 'https://cde.openpaystaging.com';
+    this.config.baseUrl = config.baseUrl ?? 'https://cde.getopenpay.com';
     this.elements = null;
     this.formId = `opjs-form-${window.crypto.randomUUID()}`;
     this.referer = window.location.origin;
@@ -59,7 +65,6 @@ export class OpenPayForm {
   }
   // Add to OpenPayForm destroy method
   destroy() {
-    // ... existing code ...
     window.removeEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));
   }
 
@@ -97,6 +102,13 @@ export class OpenPayForm {
     } else {
       this.elements = { [type]: element } as OpenPayForm['elements'];
     }
+    connectToCdeIframe(element.node)
+      .then((conn) => {
+        console.log('[FORM] Connected to CDE iframe', conn);
+      })
+      .catch((err) => {
+        console.error('[FORM] Error connecting to CDE iframe', err);
+      });
     return element;
   }
 

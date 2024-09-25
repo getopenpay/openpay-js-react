@@ -8,14 +8,14 @@ const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('token');
 
 const formInstance = new OpenPayForm({
+  baseUrl: 'http://localhost:3030',
   checkoutSecureToken: token ?? '',
 });
 
 formInstance
   .createElement('card', {
     styles: {
-      backgroundColor: 'white',
-      color: 'black',
+      color: 'red',
     },
   })
   .mount('#card-element');
