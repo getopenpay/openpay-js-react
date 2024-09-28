@@ -5,6 +5,13 @@ export const nullOrUndefOr = <T extends z.ZodType>(zType: T): z.ZodNullable<z.Zo
 
 export const zStringReq = z.string().trim().min(1, { message: `Cannot be blank` });
 
+// CDEResponseError
+export const CDEResponseError = z.object({
+  cde_response_type: z.literal('error'),
+  message: z.string(),
+});
+export type CDEResponseError = z.infer<typeof CDEResponseError>;
+
 // CurrencyEnum
 export const CurrencyEnum = z.enum(['usd', 'brl']);
 export type CurrencyEnum = z.infer<typeof CurrencyEnum>;

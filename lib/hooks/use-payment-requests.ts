@@ -13,7 +13,7 @@ import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 import { constructSubmitEventPayload, createInputsDictFromForm } from '../utils/event';
 import { getErrorMessage } from '../utils/errors';
 import { CdeConnection } from '../utils/cde-connection';
-import { getCheckoutPreview } from '../utils/cde-client';
+import { getCheckoutPreview, getPrefill } from '../utils/cde-client';
 import { sum } from '../utils/math';
 
 const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay']);
@@ -137,6 +137,24 @@ const checkIfProviderIsAvailable = async (stripePubKey: string, provider: Paymen
   return canMakePayment[OUR_PROVIDER_TO_STRIPES[provider]];
 };
 
+const validateFormFields = (
+  formDiv: HTMLDivElement,
+  onValidationError: undefined | ((field: FieldName, errors: string[], elementId?: string) => void),
+  stripeXPrCpm: CheckoutPaymentMethod
+): boolean => {
+  // TODO refactor validation out of this construct function later
+  const startPaymentFlowEvent = constructSubmitEventPayload(
+    EventType.enum.START_PAYMENT_FLOW,
+    // This is ok since we're just calling this function to use the validation function inside it
+    'dummy',
+    formDiv,
+    onValidationError ?? (() => {}),
+    stripeXPrCpm,
+    false
+  );
+  return !!startPaymentFlowEvent;
+};
+
 const startPaymentRequestUserFlow = async (
   cdeConn: CdeConnection,
   secureToken: string,
@@ -151,25 +169,27 @@ const startPaymentRequestUserFlow = async (
   onError: (errMsg: string) => void
 ): Promise<void> => {
   try {
+    const prefill = await getPrefill(cdeConn);
     const formData = createInputsDictFromForm(formDiv, {});
-    if (onValidationError) {
-      // TODO refactor validation out of this construct function later
-      const startPaymentFlowEvent = constructSubmitEventPayload(
-        EventType.enum.START_PAYMENT_FLOW,
-        // This is ok since we're just calling this function to use the validation function inside it
-        'dummy',
-        formDiv,
-        onValidationError,
-        stripeXPrCpm,
-        false
-      );
-      if (!startPaymentFlowEvent) return;
+    if (!validateFormFields(formDiv, onValidationError, stripeXPrCpm)) {
+      return;
     }
-    const promoCodeParsed = OptionalString.safeParse(formData[FieldName.PROMOTION_CODE]);
-    if (!promoCodeParsed.success) {
-      throw new Error(`Unknown promo code type: ${promoCodeParsed.error.message}`);
+    const isSetupMode = prefill.mode === 'setup';
+    // TODO refactor this later
+    let amountAtom: number;
+    let currency: string;
+    if (isSetupMode) {
+      amountAtom = 0;
+      currency = 'usd'; // TODO check later if there's a way to know this in advance
+    } else {
+      const promoCodeParsed = OptionalString.safeParse(formData[FieldName.PROMOTION_CODE]);
+      if (!promoCodeParsed.success) {
+        throw new Error(`Unknown promo code type: ${promoCodeParsed.error.message}`);
+      }
+      const checkoutPreview = await getCheckoutValue(cdeConn, secureToken, promoCodeParsed.data);
+      amountAtom = checkoutPreview.amountAtom;
+      currency = checkoutPreview.currency;
     }
-    const { amountAtom, currency } = await getCheckoutValue(cdeConn, secureToken, promoCodeParsed.data);
     const pr = await createStripePaymentRequest(stripePubKey, amountAtom, currency);
     await pr.canMakePayment(); // Required
     pr.show();
