@@ -156,7 +156,7 @@ const Form: FC<FormProps> = (props) => {
           </button>
 
           <button
-            onClick={() => applePay.startFlow()}
+            onClick={() => applePay.startFlow({ amountToDisplayForSetupMode: { amountAtom: 420, currency: 'usd' } })}
             disabled={!applePay.isAvailable}
             className={classNames(
               'px-4 py-2 mt-2 w-full rounded-lg',
@@ -169,7 +169,7 @@ const Form: FC<FormProps> = (props) => {
           </button>
 
           <button
-            onClick={() => googlePay.startFlow()}
+            onClick={() => googlePay.startFlow({ amountToDisplayForSetupMode: { amountAtom: 420, currency: 'usd' } })}
             disabled={!googlePay.isAvailable}
             className={classNames(
               'px-4 py-2 mt-2 w-full rounded-lg',

@@ -34,7 +34,8 @@ const getLoadedStripe = async (publishableKey: string): Promise<StripeType> => {
 export const createStripePaymentRequest = async (
   stripePubKey: string,
   totalAmountAtom: number,
-  currency: string
+  currency: string,
+  isAmountPending?: boolean
 ): Promise<PaymentRequest> => {
   const stripe = await getLoadedStripe(stripePubKey);
   const stripeCurrency = ourCurrencyToTheirs[currency.toLowerCase().trim()];
@@ -45,6 +46,7 @@ export const createStripePaymentRequest = async (
     total: {
       label: 'Total',
       amount: totalAmountAtom,
+      pending: isAmountPending,
     },
     requestPayerName: true,
     requestPayerEmail: true,
