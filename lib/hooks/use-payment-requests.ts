@@ -169,11 +169,11 @@ const startPaymentRequestUserFlow = async (
   onError: (errMsg: string) => void
 ): Promise<void> => {
   try {
-    const prefill = await getPrefill(cdeConn);
     const formData = createInputsDictFromForm(formDiv, {});
     if (!validateFormFields(formDiv, onValidationError, stripeXPrCpm)) {
       return;
     }
+    const prefill = await getPrefill(cdeConn);
     const isSetupMode = prefill.mode === 'setup';
     // TODO refactor this later
     let amountAtom: number;
