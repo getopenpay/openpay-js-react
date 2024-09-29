@@ -261,12 +261,23 @@ export type ElementEvent = z.infer<typeof ElementEvent>;
 /**
  * Payment requests
  */
-export const PaymentRequestStatus = z.object({
-  isLoading: z.boolean(),
-  isAvailable: z.boolean(),
-  startFlow: z.function(z.tuple([]), z.void()),
+
+export const Amount = z.object({
+  amountAtom: z.number(),
+  currency: RequiredString,
 });
-export type PaymentRequestStatus = z.infer<typeof PaymentRequestStatus>;
+export type Amount = z.infer<typeof Amount>;
+
+export type PaymentRequestStartParams = {
+  amountToDisplayForSetupMode?: Amount;
+};
+
+// Using vanilla TS type here because we can't make named function args in zod
+export type PaymentRequestStatus = {
+  isLoading: boolean;
+  isAvailable: boolean;
+  startFlow: (params?: PaymentRequestStartParams) => Promise<void>;
+};
 
 // CheckoutPreviewRequest
 export const CheckoutPreviewRequest = z.object({
