@@ -1,17 +1,17 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ElementsContext, type ElementsContextValue } from '../hooks/context';
-import { constructSubmitEventPayload, emitEvent, parseEventPayload } from '../utils/event';
-import { ElementsFormChildrenProps, ElementsFormProps } from '../utils/models';
-import { CheckoutPaymentMethod, EventType, SubmitEventPayload } from '../utils/shared-models';
-import { FRAME_BASE_URL } from '../utils/constants';
+import { constructSubmitEventPayload, emitEvent, parseEventPayload } from '@getopenpay/utils';
+import { ElementsFormChildrenProps, ElementsFormProps } from '@getopenpay/utils';
+import { CheckoutPaymentMethod, EventType, SubmitEventPayload } from '@getopenpay/utils';
+import { FRAME_BASE_URL } from '@getopenpay/utils';
 import { v4 as uuidv4 } from 'uuid';
 import { usePaymentRequests } from '../hooks/use-payment-requests';
-import { confirmPaymentFlowFor3DS, confirmPaymentFlowForStripePR } from '../utils/stripe';
+import { confirmPaymentFlowFor3DS, confirmPaymentFlowForStripePR } from '@getopenpay/utils';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
-import { getErrorMessage } from '../utils/errors';
-import { useCDEConnection } from '../utils/cde-connection';
-import { isJsonString } from '../utils/types';
-import { getPrefill, confirmPaymentFlow as confirmPaymentFlowInCDE } from '../utils/cde-client';
+import { getErrorMessage } from '@getopenpay/utils';
+import { useCDEConnection } from '@getopenpay/utils';
+import { isJsonString } from '@getopenpay/utils';
+import { getPrefill, confirmPaymentFlow as confirmPaymentFlowInCDE } from '@getopenpay/utils';
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
   const {

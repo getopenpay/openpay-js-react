@@ -7,3 +7,6 @@ export * from './src/stripe';
 export * from './src/style';
 export * from './src/event';
 export * from './src/cde-connection';
+export * from './src/cde-client';
+export * from './src/math';
+export * from './src/types';

@@ -1,4 +1,4 @@
-import { createStripePaymentRequest, parseStripePubKey, waitForUserToAddPaymentMethod } from '../utils/stripe';
+import { createStripePaymentRequest, parseStripePubKey, waitForUserToAddPaymentMethod } from '@getopenpay/utils';
 import {
   Amount,
   CheckoutPaymentMethod,
@@ -7,16 +7,16 @@ import {
   OptionalString,
   PaymentRequestStartParams,
   PaymentRequestStatus,
-} from '../utils/shared-models';
+} from '@getopenpay/utils';
 import useMap from './use-map';
 import useAsyncEffect from 'use-async-effect';
 import { z } from 'zod';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
-import { constructSubmitEventPayload, createInputsDictFromForm } from '../utils/event';
-import { getErrorMessage } from '../utils/errors';
-import { CdeConnection } from '../utils/cde-connection';
-import { getCheckoutPreview, getPrefill } from '../utils/cde-client';
-import { sum } from '../utils/math';
+import { constructSubmitEventPayload, createInputsDictFromForm } from '@getopenpay/utils';
+import { getErrorMessage } from '@getopenpay/utils';
+import { CdeConnection } from '@getopenpay/utils';
+import { getCheckoutPreview, getPrefill } from '@getopenpay/utils';
+import { sum } from '@getopenpay/utils';
 
 const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay']);
 type PaymentRequestProvider = z.infer<typeof PaymentRequestProvider>;
@@ -121,7 +121,7 @@ const getCheckoutValue = async (
   if (currencies.size !== 1) {
     throw new Error(`Expected exactly one currency, got ${currencies.size}`);
   }
-  const currency = currencies.values().next().value;
+  const currency = currencies.values().next().value as string;
   const amountAtom = sum(checkoutPreview.preview.invoices.map((inv) => inv.remaining_amount_atom));
   return {
     currency,

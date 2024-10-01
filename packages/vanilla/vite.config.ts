@@ -10,15 +10,13 @@ export default defineConfig({
   build: {
     copyPublicDir: false,
     lib: {
-      name: 'openpay.js',
+      name: 'OpenPay',
       entry: resolve(__dirname, './index.ts'),
-      formats: ['es', 'cjs'],
+      fileName: (format) => `index.${format}.js`,
     },
     rollupOptions: {
-      // external: ['@getopenpay/utils'],
       output: {
         assetFileNames: 'assets/[name][extname]',
-        entryFileNames: '[name].js',
       },
     },
   },

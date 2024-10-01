@@ -1,6 +1,6 @@
 import {
   CheckoutPaymentMethod,
-  connectToCdeIframe,
+  // connectToCdeIframe,
   convertStylesToQueryString,
   ElementProps,
   ElementsFormProps,
@@ -102,13 +102,13 @@ export class OpenPayForm {
     } else {
       this.elements = { [type]: element } as OpenPayForm['elements'];
     }
-    connectToCdeIframe(element.node)
-      .then((conn) => {
-        console.log('[FORM] Connected to CDE iframe', conn);
-      })
-      .catch((err) => {
-        console.error('[FORM] Error connecting to CDE iframe', err);
-      });
+    // connectToCdeIframe(element.node)
+    //   .then((conn) => {
+    //     console.log('[FORM] Connected to CDE iframe', conn);
+    //   })
+    //   .catch((err) => {
+    //     console.error('[FORM] Error connecting to CDE iframe', err);
+    //   });
     return element;
   }
 
