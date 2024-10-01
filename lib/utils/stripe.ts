@@ -55,7 +55,7 @@ export const createStripePaymentRequest = async (
   return paymentRequest;
 };
 
-const sleep = (timeoutMs: number): Promise<void> => {
+export const sleep = (timeoutMs: number): Promise<void> => {
   return new Promise((resolve) => {
     setTimeout(resolve, timeoutMs);
   });

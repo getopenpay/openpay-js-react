@@ -269,7 +269,7 @@ export const Amount = z.object({
 export type Amount = z.infer<typeof Amount>;
 
 export type PaymentRequestStartParams = {
-  amountToDisplayForSetupMode?: Amount;
+  overridePaymentRequestAmount?: Amount;
 };
 
 // Using vanilla TS type here because we can't make named function args in zod
