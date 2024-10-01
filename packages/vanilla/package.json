@@ -31,7 +31,8 @@
     "dev": "tsc -p tsconfig.build.json && NODE_ENV=development vite build --mode development --watch"
   },
   "dependencies": {
-    "@getopenpay/utils": "*"
+    "@getopenpay/utils": "*",
+    "penpal": "^6.2.2"
   },
   "devDependencies": {
     "@getopenpay/eslint-config": "*",

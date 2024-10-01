@@ -1,16 +1,25 @@
 import {
   CheckoutPaymentMethod,
-  // connectToCdeIframe,
   convertStylesToQueryString,
   ElementProps,
   ElementsFormProps,
+  EventType,
+  constructSubmitEventPayload,
+  emitEvent,
+  FieldName,
 } from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
+import { createConnection, ConnectionManager } from './utils/connection';
+import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
+
+export { FieldName };
+
 export type ElementType = 'card' | 'card-number' | 'card-expiry' | 'card-cvc';
 
 export type Config = Omit<ElementsFormProps, 'children'> & {
   formTarget?: string;
 };
+
 export class OpenPayForm {
   config: Config;
   elements: Record<
@@ -30,6 +39,11 @@ export class OpenPayForm {
   sessionId: null | string;
   checkoutPaymentMethods: Array<CheckoutPaymentMethod>;
   formTarget: string;
+  connectionManager: ConnectionManager;
+  loaded: boolean;
+  preventClose: boolean;
+  checkoutFired: boolean;
+  stripePm: PaymentRequestPaymentMethodEvent | undefined;
 
   constructor(config: Config) {
     this.config = config;
@@ -61,11 +75,18 @@ export class OpenPayForm {
     );
     this.sessionId = null;
     this.checkoutPaymentMethods = [];
+    this.connectionManager = new ConnectionManager();
+    this.loaded = false;
+    this.preventClose = false;
+    this.checkoutFired = false;
+    this.stripePm = undefined;
+
     window.addEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));
+    window.addEventListener('beforeunload', this.onBeforeUnload.bind(this));
   }
-  // Add to OpenPayForm destroy method
-  destroy() {
-    window.removeEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));
+
+  private onBeforeUnload(e: BeforeUnloadEvent): void {
+    if (this.preventClose) e.preventDefault();
   }
 
   createElement(type: ElementType, options: ElementProps = {}) {
@@ -101,40 +122,83 @@ export class OpenPayForm {
       this.elements[type] = element;
     } else {
       this.elements = { [type]: element } as OpenPayForm['elements'];
+      createConnection(element.node)
+        .then((conn) => {
+          console.log('[FORM] Connected to CDE iframe', conn);
+          this.connectionManager.addConnection(type, conn);
+        })
+        .catch((err) => {
+          console.error('[FORM] Error connecting to CDE iframe', err);
+        });
     }
-    // connectToCdeIframe(element.node)
-    //   .then((conn) => {
-    //     console.log('[FORM] Connected to CDE iframe', conn);
-    //   })
-    //   .catch((err) => {
-    //     console.error('[FORM] Error connecting to CDE iframe', err);
-    //   });
+
     return element;
   }
 
   submit() {
-    this.eventHandler.handleFormSubmit();
+    if (!this.config.onValidationError || !this.sessionId || !this.checkoutPaymentMethods) return;
 
-    // console.log('Submitting form...');
-    // if (this.config.onCheckoutStarted) {
-    //   this.config.onCheckoutStarted();
-    // }
-    // // Simulating successful checkout
-    // setTimeout(() => {
-    //   if (this.config.onCheckoutSuccess) {
-    //     this.config.onCheckoutSuccess();
-    //   }
-    // }, 1000);
+    const cardCpm = this.checkoutPaymentMethods.find((cpm) => cpm.provider === 'credit_card');
+    if (!cardCpm) {
+      throw new Error('Card not available as a payment method in checkout');
+    }
+
+    const extraData = constructSubmitEventPayload(
+      EventType.enum.TOKENIZE,
+      this.sessionId,
+      document.querySelector(this.formTarget) ?? document.body,
+      this.config.onValidationError,
+      cardCpm,
+      false
+    );
+    if (!extraData) return;
+
+    console.log('[form] Submitting form:', extraData);
+
+    for (const [elementId, element] of Object.entries(this.eventHandler.eventTargets ?? {})) {
+      console.log('[form] inside loop', elementId);
+      emitEvent(element, this.formId, elementId, extraData, this.config.baseUrl!);
+    }
+
+    this.eventHandler.setExtraData(extraData);
   }
 
-  // applePay = {
-  //   isAvailable: () => {
-  //     console.log('Checking if Apple Pay is available...');
-  //     return Promise.resolve(false); // Simulated result
-  //   },
-  //   startFlow: () => {
-  //     console.log('Starting Apple Pay flow...');
-  //     // Implementation would go here
-  //   },
-  // };
+  async onUserCompletePaymentRequestUI(
+    stripePm: PaymentRequestPaymentMethodEvent,
+    checkoutPaymentMethod: CheckoutPaymentMethod
+  ): Promise<void> {
+    if (!this.formTarget || !this.config.onValidationError || !this.sessionId || !this.checkoutPaymentMethods) return;
+
+    for (const [elementId, element] of Object.entries(this.elements ?? {})) {
+      const paymentFlowMetadata = {
+        stripePmId: stripePm.paymentMethod.id,
+      };
+      const startPaymentFlowEvent = constructSubmitEventPayload(
+        EventType.enum.START_PAYMENT_FLOW,
+        this.sessionId,
+        document.querySelector(this.formTarget) ?? document.body,
+        this.config.onValidationError,
+        checkoutPaymentMethod,
+        false,
+        paymentFlowMetadata
+      );
+      if (!startPaymentFlowEvent) continue;
+      this.stripePm = stripePm;
+      this.checkoutFired = true;
+      this.eventHandler.setExtraData(startPaymentFlowEvent);
+      emitEvent(element.node.contentWindow!, this.formId, elementId, startPaymentFlowEvent, this.config.baseUrl!);
+      break;
+    }
+  }
+
+  onPaymentRequestError(errMsg: string): void {
+    console.error('[form] Error from payment request:', errMsg);
+    this.checkoutFired = false;
+    if (this.config.onCheckoutError) this.config.onCheckoutError(errMsg);
+  }
+
+  destroy() {
+    window.removeEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));
+    window.removeEventListener('beforeunload', this.onBeforeUnload.bind(this));
+  }
 }

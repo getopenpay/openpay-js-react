@@ -9,7 +9,7 @@ import {
 } from './shared-models';
 import { CDEResponseError, PaymentFormPrefill, PreviewCheckoutResponse } from './cde_models';
 
-const queryCDE = async <T extends z.ZodType>(
+export const queryCDE = async <T extends z.ZodType>(
   cdeConn: CdeConnection,
   data: CdeMessage,
   responseSchema: T

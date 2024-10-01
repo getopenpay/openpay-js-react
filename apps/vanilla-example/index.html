@@ -4,28 +4,89 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + TS</title>
+    <title>OpenPay Vanilla Example</title>
   </head>
   <body>
-    <div id="app">
-      <h2>Pure.js OpenPayElement</h2>
-      <section>
-        <div
-          style="
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: white;
-            padding: 10px;
-            border-radius: 12px;
-          "
-          id="card-element"
-        ></div>
-        <div style="margin: 20px 0">
-          <button id="submit" style="width: 100%">Pay</button>
+    <main class="container">
+      <div>
+        <h1 class="title">OpenPay.js</h1>
+        <p class="subtitle">Accept payments through OpenPay, right on your site</p>
+      </div>
+
+      <div id="app">
+        <div data-testid="loading" id="loading" class="loading">
+          <span class="loading-icon">⏳</span>
+          Loading...
         </div>
-      </section>
-    </div>
+        <div id="error-container"></div>
+
+        <div>
+          <p class="section-title">Personal Details</p>
+          <div class="billing-details">
+            <label>
+              <span>First Name</span>
+              <input data-opid="firstName" placeholder="First Name" />
+            </label>
+            <label>
+              <span>Last Name</span>
+              <input data-opid="lastName" placeholder="Last Name" />
+            </label>
+            <label>
+              <span>Email</span>
+              <input data-opid="email" placeholder="Email" />
+            </label>
+            <label>
+              <span>Promotion Code</span>
+              <input data-opid="promotionCode" placeholder="Promotion Code" value="" />
+            </label>
+          </div>
+          <p class="section-title">Billing Address</p>
+          <div class="billing-details">
+            <!-- <label class="grid-full">
+              <span>Address</span>
+              <input data-opid="address" class="grid-full" placeholder="Address" value="1234 Main St" />
+            </label> -->
+            <!-- <label>
+              <span>City</span>
+              <input data-opid="city" placeholder="City" value="New York" />
+            </label>
+            <label>
+              <span>State</span>
+              <input data-opid="state" placeholder="State" value="NY" />
+            </label> -->
+            <label>
+              <span>Zip Code</span>
+              <input data-opid="zipCode" placeholder="Zip Code" />
+            </label>
+            <label>
+              <span>Country</span>
+              <input data-opid="country" placeholder="Country" />
+            </label>
+            <!-- <label class="grid-full">
+              <span>Phone</span>
+              <input data-opid="phone" class="grid-full" placeholder="Phone" value="1234567890" />
+            </label> -->
+          </div>
+
+          <p class="section-title">Card</p>
+          <div id="single-frame">
+            <div id="card-element" class="card-element"></div>
+          </div>
+
+          <div id="multiple-frames">
+            <div id="card-number-element" class="card-element"></div>
+            <div id="card-expiry-element" class="card-element"></div>
+            <div id="card-cvc-element" class="card-element"></div>
+          </div>
+
+          <button data-testid="submit-button" id="submit" type="button">Pay</button>
+          <div id="validation-error-container" class="error-message"></div>
+        </div>
+
+        <div id="checkout-success" class="success-message" style="display: none"></div>
+        <div id="setup-success" class="success-message" style="display: none"></div>
+      </div>
+    </main>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

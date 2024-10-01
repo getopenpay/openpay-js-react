@@ -65,7 +65,7 @@ export const useCDEConnection = (): HookReturnType => {
   };
 };
 
-const checkIfValidCdeConnectionObject = async (obj: unknown): Promise<boolean> => {
+export const checkIfValidCdeConnectionObject = async (obj: unknown): Promise<boolean> => {
   if (typeof obj !== 'object' || !obj) return false;
   try {
     const ping: CdeMessage = { type: 'ping' };
@@ -82,6 +82,6 @@ const checkIfValidCdeConnectionObject = async (obj: unknown): Promise<boolean> =
 };
 
 // Work around as an async type guard
-const isResultValid = (obj: unknown, isValid: boolean): obj is CdeConnection => {
+export const isResultValid = (obj: unknown, isValid: boolean): obj is CdeConnection => {
   return !!obj && isValid;
 };

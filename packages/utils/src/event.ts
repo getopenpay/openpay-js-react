@@ -33,7 +33,7 @@ export const constructSubmitEventPayload = (
     doNotUseLegacyCCFlow,
   });
 
-  console.log(`[form] Constructing ${eventType} payload:`, extraData);
+  console.log(`[form] Constructing ${eventType} payload:`, JSON.stringify(extraData));
 
   if (checkoutPaymentMethod.provider === 'apple_pay' || checkoutPaymentMethod.provider === 'google_pay') {
     if (!extraData[FieldName.ZIP_CODE]) {
@@ -50,8 +50,10 @@ export const constructSubmitEventPayload = (
     for (const [fieldName, errors] of Object.entries(issues)) {
       onValidationError(fieldName as FieldName, errors, fieldName);
     }
+    console.log('[form] Constructed payload in FAIL:', payload.data);
     return null;
   } else {
+    console.log('[form] Constructed payload:', JSON.stringify(payload.data));
     return payload.data;
   }
 };
