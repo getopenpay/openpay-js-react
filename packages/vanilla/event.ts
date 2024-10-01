@@ -21,15 +21,17 @@ import {
   TokenizeSuccessEventPayload,
 } from '@getopenpay/utils';
 import { OpenPayForm } from './index';
+import { ConnectionManager } from './utils/connection';
 
 export class OpenPayFormEventHandler {
   formInstance: OpenPayForm;
-  nonces: Set<string>;
-  formId: string;
   eventTargets: Record<string, MessageEventSource>;
-  tokenizedData: SubmitEventPayload | null;
-  config: OpenPayForm['config'];
-  tokenized: number;
+  private nonces: Set<string>;
+  private formId: string;
+  private tokenizedData: SubmitEventPayload | null;
+  private config: OpenPayForm['config'];
+  private tokenized: number;
+  private connectionManager: ConnectionManager;
 
   constructor(formInstance: OpenPayForm) {
     this.formInstance = formInstance;
@@ -39,9 +41,10 @@ export class OpenPayFormEventHandler {
     this.nonces = new Set();
     this.tokenizedData = null;
     this.tokenized = 0;
+    this.connectionManager = formInstance.getConnectionManager();
   }
 
-  setExtraData(data: SubmitEventPayload): void {
+  setTokenizedData(data: SubmitEventPayload): void {
     this.tokenizedData = data;
   }
 
@@ -54,8 +57,6 @@ export class OpenPayFormEventHandler {
 
     const { elementId, payload } = eventData;
     const eventType = payload.type;
-
-    console.log(`[form] Received ${eventType} event from ${elementId}:`, payload);
 
     switch (eventType) {
       case 'LAYOUT':
@@ -121,8 +122,7 @@ export class OpenPayFormEventHandler {
 
   handleLayoutEvent(payload: LayoutEventPayload) {
     const height = payload.height ? `${payload.height}px` : '100%';
-    this.formInstance.formProperties.height = height;
-    console.log(`[form] Element height set to: ${height}`);
+    this.formInstance.setFormHeight(height);
   }
 
   handleFocusEvent(elementId: string) {
@@ -146,11 +146,9 @@ export class OpenPayFormEventHandler {
       this.config.onLoad(payload.totalAmountAtoms, payload.currency);
     }
     this.formInstance.checkoutPaymentMethods = payload.checkoutPaymentMethods;
-    console.log(`[form] Element loaded with prefill data:`, payload);
   }
 
   handleTokenizeStartedEvent() {
-    console.log('[form] XXX Tokenization started');
     if (this.formInstance.config.onCheckoutStarted) this.formInstance.config.onCheckoutStarted();
   }
 
@@ -159,26 +157,22 @@ export class OpenPayFormEventHandler {
     eventSource: MessageEventSource,
     elementId: string
   ): Promise<void> {
-    console.log('[form] handlePaymentFlowStartedEvent', this.tokenizedData);
     if (!this.tokenizedData) {
       throw new Error(`tokenizedData not populated`);
     }
-    const cdeConn = this.formInstance.connectionManager.getConnection();
+    const cdeConn = this.connectionManager.getConnection();
 
     const confirmPaymentFlow = async (): Promise<{ proceedToCheckout: boolean }> => {
       const nextActionType = payload.nextActionMetadata['type'];
-      console.log('[form] Confirm payment flow: next actions:', payload.nextActionMetadata);
       if (nextActionType === undefined) {
-        console.log('[form] Confirming payment flow (No-op)');
+        // No-op
       } else if (nextActionType === 'stripe_3ds') {
-        console.log('[form] Confirming payment flow (Stripe 3DS');
         await confirmPaymentFlowFor3DS(payload);
       } else if (nextActionType === 'stripe_payment_request') {
-        if (!this.formInstance.stripePm) {
+        if (!this.formInstance.getStripePm()) {
           throw new Error(`Stripe PM not set`);
         }
-        console.log('[form] Confirming payment flow (Stripe PR)');
-        await confirmPaymentFlowForStripePR(payload, this.formInstance.stripePm);
+        await confirmPaymentFlowForStripePR(payload, this.formInstance.getStripePm()!);
       } else {
         throw new Error(`Unknown next action type: ${nextActionType}`);
       }
@@ -191,8 +185,6 @@ export class OpenPayFormEventHandler {
         if (payment_methods.length !== 1) {
           throw new Error(`Expected exactly one payment method, got ${payment_methods.length}`);
         }
-        console.log('[form] PF setup payment method complete:', payment_methods);
-        this.formInstance.preventClose = false;
         this.tokenized = 0;
         this.formInstance.checkoutFired = false;
 
@@ -214,7 +206,6 @@ export class OpenPayFormEventHandler {
       if (!proceedToCheckout) {
         return;
       }
-      console.log('[form] Starting checkout from payment flow.');
 
       let existingCCPMId: string | undefined;
       if (this.tokenizedData.checkoutPaymentMethod.provider === 'credit_card') {
@@ -235,10 +226,7 @@ export class OpenPayFormEventHandler {
       this.tokenizedData = null;
       if (this.formInstance.config.onCheckoutStarted) this.formInstance.config.onCheckoutStarted();
     } catch (e) {
-      console.log('[form] Confirmation payment flow error');
-      console.error(e);
       const errMsg = getErrorMessage(e);
-      this.formInstance.preventClose = false;
       this.formInstance.checkoutFired = false;
 
       if (this.formInstance.config.onCheckoutError) this.formInstance.config.onCheckoutError(errMsg);
@@ -252,57 +240,46 @@ export class OpenPayFormEventHandler {
     const totalTokenized = this.tokenized + 1;
     const allTokenized = totalTokenized === Object.keys(this.eventTargets).length;
 
-    console.log('[form] Tokenized data:', this.tokenizedData, 'allTokenized:', allTokenized);
     if (!this.formInstance.checkoutFired && (allTokenized || payload.isReadyForCheckout)) {
       this.tokenizedData.type =
         this.tokenizedData.type === EventType.enum.TOKENIZE
           ? EventType.enum.CHECKOUT
           : EventType.enum.START_PAYMENT_FLOW;
-      console.log('[form] Tokenized card is ready for checkout');
       this.postEventToFrame(source, elementId, this.tokenizedData as EventPayload);
       this.tokenizedData = null;
-      console.log('[form] Tokenized data set to null');
     } else {
-      console.log('[form] Tokenized data not ready for checkout or checkout already fired');
       this.tokenized = totalTokenized;
     }
   }
 
   handleCheckoutSuccessEvent(payload: CheckoutSuccessEventPayload) {
-    console.log('[form] Checkout complete:', payload);
     if (this.formInstance.config.onCheckoutSuccess) {
       this.formInstance.config.onCheckoutSuccess(payload.invoiceUrls, payload.subscriptionIds, payload.customerId);
     }
   }
 
   handleSetupPaymentMethodSuccessEvent(payload: SetupCheckoutSuccessEventPayload) {
-    console.log('[form] Setup payment method complete:', payload);
     if (this.formInstance.config.onSetupPaymentMethodSuccess) {
       this.formInstance.config.onSetupPaymentMethodSuccess(payload.paymentMethodId);
     }
   }
 
   handleLoadErrorEvent(payload: ErrorEventPayload) {
-    console.error('[form] Error loading iframe:', payload.message);
     if (this.formInstance.config.onLoadError) this.formInstance.config.onLoadError(payload.message);
   }
 
   handleValidationErrorEvent(payload: ValidationErrorEventPayload, elementId: string) {
-    console.error(`[form] Validation error for ${payload.elementType}:`, payload.errors);
     if (this.formInstance.config.onValidationError) {
       this.formInstance.config.onValidationError(payload.elementType, payload.errors, elementId);
     }
   }
 
   handleErrorEvent(payload: ErrorEventPayload) {
-    console.error('[form] API error from element:', payload.message);
     if (payload.message === '3DS_REQUIRED') {
-      // Handle 3DS_REQUIRED case
       const cardCpm = this.formInstance.checkoutPaymentMethods?.find((cpm) => cpm.provider === 'credit_card');
       if (!this.formInstance.sessionId || !this.formInstance.formTarget || !this.config.onValidationError || !cardCpm)
         return;
 
-      // Try all iframe targets, note that this loop will break as soon as one succeeds
       for (const [elementId, target] of Object.entries(this.eventTargets)) {
         if (!target) continue;
         const startPaymentFlowEvent = constructSubmitEventPayload(
@@ -310,28 +287,16 @@ export class OpenPayFormEventHandler {
           this.formInstance.sessionId,
           document.querySelector(this.formInstance.formTarget) ?? document.body,
           this.config.onValidationError,
-          // Only stripe supports frontend 3DS right now,
-          // so we pass processor_name: 'stripe' to tell delegator to only use stripe
           { ...cardCpm, processor_name: 'stripe' },
           false
         );
-        console.log('[form] startPaymentFlowEvent before setting tokenizedData', JSON.stringify(startPaymentFlowEvent));
         if (!startPaymentFlowEvent) continue;
         this.formInstance.checkoutFired = true;
-        // this.setExtraData(startPaymentFlowEvent);
         this.tokenizedData = startPaymentFlowEvent;
-        console.log(
-          '[form] startPaymentFlowEvent after setting tokenizedData',
-          JSON.stringify(startPaymentFlowEvent),
-          'tokenizedData',
-          JSON.stringify(this.tokenizedData)
-        );
         this.postEventToFrame(target, elementId, startPaymentFlowEvent);
-        // If first one succeeds, break
         break;
       }
     } else {
-      this.formInstance.preventClose = false;
       this.formInstance.checkoutFired = false;
       if (this.formInstance.config.onCheckoutError) this.formInstance.config.onCheckoutError(payload.message);
     }
@@ -370,8 +335,6 @@ export class OpenPayFormEventHandler {
   }
 
   postEventToFrame(source: MessageEventSource, elementId: string, data: EventPayload) {
-    // Implement event emission logic here
-    console.log(`Emitting event to ${elementId}:`, data);
     emitEvent(source, this.formId, elementId, data, this.config.baseUrl!);
   }
 }

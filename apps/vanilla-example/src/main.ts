@@ -12,7 +12,7 @@ console.log('loadStripe', loadStripe.name);
 let validationErrors: Record<string, string[]> = {};
 
 const formInstance = new OpenPayForm({
-  baseUrl: baseUrl || 'http://localhost:3030',
+  baseUrl: baseUrl || 'http://localhost:8001',
   checkoutSecureToken: token ?? '',
   formTarget: '#app',
   onLoad: (totalAmountAtoms, currency) => {
