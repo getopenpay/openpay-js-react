@@ -56,7 +56,9 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
 
   return (
     <iframe
+      id={`ojs-${subPath}-element`}
       name={`${subPath}-element`}
+      className="ojs-iframe"
       src={`${baseUrl}/app/v1/${subPath}-element/?${queryString}`}
       style={frameStyle}
       ref={iframeRef}

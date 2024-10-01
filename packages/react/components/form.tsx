@@ -1,14 +1,17 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ElementsContext, type ElementsContextValue } from '../hooks/context';
-import { constructSubmitEventPayload, emitEvent, parseEventPayload } from '@getopenpay/utils';
-import { ElementsFormChildrenProps, ElementsFormProps } from '@getopenpay/utils';
-import { CheckoutPaymentMethod, EventType, SubmitEventPayload } from '@getopenpay/utils';
-import { FRAME_BASE_URL } from '@getopenpay/utils';
+import { constructSubmitEventPayload, emitEvent, parseEventPayload } from '../utils/event';
+import { ElementsFormChildrenProps, ElementsFormProps } from '../utils/models';
+import { CheckoutPaymentMethod, EventType, SubmitEventPayload } from '../utils/shared-models';
+import { FRAME_BASE_URL } from '../utils/constants';
 import { v4 as uuidv4 } from 'uuid';
 import { usePaymentRequests } from '../hooks/use-payment-requests';
-import { confirmPaymentFlowFor3DS, confirmPaymentFlowForStripePR } from '@getopenpay/utils';
+import { confirmPaymentFlowFor3DS, confirmPaymentFlowForStripePR } from '../utils/stripe';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
-import { getErrorMessage } from '@getopenpay/utils';
+import { getErrorMessage } from '../utils/errors';
+import { useCDEConnection } from '../utils/cde-connection';
+import { isJsonString } from '../utils/types';
+import { getPrefill, confirmPaymentFlow as confirmPaymentFlowInCDE } from '../utils/cde-client';
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
   const {
@@ -51,6 +54,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const formId = useMemo(() => `opjs-form-${uuidv4()}`, []);
   const formRef = useRef<HTMLDivElement | null>(null);
 
+  const { cdeConn, connectToCdeIframe } = useCDEConnection();
+
   const onMessage = useCallback(
     (event: MessageEvent) => {
       // Since window.postMessage allows any source to post messages
@@ -68,7 +73,12 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       if (!event.source) return;
       const eventSource = event.source;
 
-      const eventData = parseEventPayload(JSON.parse(event.data));
+      if (!isJsonString(event.data)) {
+        return;
+      }
+
+      const raw = JSON.parse(event.data);
+      const eventData = parseEventPayload(raw);
       const elementId = eventData.elementId;
       const targetFormId = eventData.formId;
 
@@ -124,8 +134,11 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         if (!extraData) {
           throw new Error(`extraData not populated`);
         }
+        if (!cdeConn) {
+          throw new Error(`Not connected to CDE`);
+        }
 
-        const confirmPaymentFlow = async (): Promise<void> => {
+        const confirmPaymentFlow = async (): Promise<{ proceedToCheckout: boolean }> => {
           const nextActionType = eventPayload.nextActionMetadata['type'];
           console.log('[form] Confirm payment flow: next actions:', eventPayload.nextActionMetadata);
           if (nextActionType === undefined) {
@@ -139,19 +152,51 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
               // This is only applicable for PRs
               throw new Error(`Stripe PM not set`);
             }
-            console.log('[form] Confirming payment flow (Stripe PR');
+            console.log('[form] Confirming payment flow (Stripe PR)');
             await confirmPaymentFlowForStripePR(eventPayload, stripePm);
           } else {
             throw new Error(`Unknown next action type: ${nextActionType}`);
           }
+          const prefill = await getPrefill(cdeConn);
+          if (prefill.mode === 'setup') {
+            const { payment_methods } = await confirmPaymentFlowInCDE(cdeConn, {
+              secure_token: prefill.token,
+              existing_cc_pm_id: extraData.existingCCPMId,
+            });
+            if (payment_methods.length !== 1) {
+              throw new Error(`Expected exactly one payment method, got ${payment_methods.length}`);
+            }
+            console.log('[form] PF setup payment method complete:', payment_methods);
+            setPreventClose(false);
+            setTokenized(0);
+            setCheckoutFired(false);
+
+            if (onSetupPaymentMethodSuccess) {
+              onSetupPaymentMethodSuccess(payment_methods[0].id);
+            }
+            return {
+              proceedToCheckout: false,
+            };
+          } else {
+            // If not in setup mode, proceed to checkout
+            return {
+              proceedToCheckout: true,
+            };
+          }
         };
 
         confirmPaymentFlow()
-          .then(() => {
+          .then(({ proceedToCheckout }) => {
+            if (!proceedToCheckout) {
+              // TODO ASAP: log or something here
+              return;
+            }
             console.log('[form] Starting checkout from payment flow.');
 
             let existingCCPMId: string | undefined;
             if (extraData.checkoutPaymentMethod.provider === 'credit_card') {
+              // Currently, if a credit card passes through this flow, it is 3DS
+              // In the future, we want to handle all CC flows here regardless of 3DS or not
               existingCCPMId = eventPayload.startPFMetadata?.cc_pm_id;
               if (!existingCCPMId) {
                 throw new Error(`CC PM ID not found`);
@@ -205,15 +250,18 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         setTokenized(0);
         setCheckoutFired(false);
 
-        if (onCheckoutSuccess)
+        if (onCheckoutSuccess) {
           onCheckoutSuccess(eventPayload.invoiceUrls, eventPayload.subscriptionIds, eventPayload.customerId);
+        }
       } else if (eventType === EventType.enum.SETUP_PAYMENT_METHOD_SUCCESS) {
         console.log('[form] Setup payment method complete:', eventPayload);
         setPreventClose(false);
         setTokenized(0);
         setCheckoutFired(false);
 
-        if (onSetupPaymentMethodSuccess) onSetupPaymentMethodSuccess(eventPayload.paymentMethodId);
+        if (onSetupPaymentMethodSuccess) {
+          onSetupPaymentMethodSuccess(eventPayload.paymentMethodId);
+        }
       } else if (eventType === EventType.enum.LOAD_ERROR) {
         console.error('[form] Error loading iframe:', eventPayload.message);
 
@@ -278,6 +326,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       frameBaseUrl,
       stripePm,
       checkoutPaymentMethods,
+      cdeConn,
     ]
   );
 
@@ -352,9 +401,13 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       if (existingIframe) return;
 
       console.log('[form] Registering iframe:', iframe);
+      if (iframes.length === 0) {
+        // Only do the first iframe
+        connectToCdeIframe(iframe);
+      }
       setIframes((prevIframes) => [...prevIframes, iframe]);
     },
-    [iframes]
+    [iframes, connectToCdeIframe]
   );
 
   const onUserCompletePaymentRequestUI = async (
@@ -403,8 +456,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   };
 
   const paymentRequests = usePaymentRequests(
-    totalAmountAtoms,
-    currency,
+    cdeConn,
+    checkoutSecureToken,
     checkoutPaymentMethods,
     formRef.current,
     onUserCompletePaymentRequestUI,

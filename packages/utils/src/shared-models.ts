@@ -6,7 +6,7 @@ import { z } from 'zod';
  */
 
 const RequiredString = z.string().trim().min(1, { message: `Cannot be blank` });
-const OptionalString = z.string().trim().optional();
+export const OptionalString = z.string().trim().optional();
 export const nullOrUndefOr = <T extends z.ZodType>(zType: T): z.ZodNullable<z.ZodOptional<T>> =>
   z.nullable(zType.optional());
 
@@ -53,6 +53,12 @@ export const CheckoutPaymentMethod = z.object({
   metadata: nullOrUndefOr(z.record(z.string(), z.any())),
 });
 export type CheckoutPaymentMethod = z.infer<typeof CheckoutPaymentMethod>;
+
+// PaymentMethodMinimal
+export const PaymentMethodMinimal = z.object({
+  id: z.string(),
+});
+export type PaymentMethodMinimal = z.infer<typeof PaymentMethodMinimal>;
 
 export const CardPlaceholder = z.object({
   cardNumber: OptionalString,
@@ -255,9 +261,40 @@ export type ElementEvent = z.infer<typeof ElementEvent>;
 /**
  * Payment requests
  */
-export const PaymentRequestStatus = z.object({
-  isLoading: z.boolean(),
-  isAvailable: z.boolean(),
-  startFlow: z.function(z.tuple([]), z.void()),
+
+export const Amount = z.object({
+  amountAtom: z.number(),
+  currency: RequiredString,
 });
-export type PaymentRequestStatus = z.infer<typeof PaymentRequestStatus>;
+export type Amount = z.infer<typeof Amount>;
+
+export type PaymentRequestStartParams = {
+  amountToDisplayForSetupMode?: Amount;
+};
+
+// Using vanilla TS type here because we can't make named function args in zod
+export type PaymentRequestStatus = {
+  isLoading: boolean;
+  isAvailable: boolean;
+  startFlow: (params?: PaymentRequestStartParams) => Promise<void>;
+};
+
+// CheckoutPreviewRequest
+export const CheckoutPreviewRequest = z.object({
+  secure_token: z.string(),
+  promotion_code: z.string().optional(),
+});
+export type CheckoutPreviewRequest = z.infer<typeof CheckoutPreviewRequest>;
+
+// ConfirmPaymentFlowRequest
+export const ConfirmPaymentFlowRequest = z.object({
+  secure_token: z.string(),
+  existing_cc_pm_id: nullOrUndefOr(z.string()),
+});
+export type ConfirmPaymentFlowRequest = z.infer<typeof ConfirmPaymentFlowRequest>;
+
+// ConfirmPaymentFlowResponse
+export const ConfirmPaymentFlowResponse = z.object({
+  payment_methods: z.array(PaymentMethodMinimal),
+});
+export type ConfirmPaymentFlowResponse = z.infer<typeof ConfirmPaymentFlowResponse>;
