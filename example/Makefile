@@ -1,4 +1,4 @@
-.PHONY: install dev start run-helper
+.PHONY: install dev start install-stg install-dev install-prod
 
 install-stg:
 	python ./install_helper.py stg
