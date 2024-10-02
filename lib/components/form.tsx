@@ -12,6 +12,7 @@ import { getErrorMessage } from '../utils/errors';
 import { useCDEConnection } from '../utils/cde-connection';
 import { isJsonString } from '../utils/types';
 import { getPrefill, confirmPaymentFlow as confirmPaymentFlowInCDE } from '../utils/cde-client';
+import { useDynamicPreview } from '../hooks/use-dynamic-preview';
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
   const {
@@ -29,6 +30,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     onCheckoutError,
     onSetupPaymentMethodSuccess,
     baseUrl,
+    enableDynamicPreviews,
   } = props;
 
   const frameBaseUrl: string = baseUrl ?? FRAME_BASE_URL;
@@ -55,6 +57,12 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const formRef = useRef<HTMLDivElement | null>(null);
 
   const { cdeConn, connectToCdeIframe } = useCDEConnection();
+  const dynamicPreview = useDynamicPreview(
+    enableDynamicPreviews ?? false,
+    cdeConn,
+    checkoutSecureToken,
+    formRef.current
+  );
 
   const onMessage = useCallback(
     (event: MessageEvent) => {
@@ -462,7 +470,8 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     formRef.current,
     onUserCompletePaymentRequestUI,
     onValidationError,
-    onPaymentRequestError
+    onPaymentRequestError,
+    dynamicPreview
   );
 
   const childrenProps: ElementsFormChildrenProps = {
@@ -470,6 +479,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     applePay: paymentRequests.apple_pay,
     googlePay: paymentRequests.google_pay,
     loaded,
+    preview: dynamicPreview,
   };
 
   return (
