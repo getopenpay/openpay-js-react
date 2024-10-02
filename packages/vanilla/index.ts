@@ -1,9 +1,9 @@
 import {
+  AllFieldNames,
   CheckoutPaymentMethod,
   constructSubmitEventPayload,
   convertStylesToQueryString,
   ElementProps,
-  ElementsFormProps,
   EventType,
   FieldName,
   PaymentRequestStatus,
@@ -17,10 +17,25 @@ export { FieldName };
 
 export type ElementType = 'card' | 'card-number' | 'card-expiry' | 'card-cvc';
 
-export type Config = Omit<ElementsFormProps, 'children'> & {
+export type ElementsFormProps = {
+  className?: string;
+  checkoutSecureToken: string;
+  onFocus?: (elementId: string) => void;
+  onBlur?: (elementId: string) => void;
+  onChange?: (elementId: string) => void;
+  onLoad?: (totalAmountAtoms?: number, currency?: string) => void;
+  onLoadError?: (message: string) => void;
+  onValidationError?: (field: AllFieldNames, errors: string[], elementId?: string) => void;
+  onCheckoutStarted?: () => void;
+  onCheckoutSuccess?: (invoiceUrls: string[], subscriptionIds: string[], customerId: string) => void;
+  onSetupPaymentMethodSuccess?: (paymentMethodId: string) => void;
+  onCheckoutError?: (message: string) => void;
+  baseUrl?: string;
   formTarget?: string;
   onPaymentRequestLoad?: (paymentRequests: Record<'apple_pay' | 'google_pay', PaymentRequestStatus>) => void;
 };
+
+export type Config = ElementsFormProps;
 
 export class OpenPayForm {
   config: Config;
@@ -212,6 +227,9 @@ export class OpenPayForm {
   }
 
   destroy() {
+    for (const element of Object.values(this.elements ?? {})) {
+      element.node.remove();
+    }
     window.removeEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));
   }
 }

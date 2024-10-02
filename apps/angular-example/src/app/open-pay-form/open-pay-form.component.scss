@@ -1,35 +1,13 @@
-:root {
-  /* Colors */
-  --color-text: #ededed;
-  --color-background: #0d201a;
-  --color-primary: #10b981;
-  --color-primary-hover: #059669;
-  --color-disabled: #d1d5db;
-  --color-error: #9e2146;
-  --color-card-bg: #f0fdf4;
-  --color-overlay-bg: rgba(240, 253, 244, 0.8);
-  --color-input-bg: #1f322e;
-  /* Typography */
-  --font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  --font-size: 1rem;
+// Copy the styles from the vanilla example's style.css file here
+// You may need to adjust some styles to work with Angular's component encapsulation
 
-  /* Spacing */
-  --spacing: 0.9rem;
-
-  /* Border radius */
-  --border-radius: 0.25rem;
-
-  /* Other */
-  --transition-duration: 0.2s;
-  --box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-}
-
-body {
-  font-family: var(--font-family);
+:host {
+  display: block;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: var(--color-text);
-  background-color: var(--color-background);
+  color: #ededed;
+  background-color: #0d201a;
   margin: 0;
   display: flex;
   place-items: center;
@@ -39,6 +17,21 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  --color-text: #ededed;
+  --color-background: #0d201a;
+  --color-primary: #10b981;
+  --color-primary-hover: #059669;
+  --color-disabled: #d1d5db;
+  --color-error: #9e2146;
+  --color-card-bg: #f0fdf4;
+  --color-overlay-bg: rgba(240, 253, 244, 0.8);
+  --color-input-bg: #1f322e;
+  --font-size: 1rem;
+  --spacing: 0.9rem;
+  --border-radius: 0.25rem;
+  --transition-duration: 0.2s;
+  --box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
 
 .container {
@@ -71,35 +64,44 @@ body {
   grid-template-columns: repeat(2, 1fr);
   gap: calc(var(--spacing) * 0.5);
   margin-bottom: var(--spacing);
-}
-.billing-details label {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--spacing) * 0.2);
-  font-size: calc(var(--font-size) * 0.75);
-  color: #a9a9a9;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 0.2);
+    font-size: calc(var(--font-size) * 0.75);
+    color: #a9a9a9;
+  }
+
+  input {
+    padding: calc(var(--spacing) * 0.8);
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: var(--font-size);
+    outline: none;
+    background-color: var(--color-input-bg);
+    color: var(--color-text);
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+    }
+  }
 }
 
 .grid-full {
   grid-column: 1 / -1;
 }
 
-input {
-  padding: calc(var(--spacing) * 0.8);
-  border: none;
-  border-radius: var(--border-radius);
-  font-size: var(--font-size);
-  outline: none;
-}
-
 #multiple-frames {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--spacing);
+
+  #card-number-element {
+    grid-column: 1 / -1;
+  }
 }
-#multiple-frames #card-number-element {
-  grid-column: 1 / -1;
-}
+
 .card-element {
   padding: calc(var(--spacing) * 0.75);
   border-radius: var(--border-radius);
@@ -108,9 +110,10 @@ input {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-.card-element[data-focused='true'] {
-  outline: 2px solid var(--color-primary);
+
+  &[data-focused='true'] {
+    outline: 2px solid var(--color-primary);
+  }
 }
 
 #submit {
@@ -125,29 +128,29 @@ input {
   border-radius: var(--border-radius);
   cursor: pointer;
   transition: background-color var(--transition-duration);
-}
 
-.submit-button:hover {
-  background-color: var(--color-primary-hover);
-}
+  &:hover {
+    background-color: var(--color-primary-hover);
+  }
 
-.submit-button:disabled {
-  background-color: var(--color-disabled);
-  cursor: not-allowed;
+  &:disabled {
+    background-color: var(--color-disabled);
+    cursor: not-allowed;
+  }
 }
 
 .loading {
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   font-size: var(--font-size);
   margin-bottom: var(--spacing);
-}
 
-.loading-icon {
-  font-size: calc(var(--font-size) * 1.5);
-  margin-right: calc(var(--spacing) * 0.5);
-  animation: spin 1s linear infinite;
+  .loading-icon {
+    font-size: calc(var(--font-size) * 1.5);
+    margin-right: calc(var(--spacing) * 0.5);
+    animation: spin 1s linear infinite;
+  }
 }
 
 @keyframes spin {
@@ -182,35 +185,26 @@ input {
 
 .success-message {
   margin-top: calc(var(--spacing) * 2);
-}
 
-.success-message h2 {
-  font-size: calc(var(--font-size) * 1.5);
-  font-weight: bold;
-  margin-bottom: var(--spacing);
-}
+  h2 {
+    font-size: calc(var(--font-size) * 1.5);
+    font-weight: bold;
+    margin-bottom: var(--spacing);
+  }
 
-.success-message ul {
-  list-style-type: decimal;
-  padding-left: 1.5rem;
-  margin-bottom: var(--spacing);
-}
+  ul {
+    list-style-type: decimal;
+    padding-left: 1.5rem;
+    margin-bottom: var(--spacing);
+  }
 
-.success-message a {
-  color: var(--color-primary);
-  text-decoration: underline;
+  a {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
 }
 
 .error input {
   border-color: var(--color-error);
   background-color: #fdf2f8;
-}
-
-input {
-  background-color: var(--color-input-bg);
-  color: var(--color-text);
-}
-
-input:focus-visible {
-  outline: 2px solid var(--color-primary);
 }
