@@ -30,6 +30,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     onCheckoutError,
     onSetupPaymentMethodSuccess,
     baseUrl,
+    enableDynamicPreviews,
   } = props;
 
   const frameBaseUrl: string = baseUrl ?? FRAME_BASE_URL;
@@ -56,7 +57,12 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const formRef = useRef<HTMLDivElement | null>(null);
 
   const { cdeConn, connectToCdeIframe } = useCDEConnection();
-  const dynamicPreview = useDynamicPreview(cdeConn, checkoutSecureToken, formRef.current);
+  const dynamicPreview = useDynamicPreview(
+    enableDynamicPreviews ?? false,
+    cdeConn,
+    checkoutSecureToken,
+    formRef.current
+  );
 
   const onMessage = useCallback(
     (event: MessageEvent) => {

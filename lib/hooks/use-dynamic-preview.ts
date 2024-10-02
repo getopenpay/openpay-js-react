@@ -15,6 +15,7 @@ export type DynamicPreview = {
 };
 
 export const useDynamicPreview = (
+  isEnabled: boolean,
   cdeConn: CdeConnection | null,
   secureToken: string | undefined,
   formDiv: HTMLDivElement | null
@@ -27,7 +28,7 @@ export const useDynamicPreview = (
 
   // Setup input listeners
   useAsyncEffect(async () => {
-    if (!formDiv) {
+    if (!formDiv || !isEnabled) {
       return;
     }
     const promoCodeInput = await waitForFormFieldInput(formDiv, FieldName.PROMOTION_CODE);
@@ -36,16 +37,25 @@ export const useDynamicPreview = (
       setPreviewError(null);
       setPromoCodeInput(promoCodeInput.value);
     });
-  }, [!!formDiv]);
+  }, [!!formDiv, isEnabled]);
 
   // Debounce inputs
-  useDebounce(() => setPromoCodeDebounced(promoCodeInput), 1000, [promoCodeInput]);
+  useDebounce(
+    () => {
+      if (!isEnabled) {
+        return;
+      }
+      setPromoCodeDebounced(promoCodeInput);
+    },
+    1000,
+    [promoCodeInput, isEnabled]
+  );
 
   // Fire queries based on debounced inputs
   useAsyncEffect(
     async (isMounted) => {
       try {
-        if (!promoCodeDebounced || !cdeConn || !secureToken) {
+        if (!cdeConn || !secureToken || !isEnabled) {
           return;
         }
         const prefill = await getPrefill(cdeConn);
@@ -70,7 +80,7 @@ export const useDynamicPreview = (
         }
       }
     },
-    [promoCodeDebounced]
+    [!cdeConn, !secureToken, promoCodeDebounced, isEnabled]
   );
 
   return {
@@ -122,7 +132,7 @@ const getCheckoutValue = async (
   };
 };
 
-const getCheckoutPreviewAmount = async (
+export const getCheckoutPreviewAmount = async (
   cdeConn: CdeConnection,
   secureToken: string,
   isSetupMode: boolean,
@@ -133,6 +143,7 @@ const getCheckoutPreviewAmount = async (
     // TODO check later if there's a way to know currency in advance for setup mode
     return { amountAtom: 0, currency: 'usd' };
   } else {
+    promoCode = !promoCode ? undefined : promoCode;
     const checkoutPreview = await getCheckoutValue(cdeConn, secureToken, promoCode);
     return { amountAtom: checkoutPreview.amountAtom, currency: checkoutPreview.currency };
   }

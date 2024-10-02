@@ -29,4 +29,5 @@ export type ElementsFormProps = {
   onSetupPaymentMethodSuccess?: (paymentMethodId: string) => void;
   onCheckoutError?: (message: string) => void;
   baseUrl?: string;
+  enableDynamicPreviews?: boolean;
 };
