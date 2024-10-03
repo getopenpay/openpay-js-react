@@ -269,7 +269,10 @@ export const Amount = z.object({
 export type Amount = z.infer<typeof Amount>;
 
 export type PaymentRequestStartParams = {
-  overridePaymentRequestAmount?: Amount;
+  overridePaymentRequest?: {
+    amount: Amount;
+    pending: boolean;
+  };
 };
 
 // Using vanilla TS type here because we can't make named function args in zod
