@@ -36,11 +36,11 @@ const Form: FC<FormProps> = (props) => {
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
 
-  const prParams = { 
-    overridePaymentRequest: { 
-      amount: { amountAtom: 420, currency: 'usd' }, 
+  const prParams = {
+    overridePaymentRequest: {
+      amount: { amountAtom: 420, currency: 'usd' },
       pending: true,
-    }
+    },
   };
 
   const resetErrors = useCallback(() => {
