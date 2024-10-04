@@ -56,6 +56,13 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const formId = useMemo(() => `opjs-form-${uuidv4()}`, []);
   const formRef = useRef<HTMLDivElement | null>(null);
 
+  useEffect(() => {
+    const ojs_version = { version: __APP_VERSION__, release_version: __RELEASE_VERSION__ };
+    // @ts-expect-error window typing
+    window['ojs_version'] = ojs_version;
+    console.log('OJS version:', ojs_version);
+  }, []);
+
   const { cdeConn, connectToCdeIframe } = useCDEConnection();
   const dynamicPreview = useDynamicPreview(
     enableDynamicPreviews ?? false,

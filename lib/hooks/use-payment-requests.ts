@@ -83,10 +83,6 @@ export const usePaymentRequests = (
       return;
     }
 
-    // @ts-expect-error window typing
-    window['ojs_version'] = __APP_VERSION__;
-    console.log('OJS version', __APP_VERSION__);
-
     const stripeCpm = availableCPMs.find(
       (cpm) =>
         cpm.processor_name === 'stripe' && PaymentRequestProvider.options.map((s) => String(s)).includes(cpm.provider)

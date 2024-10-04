@@ -25,9 +25,10 @@ jobs:
       - name: Publish package (alpha)
         if: 'github.event.release.prerelease'
         run: |
+          RELEASE_VERSION=${{ github.ref_name }}
           npm run build:alpha
           echo "Tag name from github.ref_name: ${{  github.ref_name }}"
-          npm version ${{ github.ref_name }} --no-git-tag-version
+          npm version $RELEASE_VERSION --no-git-tag-version
           npm publish --tag alpha --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
@@ -35,6 +36,7 @@ jobs:
       - name: Publish package (stable)
         if: '!github.event.release.prerelease'
         run: |
+          RELEASE_VERSION=$(npm view ./ version)
           npm run build
           npm publish --access public
         env:
