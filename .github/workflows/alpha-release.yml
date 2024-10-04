@@ -1,4 +1,4 @@
-name: 'Publish alpha release'
+name: 'Publish alpha releases'
 
 on:
   push:
@@ -6,31 +6,56 @@ on:
       - main
 
 jobs:
-  publish:
-    name: Publish to NPM
+  publish-react:
+    name: Publish React to NPM (Alpha)
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v3
-        with:
-          version: 8
       - uses: actions/setup-node@v3
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org/
 
       - name: Set hash and version variable
-        # To generate unique hashes for each alpha release without having to change version in package.json
         run: |
           echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-          echo "VERSION=$(npm view ./ version)" >> $GITHUB_ENV
+          echo "VERSION=$(node -p "require('./packages/react/package.json').version")" >> $GITHUB_ENV
 
-      - name: Build package
+      - name: Build React package
         run: |
           npm ci
-          npm run build:alpha
+          npm run build:react:alpha
 
-      - name: Publish package
+      - name: Publish React package
+        working-directory: ./packages/react
+        run: |
+          npm version ${{ env.VERSION }}-alpha.${{ env.COMMIT_HASH }} --no-git-tag-version
+          npm publish --tag alpha --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+
+  publish-vanilla:
+    name: Publish Vanilla to NPM (Alpha)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org/
+
+      - name: Set hash and version variable
+        run: |
+          echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "VERSION=$(node -p "require('./packages/vanilla/package.json').version")" >> $GITHUB_ENV
+
+      - name: Build Vanilla package
+        run: |
+          npm ci
+          npm run build:vanilla:alpha
+
+      - name: Publish Vanilla package
+        working-directory: ./packages/vanilla
         run: |
           npm version ${{ env.VERSION }}-alpha.${{ env.COMMIT_HASH }} --no-git-tag-version
           npm publish --tag alpha --access public
