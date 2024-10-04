@@ -155,19 +155,25 @@ const startPaymentRequestUserFlow = async (
   params?: PaymentRequestStartParams
 ): Promise<void> => {
   try {
+    console.log('[startFlow] triggered');
     if (!validateFormFields(formDiv, onValidationError, stripeCpm)) {
       return;
     }
+    console.log('[startFlow] post-validate');
     const pr = getGlobalPaymentRequest();
+    console.log('[startFlow] pr:', pr, 'override:', params?.overridePaymentRequest);
     if (params?.overridePaymentRequest) {
       const override = params?.overridePaymentRequest;
       updatePrWithAmount(pr, override.amount, override.pending);
     }
+    console.log('[startFlow] showing PR...');
     pr.show();
+    console.log('[startFlow] PR shown. Waiting...');
     const pmAddedEvent = await waitForUserToAddPaymentMethod(pr);
+    console.log('[startFlow] PR fulfilled. Completing flow...');
     onUserCompleteUIFlow(pmAddedEvent, stripeCpm);
   } catch (e) {
-    console.error(e);
+    console.error('[startFlow] Error:', e);
     onError(getErrorMessage(e));
   }
 };
