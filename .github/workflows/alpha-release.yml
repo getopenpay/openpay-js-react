@@ -24,7 +24,7 @@ jobs:
         run: |
           echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
           echo "VERSION=$(npm view ./ version)" >> $GITHUB_ENV
-          echo "RELEASE_VERSION=$VERSION-alpha.$COMMIT_HASH" >> $GITHUB_ENV
+          echo "RELEASE_VERSION=$(npm view ./ version)-alpha.$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
       - name: Build package
         run: |
