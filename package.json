@@ -16,7 +16,7 @@
     "payments"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && vite build",
+    "build": "tsc -p tsconfig.build.json && vite build --mode development",
     "build:alpha": "npm run build -- --mode staging",
     "build:dev": "tsc -p tsconfig.build.json && NODE_ENV=development vite build --mode development --watch",
     "lint": "eslint . --ignore-path=.eslintignore --report-unused-disable-directives --max-warnings 0",
