@@ -15,7 +15,7 @@ import { constructSubmitEventPayload } from '../utils/event';
 import { getErrorMessage } from '../utils/errors';
 import { CdeConnection } from '../utils/cde-connection';
 import { DynamicPreview, getCheckoutPreviewAmount } from './use-dynamic-preview';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { getPrefill } from '../utils/cde-client';
 
 const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay']);
@@ -65,15 +65,16 @@ export const usePaymentRequests = (
   });
   const isLoading = secureToken === undefined || availableCPMs === undefined || !formDiv || !cdeConn;
   const previewAmount = dynamicPreview.amount;
+  const [isSetupMode, setIsSetupMode] = useState<boolean | null>(null);
 
   // TODO: add more processors here once we have more processors supporting PaymentRequest API
   useEffect(() => {
-    if (!hasGlobalPaymentRequest() || !previewAmount) {
+    if (!hasGlobalPaymentRequest() || !previewAmount || isSetupMode === null) {
       return;
     }
     const pr = getGlobalPaymentRequest();
-    updatePrWithAmount(pr, previewAmount);
-  }, [previewAmount]);
+    updatePrWithAmount(pr, previewAmount, isSetupMode);
+  }, [previewAmount, isSetupMode]);
 
   // Stripe-based Payment Requests
   useAsyncEffect(async () => {
@@ -81,6 +82,10 @@ export const usePaymentRequests = (
       // Do nothing
       return;
     }
+
+    // @ts-expect-error window typing
+    window['ojs_version'] = __APP_VERSION__;
+    console.log('OJS version', __APP_VERSION__);
 
     const stripeCpm = availableCPMs.find(
       (cpm) =>
@@ -92,8 +97,14 @@ export const usePaymentRequests = (
     const stripePubKey = parseStripePubKey(stripeCpm.metadata);
     const prefill = await getPrefill(cdeConn);
     const isSetupMode = prefill.mode === 'setup';
+    setIsSetupMode(isSetupMode);
     const initialPreview = await getCheckoutPreviewAmount(cdeConn, secureToken, isSetupMode, undefined);
-    const pr = await createStripePaymentRequest(stripePubKey, initialPreview.amountAtom, initialPreview.currency);
+    const pr = await createStripePaymentRequest(
+      stripePubKey,
+      initialPreview.amountAtom,
+      initialPreview.currency,
+      isSetupMode
+    );
     setGlobalPaymentRequest(pr);
     const canMakePayment = await pr.canMakePayment();
     console.log('Can make payment?', canMakePayment);
@@ -148,18 +159,25 @@ const startPaymentRequestUserFlow = async (
   params?: PaymentRequestStartParams
 ): Promise<void> => {
   try {
+    console.log('[startFlow] triggered');
     if (!validateFormFields(formDiv, onValidationError, stripeCpm)) {
       return;
     }
+    console.log('[startFlow] post-validate');
     const pr = getGlobalPaymentRequest();
-    if (params?.overridePaymentRequestAmount) {
-      updatePrWithAmount(pr, params.overridePaymentRequestAmount);
+    console.log('[startFlow] pr:', pr, 'override:', params?.overridePaymentRequest);
+    if (params?.overridePaymentRequest) {
+      const override = params?.overridePaymentRequest;
+      updatePrWithAmount(pr, override.amount, override.pending);
     }
+    console.log('[startFlow] showing PR...');
     pr.show();
+    console.log('[startFlow] PR shown. Waiting...');
     const pmAddedEvent = await waitForUserToAddPaymentMethod(pr);
+    console.log('[startFlow] PR fulfilled. Completing flow...');
     onUserCompleteUIFlow(pmAddedEvent, stripeCpm);
   } catch (e) {
-    console.error(e);
+    console.error('[startFlow] Error:', e);
     onError(getErrorMessage(e));
   }
 };
@@ -184,6 +202,6 @@ const getGlobalPaymentRequest = (): PaymentRequest => {
   return window['ojs_pr'];
 };
 
-const updatePrWithAmount = (pr: PaymentRequest, amount: Amount): void => {
-  pr.update({ total: { amount: amount.amountAtom, label: 'Total' }, currency: amount.currency });
+const updatePrWithAmount = (pr: PaymentRequest, amount: Amount, isPending: boolean): void => {
+  pr.update({ total: { amount: amount.amountAtom, label: 'Total', pending: isPending }, currency: amount.currency });
 };
