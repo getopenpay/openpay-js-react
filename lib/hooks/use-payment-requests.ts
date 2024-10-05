@@ -83,14 +83,14 @@ export const usePaymentRequests = (
       return;
     }
 
-    const stripeCpm = availableCPMs.find(
+    const allStripeCPMs = availableCPMs.filter(
       (cpm) =>
         cpm.processor_name === 'stripe' && PaymentRequestProvider.options.map((s) => String(s)).includes(cpm.provider)
     );
-    if (!stripeCpm) {
+    if (allStripeCPMs.length === 0) {
       throw new Error(`Stripe is not available as a checkout method`);
     }
-    const stripePubKey = parseStripePubKey(stripeCpm.metadata);
+    const stripePubKey = parseStripePubKey(allStripeCPMs[0].metadata);
     const prefill = await getPrefill(cdeConn);
     const isSetupMode = prefill.mode === 'setup';
     setIsSetupMode(isSetupMode);
@@ -109,11 +109,15 @@ export const usePaymentRequests = (
       const providerFriendlyName = provider.replace('_', '');
       console.log(`Processing provider ${providerFriendlyName}`);
       try {
+        const cpm = allStripeCPMs.find((cpm) => cpm.provider === provider);
+        if (!cpm) {
+          throw new Error(`${provider} is not available as a stripe checkout method`);
+        }
         setStatus.set(provider, {
           isLoading: false,
           isAvailable: canMakePayment?.[OUR_PROVIDER_TO_STRIPES[provider]] ?? false,
           startFlow: (params?: PaymentRequestStartParams) =>
-            startPaymentRequestUserFlow(formDiv, stripeCpm, onUserCompleteUIFlow, onValidationError, onError, params),
+            startPaymentRequestUserFlow(formDiv, cpm, onUserCompleteUIFlow, onValidationError, onError, params),
         });
       } catch (e) {
         console.error(e);
