@@ -10,6 +10,7 @@ export type ElementsFormChildrenProps = {
   submit: () => void;
   applePay: PaymentRequestStatus;
   googlePay: PaymentRequestStatus;
+  stripeLink: PaymentRequestStatus;
   loaded: boolean;
   preview: DynamicPreview;
 };

@@ -18,12 +18,13 @@ import { DynamicPreview, getCheckoutPreviewAmount } from './use-dynamic-preview'
 import { useEffect, useState } from 'react';
 import { getPrefill } from '../utils/cde-client';
 
-const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay']);
+const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay', 'stripe_link']);
 type PaymentRequestProvider = z.infer<typeof PaymentRequestProvider>;
 
 const OUR_PROVIDER_TO_STRIPES: Record<PaymentRequestProvider, string> = {
   apple_pay: 'applePay',
   google_pay: 'googlePay',
+  stripe_link: 'link', // TODO ASAP: check if 'link' is correct
 };
 
 const PR_LOADING: PaymentRequestStatus = {
@@ -62,6 +63,7 @@ export const usePaymentRequests = (
   const [status, setStatus] = useMap<Record<PaymentRequestProvider, PaymentRequestStatus>>({
     apple_pay: PR_LOADING,
     google_pay: PR_LOADING,
+    stripe_link: PR_LOADING,
   });
   const isLoading = secureToken === undefined || availableCPMs === undefined || !formDiv || !cdeConn;
   const previewAmount = dynamicPreview.amount;
