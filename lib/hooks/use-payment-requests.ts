@@ -24,7 +24,7 @@ type PaymentRequestProvider = z.infer<typeof PaymentRequestProvider>;
 const OUR_PROVIDER_TO_STRIPES: Record<PaymentRequestProvider, string> = {
   apple_pay: 'applePay',
   google_pay: 'googlePay',
-  stripe_link: 'link', // TODO ASAP: check if 'link' is correct
+  stripe_link: 'link',
 };
 
 const PR_LOADING: PaymentRequestStatus = {
