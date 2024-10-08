@@ -35,9 +35,13 @@ export const constructSubmitEventPayload = (
 
   console.log(`[form] Constructing ${eventType} payload:`, extraData);
 
-  if (checkoutPaymentMethod.provider === 'apple_pay' || checkoutPaymentMethod.provider === 'google_pay') {
+  if (
+    checkoutPaymentMethod.provider === 'apple_pay' ||
+    checkoutPaymentMethod.provider === 'google_pay' ||
+    checkoutPaymentMethod.provider === 'stripe_link'
+  ) {
     if (!extraData[FieldName.ZIP_CODE]) {
-      console.log('[form] Overriding empty zip code (only for google and apple pay)');
+      console.log('[form] Overriding empty zip code (only for google pay, apple pay, and stripe link)');
       extraData[FieldName.ZIP_CODE] = '00000';
     }
   }

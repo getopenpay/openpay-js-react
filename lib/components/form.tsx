@@ -203,7 +203,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         confirmPaymentFlow()
           .then(({ proceedToCheckout }) => {
             if (!proceedToCheckout) {
-              // TODO ASAP: log or something here
+              console.log('[form] NOT proceeding to checkout after confirmation.');
               return;
             }
             console.log('[form] Starting checkout from payment flow.');
@@ -485,6 +485,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     submit: submitCard,
     applePay: paymentRequests.apple_pay,
     googlePay: paymentRequests.google_pay,
+    stripeLink: paymentRequests.stripe_link,
     loaded,
     preview: dynamicPreview,
   };
