@@ -3,7 +3,6 @@
 install:
 	npm install
 	cd example && make install
-	npx playwright install --with-deps chromium
 
 dev:
 	npm run build:dev
