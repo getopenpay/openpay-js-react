@@ -6,7 +6,7 @@ export const createInputsDictFromForm = (
   formDiv: HTMLDivElement,
   initialDict: Record<string, unknown>
 ): Record<string, unknown> => {
-  const includedInputs: HTMLInputElement[] = Array.from(formDiv.querySelectorAll('input[data-opid]') ?? []);
+  const includedInputs: HTMLInputElement[] = Array.from(formDiv.querySelectorAll('[data-opid]') ?? []);
   const extraData = includedInputs.reduce((acc, input) => {
     const key = input.getAttribute('data-opid');
     if (!key) return acc;
