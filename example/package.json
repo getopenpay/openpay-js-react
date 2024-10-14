@@ -10,7 +10,7 @@
     "lint:fix": "next lint --fix"
   },
   "dependencies": {
-    "@getopenpay/openpay-js-react": "0.0.19-alpha.2de60c2",
+    "@getopenpay/openpay-js-react": "file:..",
     "@stripe/stripe-js": "^4.3.0",
     "classnames": "^2.5.1",
     "fraction.js": "^4.3.7",

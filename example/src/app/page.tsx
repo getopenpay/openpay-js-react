@@ -109,6 +109,7 @@ const Form: FC<FormProps> = (props) => {
       onCheckoutSuccess={onCheckoutSuccess}
       onSetupPaymentMethodSuccess={onSetupPaymentMethodSuccess}
       onCheckoutError={onCheckoutError}
+      baseUrl={props.baseUrl}
     >
       {({ submit, applePay, googlePay, stripeLink, loaded }) => (
         <FormWrapper error={validationErrors}>

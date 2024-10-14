@@ -143,7 +143,9 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       } else if (eventType === EventType.enum.TOKENIZE_STARTED) {
         console.log('[form] Tokenization started');
         setPreventClose(true);
-
+      } else if (eventType === EventType.enum.CHECKOUT_STARTED) {
+        // Firing onCheckoutStarted here to correct the behavior for separate elements
+        // This has a delay issue with combined elements
         if (onCheckoutStarted) onCheckoutStarted();
       } else if (eventType === EventType.enum.PAYMENT_FLOW_STARTED) {
         if (!extraData) {
