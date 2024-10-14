@@ -5,7 +5,7 @@
   "license": "ISC",
   "private": true,
   "scripts": {
-    "build": "turbo build",
+    "build": "turbo build --filter=vanilla-example",
     "dev": "turbo dev",
     "lint": "turbo lint",
     "lint:fix": "turbo lint -- --fix",
@@ -14,7 +14,8 @@
   "devDependencies": {
     "prettier": "^3.2.5",
     "turbo": "^2.1.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vite-plugin-singlefile": "^2.0.2"
   },
   "engines": {
     "node": ">=18"
