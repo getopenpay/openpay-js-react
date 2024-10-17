@@ -4,7 +4,7 @@ import { loadStripe } from '@stripe/stripe-js';
 
 const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('token');
-// const baseUrl = urlParams.get('baseUrl');
+const baseUrl = urlParams.get('baseUrl');
 const separateFrames = urlParams.get('separateFrames')?.toLowerCase() === 'true';
 
 console.log('loadStripe', loadStripe.name);
@@ -27,6 +27,7 @@ function initializeForm(token: string) {
   const formInstance = new OpenPayForm({
     checkoutSecureToken: token,
     formTarget: '#app',
+    baseUrl: baseUrl || undefined,
     onLoad: (totalAmountAtoms, currency) => {
       console.log('onLoad', totalAmountAtoms, currency);
       const submitButton = document.querySelector('#submit') as HTMLButtonElement;
