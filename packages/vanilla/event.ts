@@ -75,7 +75,12 @@ export class OpenPayFormEventHandler {
         this.handleLoadedEvent(event.source, elementId, payload);
         break;
       case 'TOKENIZE_STARTED':
-        this.handleTokenizeStartedEvent();
+        // TODO: reconsider this event
+        // this.handleTokenizeStartedEvent();
+        break;
+      case 'CHECKOUT_STARTED':
+        // TODO: reconsider this event
+        this.handleCheckoutStartedEvent();
         break;
       case 'PAYMENT_FLOW_STARTED':
         this.handlePaymentFlowStartedEvent(payload, event.source as MessageEventSource, elementId);
@@ -149,6 +154,9 @@ export class OpenPayFormEventHandler {
   }
 
   handleTokenizeStartedEvent() {
+    if (this.formInstance.config.onCheckoutStarted) this.formInstance.config.onCheckoutStarted();
+  }
+  handleCheckoutStartedEvent() {
     if (this.formInstance.config.onCheckoutStarted) this.formInstance.config.onCheckoutStarted();
   }
 

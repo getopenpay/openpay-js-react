@@ -155,10 +155,11 @@ async function getAmountForPaymentRequest(
   secureToken: string
 ): Promise<Amount> {
   if (isSetupMode) {
-    return prStartParams?.amountToDisplayForSetupMode ?? { amountAtom: 0, currency: 'usd' };
+    // TODO: sync with react
+    return prStartParams?.overridePaymentRequest?.amount ?? { amountAtom: 0, currency: 'usd' };
   }
 
-  if (prStartParams?.amountToDisplayForSetupMode) {
+  if (prStartParams?.overridePaymentRequest) {
     console.warn('Warning: amountToDisplayForSetupMode passed in non-setup mode. This parameter will be ignored.');
   }
 

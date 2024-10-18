@@ -1,12 +1,12 @@
 import useAsyncEffect from 'use-async-effect';
-import { Amount, FieldName } from '../utils/shared-models';
-import { sleep } from '../utils/stripe';
+import { Amount, FieldName } from '@getopenpay/utils';
+import { sleep } from '@getopenpay/utils';
 import { useState } from 'react';
 import useDebounce from './use-debounce';
-import { getCheckoutPreview, getPrefill } from '../utils/cde-client';
-import { CdeConnection } from '../utils/cde-connection';
-import { sum } from '../utils/math';
-import { getErrorMessage } from '../utils/errors';
+import { getCheckoutPreview, getPrefill } from '@getopenpay/utils';
+import { CdeConnection } from '@getopenpay/utils';
+import { sum } from '@getopenpay/utils';
+import { getErrorMessage } from '@getopenpay/utils';
 
 export type DynamicPreview = {
   amount: Amount | null;
@@ -124,7 +124,7 @@ const getCheckoutValue = async (
   if (currencies.size !== 1) {
     throw new Error(`Expected exactly one currency, got ${currencies.size}`);
   }
-  const currency = currencies.values().next().value;
+  const currency = currencies.values().next().value ?? 'usd';
   const amountAtom = sum(checkoutPreview.preview.invoices.map((inv) => inv.remaining_amount_atom));
   return {
     currency,
