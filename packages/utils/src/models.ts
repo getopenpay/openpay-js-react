@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { AllFieldNames, type ElementsStyle, PaymentRequestStatus } from './shared-models';
+import { DynamicPreview } from '../hooks/use-dynamic-preview';
 
 export type ElementProps<PlaceholderType extends z.ZodTypeAny = z.ZodString> = {
   styles?: ElementsStyle<z.ZodOptional<PlaceholderType>>;
@@ -9,7 +10,9 @@ export type ElementsFormChildrenProps = {
   submit: () => void;
   applePay: PaymentRequestStatus;
   googlePay: PaymentRequestStatus;
+  stripeLink: PaymentRequestStatus;
   loaded: boolean;
+  preview: DynamicPreview;
 };
 
 export type ElementsFormProps = {
@@ -27,4 +30,5 @@ export type ElementsFormProps = {
   onSetupPaymentMethodSuccess?: (paymentMethodId: string) => void;
   onCheckoutError?: (message: string) => void;
   baseUrl?: string;
+  enableDynamicPreviews?: boolean;
 };

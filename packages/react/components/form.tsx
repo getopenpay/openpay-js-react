@@ -12,6 +12,7 @@ import { getErrorMessage } from '@getopenpay/utils';
 import { useCDEConnection } from '@getopenpay/utils';
 import { isJsonString } from '@getopenpay/utils';
 import { getPrefill, confirmPaymentFlow as confirmPaymentFlowInCDE } from '@getopenpay/utils';
+import { useDynamicPreview } from '../hooks/use-dynamic-preview';
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
   const {
@@ -29,6 +30,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     onCheckoutError,
     onSetupPaymentMethodSuccess,
     baseUrl,
+    enableDynamicPreviews,
   } = props;
 
   const frameBaseUrl: string = baseUrl ?? FRAME_BASE_URL;
@@ -54,7 +56,20 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const formId = useMemo(() => `opjs-form-${uuidv4()}`, []);
   const formRef = useRef<HTMLDivElement | null>(null);
 
+  useEffect(() => {
+    const ojs_version = { version: __APP_VERSION__, release_version: __RELEASE_VERSION__ };
+    // @ts-expect-error window typing
+    window['ojs_version'] = ojs_version;
+    console.log('OJS version:', ojs_version);
+  }, []);
+
   const { cdeConn, connectToCdeIframe } = useCDEConnection();
+  const dynamicPreview = useDynamicPreview(
+    enableDynamicPreviews ?? false,
+    cdeConn,
+    checkoutSecureToken,
+    formRef.current
+  );
 
   const onMessage = useCallback(
     (event: MessageEvent) => {
@@ -128,7 +143,9 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       } else if (eventType === EventType.enum.TOKENIZE_STARTED) {
         console.log('[form] Tokenization started');
         setPreventClose(true);
-
+      } else if (eventType === EventType.enum.CHECKOUT_STARTED) {
+        // Firing onCheckoutStarted here to correct the behavior for separate elements
+        // This has a delay issue with combined elements
         if (onCheckoutStarted) onCheckoutStarted();
       } else if (eventType === EventType.enum.PAYMENT_FLOW_STARTED) {
         if (!extraData) {
@@ -188,7 +205,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         confirmPaymentFlow()
           .then(({ proceedToCheckout }) => {
             if (!proceedToCheckout) {
-              // TODO ASAP: log or something here
+              console.log('[form] NOT proceeding to checkout after confirmation.');
               return;
             }
             console.log('[form] Starting checkout from payment flow.');
@@ -462,14 +479,17 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     formRef.current,
     onUserCompletePaymentRequestUI,
     onValidationError,
-    onPaymentRequestError
+    onPaymentRequestError,
+    dynamicPreview
   );
 
   const childrenProps: ElementsFormChildrenProps = {
     submit: submitCard,
     applePay: paymentRequests.apple_pay,
     googlePay: paymentRequests.google_pay,
+    stripeLink: paymentRequests.stripe_link,
     loaded,
+    preview: dynamicPreview,
   };
 
   return (

@@ -4,26 +4,27 @@ import {
   CheckoutPaymentMethod,
   EventType,
   FieldName,
-  OptionalString,
   PaymentRequestStartParams,
   PaymentRequestStatus,
 } from '@getopenpay/utils';
 import useMap from './use-map';
 import useAsyncEffect from 'use-async-effect';
 import { z } from 'zod';
-import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
-import { constructSubmitEventPayload, createInputsDictFromForm } from '@getopenpay/utils';
+import { PaymentRequestPaymentMethodEvent, PaymentRequest } from '@stripe/stripe-js';
+import { constructSubmitEventPayload } from '@getopenpay/utils';
 import { getErrorMessage } from '@getopenpay/utils';
 import { CdeConnection } from '@getopenpay/utils';
-import { getCheckoutPreview, getPrefill } from '@getopenpay/utils';
-import { sum } from '@getopenpay/utils';
+import { DynamicPreview, getCheckoutPreviewAmount } from './use-dynamic-preview';
+import { useEffect, useState } from 'react';
+import { getPrefill } from '@getopenpay/utils';
 
-const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay']);
+const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay', 'stripe_link']);
 type PaymentRequestProvider = z.infer<typeof PaymentRequestProvider>;
 
 const OUR_PROVIDER_TO_STRIPES: Record<PaymentRequestProvider, string> = {
   apple_pay: 'applePay',
   google_pay: 'googlePay',
+  stripe_link: 'link',
 };
 
 const PR_LOADING: PaymentRequestStatus = {
@@ -56,15 +57,26 @@ export const usePaymentRequests = (
     checkoutPaymentMethod: CheckoutPaymentMethod
   ) => void,
   onValidationError: undefined | ((field: FieldName, errors: string[], elementId?: string) => void),
-  onError: (errMsg: string) => void
+  onError: (errMsg: string) => void,
+  dynamicPreview: DynamicPreview
 ): Record<PaymentRequestProvider, PaymentRequestStatus> => {
   const [status, setStatus] = useMap<Record<PaymentRequestProvider, PaymentRequestStatus>>({
     apple_pay: PR_LOADING,
     google_pay: PR_LOADING,
+    stripe_link: PR_LOADING,
   });
   const isLoading = secureToken === undefined || availableCPMs === undefined || !formDiv || !cdeConn;
+  const previewAmount = dynamicPreview.amount;
+  const [isSetupMode, setIsSetupMode] = useState<boolean | null>(null);
 
   // TODO: add more processors here once we have more processors supporting PaymentRequest API
+  useEffect(() => {
+    if (!hasGlobalPaymentRequest() || !previewAmount || isSetupMode === null) {
+      return;
+    }
+    const pr = getGlobalPaymentRequest();
+    updatePrWithAmount(pr, previewAmount, isSetupMode);
+  }, [previewAmount, isSetupMode]);
 
   // Stripe-based Payment Requests
   useAsyncEffect(async () => {
@@ -72,72 +84,51 @@ export const usePaymentRequests = (
       // Do nothing
       return;
     }
+
+    const allStripeCPMs = availableCPMs.filter(
+      (cpm) =>
+        cpm.processor_name === 'stripe' && PaymentRequestProvider.options.map((s) => String(s)).includes(cpm.provider)
+    );
+    if (allStripeCPMs.length === 0) {
+      throw new Error(`Stripe is not available as a checkout method`);
+    }
+    const stripePubKey = parseStripePubKey(allStripeCPMs[0].metadata);
+    const prefill = await getPrefill(cdeConn);
+    const isSetupMode = prefill.mode === 'setup';
+    setIsSetupMode(isSetupMode);
+    const initialPreview = await getCheckoutPreviewAmount(cdeConn, secureToken, isSetupMode, undefined);
+    const pr = await createStripePaymentRequest(
+      stripePubKey,
+      initialPreview.amountAtom,
+      initialPreview.currency,
+      isSetupMode
+    );
+    setGlobalPaymentRequest(pr);
+    const canMakePayment = await pr.canMakePayment();
+    console.log('Can make payment?', canMakePayment);
+
     for (const provider of PaymentRequestProvider.options) {
       const providerFriendlyName = provider.replace('_', '');
       console.log(`Processing provider ${providerFriendlyName}`);
       try {
-        const stripeXPrCpm = availableCPMs.find((cpm) => cpm.provider === provider && cpm.processor_name === 'stripe');
-        if (!stripeXPrCpm) {
-          throw new Error(`${providerFriendlyName} is not available as a checkout method`);
+        const cpm = allStripeCPMs.find((cpm) => cpm.provider === provider);
+        if (!cpm) {
+          throw new Error(`${provider} is not available as a stripe checkout method`);
         }
-        const stripePubKey = parseStripePubKey(stripeXPrCpm.metadata);
-        const isAvailable = await checkIfProviderIsAvailable(stripePubKey, provider);
         setStatus.set(provider, {
           isLoading: false,
-          isAvailable,
+          isAvailable: canMakePayment?.[OUR_PROVIDER_TO_STRIPES[provider]] ?? false,
           startFlow: (params?: PaymentRequestStartParams) =>
-            startPaymentRequestUserFlow(
-              cdeConn,
-              secureToken,
-              formDiv,
-              stripeXPrCpm,
-              stripePubKey,
-              onUserCompleteUIFlow,
-              onValidationError,
-              onError,
-              params
-            ),
+            startPaymentRequestUserFlow(formDiv, cpm, onUserCompleteUIFlow, onValidationError, onError, params),
         });
       } catch (e) {
         console.error(e);
         setStatus.set(provider, PR_ERROR);
       }
     }
-  }, [isLoading, availableCPMs]);
+  }, [isLoading]);
 
   return status;
-};
-
-const getCheckoutValue = async (
-  cdeConn: CdeConnection,
-  secureToken: string,
-  promoCode: string | undefined
-): Promise<{ currency: string; amountAtom: number }> => {
-  const checkoutPreview = await getCheckoutPreview(cdeConn, {
-    secure_token: secureToken,
-    promotion_code: promoCode,
-  });
-  const currencies = new Set(checkoutPreview.preview.invoices.map((inv) => inv.currency));
-  if (currencies.size !== 1) {
-    throw new Error(`Expected exactly one currency, got ${currencies.size}`);
-  }
-  const currency = currencies.values().next().value as string;
-  const amountAtom = sum(checkoutPreview.preview.invoices.map((inv) => inv.remaining_amount_atom));
-  return {
-    currency,
-    amountAtom,
-  };
-};
-
-const checkIfProviderIsAvailable = async (stripePubKey: string, provider: PaymentRequestProvider): Promise<boolean> => {
-  const DUMMY_AMOUNT_ATOM = 1000; // Just to check if PR is available
-  const testerPR = await createStripePaymentRequest(stripePubKey, DUMMY_AMOUNT_ATOM, 'usd');
-  const canMakePayment = await testerPR.canMakePayment();
-  testerPR.abort();
-  if (!canMakePayment) {
-    throw new Error(`Cannot make payment with ${provider} for this session`);
-  }
-  return canMakePayment[OUR_PROVIDER_TO_STRIPES[provider]];
 };
 
 const validateFormFields = (
@@ -159,54 +150,61 @@ const validateFormFields = (
 };
 
 const startPaymentRequestUserFlow = async (
-  cdeConn: CdeConnection,
-  secureToken: string,
   formDiv: HTMLDivElement,
-  stripeXPrCpm: CheckoutPaymentMethod,
-  stripePubKey: string,
+  stripeCpm: CheckoutPaymentMethod,
   onUserCompleteUIFlow: (
     stripePm: PaymentRequestPaymentMethodEvent,
     checkoutPaymentMethod: CheckoutPaymentMethod
   ) => void,
   onValidationError: undefined | ((field: FieldName, errors: string[], elementId?: string) => void),
   onError: (errMsg: string) => void,
-  prStartParams: PaymentRequestStartParams | undefined
+  params?: PaymentRequestStartParams
 ): Promise<void> => {
   try {
-    const formData = createInputsDictFromForm(formDiv, {});
-    if (!validateFormFields(formDiv, onValidationError, stripeXPrCpm)) {
+    const log = window.console.log;
+    log('[startFlow] triggered');
+    if (!validateFormFields(formDiv, onValidationError, stripeCpm)) {
       return;
     }
-    const prefill = await getPrefill(cdeConn);
-    const isSetupMode = prefill.mode === 'setup';
-    // TODO refactor this later\
-    let amountForPR: Amount;
-    if (isSetupMode) {
-      // TODO check later if there's a way to know currency in advance for setup mode
-      amountForPR = prStartParams?.amountToDisplayForSetupMode ?? { amountAtom: 0, currency: 'usd' };
-    } else {
-      if (prStartParams?.amountToDisplayForSetupMode) {
-        console.warn(`Warning: amountToDisplayForSetupMode passed in non-setup mode. This parameter will be ignored.`);
-      }
-      const promoCodeParsed = OptionalString.safeParse(formData[FieldName.PROMOTION_CODE]);
-      if (!promoCodeParsed.success) {
-        throw new Error(`Unknown promo code type: ${promoCodeParsed.error.message}`);
-      }
-      const checkoutPreview = await getCheckoutValue(cdeConn, secureToken, promoCodeParsed.data);
-      amountForPR = { amountAtom: checkoutPreview.amountAtom, currency: checkoutPreview.currency };
+    log('[startFlow] post-validate');
+    const pr = getGlobalPaymentRequest();
+    log('[startFlow] pr:', pr, 'override:', params?.overridePaymentRequest);
+    if (params?.overridePaymentRequest) {
+      const override = params?.overridePaymentRequest;
+      updatePrWithAmount(pr, override.amount, override.pending);
     }
-    const pr = await createStripePaymentRequest(
-      stripePubKey,
-      amountForPR.amountAtom,
-      amountForPR.currency,
-      isSetupMode
-    );
-    await pr.canMakePayment(); // Required
+    log('[startFlow] showing PR...');
     pr.show();
+    log('[startFlow] PR shown. Waiting...');
     const pmAddedEvent = await waitForUserToAddPaymentMethod(pr);
-    onUserCompleteUIFlow(pmAddedEvent, stripeXPrCpm);
+    log('[startFlow] PR fulfilled. Completing flow...');
+    onUserCompleteUIFlow(pmAddedEvent, stripeCpm);
   } catch (e) {
-    console.error(e);
+    window.console.error('[startFlow] Error:', e);
     onError(getErrorMessage(e));
   }
+};
+
+const setGlobalPaymentRequest = (pr: PaymentRequest): void => {
+  if ('ojs_pr' in window) {
+    throw new Error('Attempted to set global PR twice');
+  }
+  // @ts-expect-error window typing
+  window['ojs_pr'] = pr;
+};
+
+const hasGlobalPaymentRequest = (): boolean => {
+  return 'ojs_pr' in window;
+};
+
+const getGlobalPaymentRequest = (): PaymentRequest => {
+  if (!hasGlobalPaymentRequest()) {
+    throw new Error('Global PR not set');
+  }
+  // @ts-expect-error window typing
+  return window['ojs_pr'];
+};
+
+const updatePrWithAmount = (pr: PaymentRequest, amount: Amount, isPending: boolean): void => {
+  pr.update({ total: { amount: amount.amountAtom, label: 'Total', pending: isPending }, currency: amount.currency });
 };

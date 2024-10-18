@@ -30,6 +30,13 @@ const Form: FC<FormProps> = (props) => {
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
 
+  const prParams = {
+    overridePaymentRequest: {
+      amount: { amountAtom: 420, currency: 'usd' },
+      pending: true,
+    },
+  };
+
   const resetErrors = useCallback(() => {
     setValidationErrors({});
     setOverlayMessage(null);
@@ -96,8 +103,9 @@ const Form: FC<FormProps> = (props) => {
       onCheckoutSuccess={onCheckoutSuccess}
       onSetupPaymentMethodSuccess={onSetupPaymentMethodSuccess}
       onCheckoutError={onCheckoutError}
+      baseUrl={props.baseUrl}
     >
-      {({ submit, applePay, googlePay, loaded }) => (
+      {({ submit, applePay, googlePay, stripeLink, loaded }) => (
         <FormWrapper error={validationErrors}>
           {loading && (
             <div data-testid="loading" className="flex items-center">
@@ -150,7 +158,7 @@ const Form: FC<FormProps> = (props) => {
           </button>
 
           <button
-            onClick={() => applePay.startFlow({ amountToDisplayForSetupMode: { amountAtom: 420, currency: 'usd' } })}
+            onClick={() => applePay.startFlow(prParams)}
             disabled={!applePay.isAvailable}
             className={classNames(
               'px-4 py-2 mt-2 w-full rounded-lg',
@@ -163,7 +171,7 @@ const Form: FC<FormProps> = (props) => {
           </button>
 
           <button
-            onClick={() => googlePay.startFlow({ amountToDisplayForSetupMode: { amountAtom: 420, currency: 'usd' } })}
+            onClick={() => googlePay.startFlow(prParams)}
             disabled={!googlePay.isAvailable}
             className={classNames(
               'px-4 py-2 mt-2 w-full rounded-lg',
@@ -173,6 +181,19 @@ const Form: FC<FormProps> = (props) => {
             )}
           >
             {googlePay.isLoading ? 'Loading' : 'Google Pay'}
+          </button>
+
+          <button
+            onClick={() => stripeLink.startFlow(prParams)}
+            disabled={!stripeLink.isAvailable}
+            className={classNames(
+              'px-4 py-2 mt-2 w-full rounded-lg',
+              stripeLink.isAvailable
+                ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold'
+                : 'bg-gray-100 text-gray-300'
+            )}
+          >
+            {stripeLink.isLoading ? 'Loading' : 'Stripe Link'}
           </button>
         </FormWrapper>
       )}

@@ -6,7 +6,7 @@ export const createInputsDictFromForm = (
   formDiv: HTMLElement,
   initialDict: Record<string, unknown>
 ): Record<string, unknown> => {
-  const includedInputs: HTMLInputElement[] = Array.from(formDiv.querySelectorAll('input[data-opid]') ?? []);
+  const includedInputs: HTMLInputElement[] = Array.from(formDiv.querySelectorAll('[data-opid]') ?? []);
   const extraData = includedInputs.reduce((acc, input) => {
     const key = input.getAttribute('data-opid');
     if (!key) return acc;
@@ -35,9 +35,13 @@ export const constructSubmitEventPayload = (
 
   console.log(`[form] Constructing ${eventType} payload:`, JSON.stringify(extraData));
 
-  if (checkoutPaymentMethod.provider === 'apple_pay' || checkoutPaymentMethod.provider === 'google_pay') {
+  if (
+    checkoutPaymentMethod.provider === 'apple_pay' ||
+    checkoutPaymentMethod.provider === 'google_pay' ||
+    checkoutPaymentMethod.provider === 'stripe_link'
+  ) {
     if (!extraData[FieldName.ZIP_CODE]) {
-      console.log('[form] Overriding empty zip code (only for google and apple pay)');
+      console.log('[form] Overriding empty zip code (only for google pay, apple pay, and stripe link)');
       extraData[FieldName.ZIP_CODE] = '00000';
     }
   }

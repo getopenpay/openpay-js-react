@@ -33,4 +33,8 @@ export default defineConfig({
       tsconfigPath: resolve(__dirname, 'tsconfig.build.json'),
     }),
   ],
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
+    __RELEASE_VERSION__: JSON.stringify(process.env.RELEASE_VERSION ?? 'local_build'),
+  },
 });
