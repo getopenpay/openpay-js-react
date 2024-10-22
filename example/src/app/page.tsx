@@ -111,7 +111,7 @@ const Form: FC<FormProps> = (props) => {
       onCheckoutError={onCheckoutError}
       baseUrl={props.baseUrl}
     >
-      {({ submit, applePay, googlePay, stripeLink, loaded }) => (
+      {({ submit, applePay, googlePay, loaded, stripeLink }) => (
         <FormWrapper error={validationErrors}>
           {loading && (
             <div data-testid="loading" className="flex items-center">
@@ -189,17 +189,19 @@ const Form: FC<FormProps> = (props) => {
             {googlePay.isLoading ? 'Loading' : 'Google Pay'}
           </button>
 
+          {/* <stripeLink.button className='mt-2'/>
+          <stripeLink.authElement className='mt-2'/> */}
           <button
-            onClick={() => stripeLink.startFlow(prParams)}
-            disabled={!stripeLink.isAvailable}
+            onClick={() => stripeLink.pr.startFlow(prParams)}
+            disabled={!googlePay.isAvailable}
             className={classNames(
               'px-4 py-2 mt-2 w-full rounded-lg',
-              stripeLink.isAvailable
+              googlePay.isAvailable
                 ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold'
                 : 'bg-gray-100 text-gray-300'
             )}
           >
-            {stripeLink.isLoading ? 'Loading' : 'Stripe Link'}
+            {googlePay.isLoading ? 'Loading' : 'Google Pay'}
           </button>
         </FormWrapper>
       )}

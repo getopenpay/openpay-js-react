@@ -74,8 +74,9 @@ export const usePaymentRequests = (
     if (!hasGlobalPaymentRequest() || !previewAmount || isSetupMode === null) {
       return;
     }
-    const pr = getGlobalPaymentRequest();
+    const { pr, linkPr } = getGlobalPaymentRequest();
     updatePrWithAmount(pr, previewAmount, isSetupMode);
+    updatePrWithAmount(linkPr, previewAmount, isSetupMode);
   }, [previewAmount, isSetupMode]);
 
   // Stripe-based Payment Requests
@@ -103,7 +104,14 @@ export const usePaymentRequests = (
       initialPreview.currency,
       isSetupMode
     );
-    setGlobalPaymentRequest(pr);
+    // const linkPr = await createStripePaymentRequest(
+    //   stripePubKey,
+    //   initialPreview.amountAtom,
+    //   initialPreview.currency,
+    //   isSetupMode,
+    //   true
+    // );
+    setGlobalPaymentRequest(pr, pr);
     const canMakePayment = await pr.canMakePayment();
     console.log('Can make payment?', canMakePayment);
 
@@ -167,16 +175,17 @@ const startPaymentRequestUserFlow = async (
       return;
     }
     log('[startFlow] post-validate');
-    const pr = getGlobalPaymentRequest();
-    log('[startFlow] pr:', pr, 'override:', params?.overridePaymentRequest);
+    const { pr, linkPr } = getGlobalPaymentRequest();
+    const prToUse = stripeCpm.provider === 'stripe_link' ? linkPr : pr;
+    log('[startFlow] pr:', prToUse, 'override:', params?.overridePaymentRequest);
     if (params?.overridePaymentRequest) {
       const override = params?.overridePaymentRequest;
-      updatePrWithAmount(pr, override.amount, override.pending);
+      updatePrWithAmount(prToUse, override.amount, override.pending);
     }
     log('[startFlow] showing PR...');
-    pr.show();
+    prToUse.show();
     log('[startFlow] PR shown. Waiting...');
-    const pmAddedEvent = await waitForUserToAddPaymentMethod(pr);
+    const pmAddedEvent = await waitForUserToAddPaymentMethod(prToUse);
     log('[startFlow] PR fulfilled. Completing flow...');
     onUserCompleteUIFlow(pmAddedEvent, stripeCpm);
   } catch (e) {
@@ -185,24 +194,31 @@ const startPaymentRequestUserFlow = async (
   }
 };
 
-const setGlobalPaymentRequest = (pr: PaymentRequest): void => {
+const setGlobalPaymentRequest = (pr: PaymentRequest, linkPr: PaymentRequest): void => {
   if ('ojs_pr' in window) {
     throw new Error('Attempted to set global PR twice');
   }
   // @ts-expect-error window typing
   window['ojs_pr'] = pr;
+
+  // @ts-expect-error window typing
+  window['ojs_link_pr'] = linkPr;
 };
 
 const hasGlobalPaymentRequest = (): boolean => {
   return 'ojs_pr' in window;
 };
 
-const getGlobalPaymentRequest = (): PaymentRequest => {
+const getGlobalPaymentRequest = (): { pr: PaymentRequest; linkPr: PaymentRequest } => {
   if (!hasGlobalPaymentRequest()) {
     throw new Error('Global PR not set');
   }
-  // @ts-expect-error window typing
-  return window['ojs_pr'];
+  return {
+    // @ts-expect-error window typing
+    pr: window['ojs_pr'],
+    // @ts-expect-error window typing
+    linkPr: window['ojs_link_pr'],
+  };
 };
 
 const updatePrWithAmount = (pr: PaymentRequest, amount: Amount, isPending: boolean): void => {

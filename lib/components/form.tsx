@@ -6,13 +6,21 @@ import { CheckoutPaymentMethod, EventType, SubmitEventPayload } from '../utils/s
 import { FRAME_BASE_URL } from '../utils/constants';
 import { v4 as uuidv4 } from 'uuid';
 import { usePaymentRequests } from '../hooks/use-payment-requests';
-import { confirmPaymentFlowFor3DS, confirmPaymentFlowForStripePR } from '../utils/stripe';
+import {
+  confirmPaymentFlowFor3DS,
+  confirmPaymentFlowForStripeLink,
+  confirmPaymentFlowForStripePR,
+} from '../utils/stripe';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 import { getErrorMessage } from '../utils/errors';
 import { useCDEConnection } from '../utils/cde-connection';
 import { isJsonString } from '../utils/types';
 import { getPrefill, confirmPaymentFlow as confirmPaymentFlowInCDE } from '../utils/cde-client';
 import { useDynamicPreview } from '../hooks/use-dynamic-preview';
+import { useStripeElements } from '../hooks/use-stripe-elements';
+import { StripeLinkButton } from './stripe-link-button';
+import { NoOpElement } from './_common/no-op';
+import { StripeLinkAuthElement } from './stripe-link-auth-element';
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
   const {
@@ -165,12 +173,16 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
             console.log('[form] Confirming payment flow (Stripe 3DS');
             await confirmPaymentFlowFor3DS(eventPayload);
           } else if (nextActionType === 'stripe_payment_request') {
-            if (!stripePm) {
-              // This is only applicable for PRs
-              throw new Error(`Stripe PM not set`);
+            if (eventPayload.paymentFlowMetadata?.checkoutPaymentMethod?.provider === 'stripe_link') {
+              await confirmPaymentFlowForStripeLink(eventPayload);
+            } else {
+              if (!stripePm) {
+                // This is only applicable for PRs
+                throw new Error(`Stripe PM not set`);
+              }
+              console.log('[form] Confirming payment flow (Stripe PR)');
+              await confirmPaymentFlowForStripePR(eventPayload, stripePm);
             }
-            console.log('[form] Confirming payment flow (Stripe PR)');
-            await confirmPaymentFlowForStripePR(eventPayload, stripePm);
           } else {
             throw new Error(`Unknown next action type: ${nextActionType}`);
           }
@@ -428,16 +440,21 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   );
 
   const onUserCompletePaymentRequestUI = async (
-    stripePm: PaymentRequestPaymentMethodEvent,
+    stripePm: PaymentRequestPaymentMethodEvent | null,
     checkoutPaymentMethod: CheckoutPaymentMethod
   ): Promise<void> => {
     if (!formRef.current || !onValidationError || !sessionId || !checkoutPaymentMethods) return;
     // Try all iframe targets, note that this loop will break as soon as one succeeds
     for (const [elementId, target] of Object.entries(eventTargets)) {
       if (!target) continue;
-      const paymentFlowMetadata = {
-        stripePmId: stripePm.paymentMethod.id,
-      };
+      const paymentFlowMetadata = stripePm
+        ? {
+            stripePmId: stripePm.paymentMethod.id,
+            checkoutPaymentMethod,
+          }
+        : {
+            checkoutPaymentMethod,
+          };
       const startPaymentFlowEvent = constructSubmitEventPayload(
         EventType.enum.START_PAYMENT_FLOW,
         sessionId,
@@ -448,7 +465,9 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         paymentFlowMetadata
       );
       if (!startPaymentFlowEvent) continue;
-      setStripePm(stripePm);
+      if (stripePm) {
+        setStripePm(stripePm);
+      }
       setCheckoutFired(true);
       setExtraData(startPaymentFlowEvent);
       emitEvent(target, formId, elementId, startPaymentFlowEvent, frameBaseUrl);
@@ -483,11 +502,24 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     dynamicPreview
   );
 
+  const stripeElements = useStripeElements(
+    cdeConn,
+    checkoutSecureToken,
+    checkoutPaymentMethods,
+    formRef.current,
+    (cpm: CheckoutPaymentMethod) => onUserCompletePaymentRequestUI(null, cpm),
+    dynamicPreview
+  );
+
   const childrenProps: ElementsFormChildrenProps = {
     submit: submitCard,
     applePay: paymentRequests.apple_pay,
     googlePay: paymentRequests.google_pay,
-    stripeLink: paymentRequests.stripe_link,
+    stripeLink: {
+      button: stripeElements.isReady ? StripeLinkButton : NoOpElement,
+      authElement: stripeElements.isReady ? StripeLinkAuthElement : NoOpElement,
+      pr: paymentRequests.stripe_link,
+    },
     loaded,
     preview: dynamicPreview,
   };

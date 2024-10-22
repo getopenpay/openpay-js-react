@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { AllFieldNames, type ElementsStyle, PaymentRequestStatus } from './shared-models';
 import { DynamicPreview } from '../hooks/use-dynamic-preview';
+import { FC } from 'react';
+import { StripeLinkButtonProps } from '../components/stripe-link-button';
+import { LinkAuthElementProps } from '../components/stripe-link-auth-element';
 
 export type ElementProps<PlaceholderType extends z.ZodTypeAny = z.ZodString> = {
   styles?: ElementsStyle<z.ZodOptional<PlaceholderType>>;
@@ -10,7 +13,11 @@ export type ElementsFormChildrenProps = {
   submit: () => void;
   applePay: PaymentRequestStatus;
   googlePay: PaymentRequestStatus;
-  stripeLink: PaymentRequestStatus;
+  stripeLink: {
+    button: FC<StripeLinkButtonProps>;
+    authElement: FC<LinkAuthElementProps>;
+    pr: PaymentRequestStatus;
+  };
   loaded: boolean;
   preview: DynamicPreview;
 };
