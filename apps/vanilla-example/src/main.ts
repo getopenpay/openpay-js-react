@@ -33,7 +33,7 @@ function initializeForm(token: string) {
       const submitButton = document.querySelector('#submit') as HTMLButtonElement;
       if (submitButton && totalAmountAtoms && currency) {
         const amount = (totalAmountAtoms / 100).toFixed(2);
-        submitButton.innerHTML = `Pay ${amount} ${currency}`;
+        submitButton.innerHTML = `Pay ${amount} ${currency.toUpperCase()}`;
       }
       submitButton.disabled = false;
       hideLoading();
@@ -137,7 +137,13 @@ function initializeForm(token: string) {
     formInstance
       .createElement('card-number', {
         styles: {
-          color: '#ddd',
+          color: 'lightblue',
+          fontSize: '1rem',
+          placeholderStyle: {
+            letterSpacing: '2px',
+            color: '#4169E1', // Royal Blue - an eye-pleasing shade of blue
+            fontFamily: 'monospace',
+          },
         },
       })
       .mount('#card-number-element');
@@ -145,6 +151,10 @@ function initializeForm(token: string) {
       .createElement('card-expiry', {
         styles: {
           color: '#fff',
+          placeholderStyle: {
+            fontFamily: 'serif',
+            color: '#FF6B6B', // A pleasing, softer shade of red
+          },
         },
       })
       .mount('#card-expiry-element');
@@ -152,6 +162,10 @@ function initializeForm(token: string) {
       .createElement('card-cvc', {
         styles: {
           color: '#fff',
+          placeholderStyle: {
+            color: '#4CAF50', // A pleasing shade of green
+            fontFamily: 'cursive',
+          },
         },
       })
       .mount('#card-cvc-element');
@@ -164,6 +178,9 @@ function initializeForm(token: string) {
       .createElement('card', {
         styles: {
           color: '#fff',
+          placeholderStyle: {
+            color: 'red',
+          },
         },
       })
       .mount('#card-element');

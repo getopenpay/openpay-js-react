@@ -4,6 +4,7 @@
   --color-background: #0d201a;
   --color-primary: #10b981;
   --color-primary-hover: #059669;
+  --color-on-primary: #002c1e;
   --color-disabled: #d1d5db;
   --color-error: #9e2146;
   --color-card-bg: #f0fdf4;
@@ -119,7 +120,7 @@ input {
   padding: calc(var(--spacing) * 0.75);
   font-size: var(--font-size);
   font-weight: bold;
-  color: var(--color-text);
+  color: var(--color-on-primary);
   background-color: var(--color-primary);
   border: none;
   border-radius: var(--border-radius);

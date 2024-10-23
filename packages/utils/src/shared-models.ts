@@ -80,6 +80,8 @@ export const BaseElementsStyle = z.object({
   fontWeight: OptionalString,
   margin: OptionalString,
   padding: OptionalString,
+  letterSpacing: OptionalString,
+  lineHeight: OptionalString,
 });
 
 export type BaseElementsStyle = z.infer<typeof BaseElementsStyle>;
@@ -89,6 +91,16 @@ export type BaseElementsStyle = z.infer<typeof BaseElementsStyle>;
 export const ElementsStyle = <T extends z.ZodTypeAny>(placeholderType: T) =>
   BaseElementsStyle.extend({
     placeholder: placeholderType,
+    placeholderStyle: z
+      .object({
+        color: OptionalString,
+        fontSize: OptionalString,
+        fontWeight: OptionalString,
+        fontFamily: OptionalString,
+        letterSpacing: OptionalString,
+        lineHeight: OptionalString,
+      })
+      .optional(),
   });
 
 // Generic type for ElementsStyle where T is the placeholder type
