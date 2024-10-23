@@ -22,16 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-#tests
-
-test-results
-playwright-report
-
-ngrok.yml
-
-.turbo
-
-
-# Vite generated temporary files
-*.timestamp-*.mjs

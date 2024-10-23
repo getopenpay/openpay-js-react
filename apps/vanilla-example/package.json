@@ -1,0 +1,20 @@
+{
+  "name": "vanilla-example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3033",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@getopenpay/js": "*",
+    "@stripe/stripe-js": "^4.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3",
+    "vite": "^5.4.1",
+    "vite-plugin-singlefile": "^2.0.2"
+  }
+}
