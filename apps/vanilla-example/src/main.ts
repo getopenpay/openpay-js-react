@@ -29,13 +29,13 @@ function initializeForm(token: string) {
     formTarget: '#app',
     baseUrl: baseUrl || undefined,
     onLoad: (totalAmountAtoms, currency) => {
-      console.log('onLoad', totalAmountAtoms, currency);
+      console.log('onLoad XXXXXXXXX', totalAmountAtoms, currency);
       const submitButton = document.querySelector('#submit') as HTMLButtonElement;
       if (submitButton && totalAmountAtoms && currency) {
         const amount = (totalAmountAtoms / 100).toFixed(2);
         submitButton.innerHTML = `Pay ${amount} ${currency}`;
-        submitButton.disabled = false;
       }
+      submitButton.disabled = false;
       hideLoading();
       hideError();
       clearValidationError();
@@ -108,7 +108,9 @@ function initializeForm(token: string) {
         }
         applePayButton.addEventListener('click', () => {
           console.log('Apple Pay button clicked');
-          paymentRequests.apple_pay.startFlow({ amountToDisplayForSetupMode: { amountAtom: 420, currency: 'usd' } });
+          paymentRequests.apple_pay.startFlow({
+            overridePaymentRequest: { amount: { amountAtom: 420, currency: 'usd' }, pending: false },
+          });
         });
       }
       if (paymentRequests.google_pay.isAvailable) {
@@ -119,7 +121,9 @@ function initializeForm(token: string) {
         }
         googlePayButton.addEventListener('click', () => {
           console.log('Google Pay button clicked');
-          paymentRequests.google_pay.startFlow({ amountToDisplayForSetupMode: { amountAtom: 420, currency: 'usd' } });
+          paymentRequests.google_pay.startFlow({
+            overridePaymentRequest: { amount: { amountAtom: 420, currency: 'usd' }, pending: false },
+          });
         });
       }
     },
@@ -133,7 +137,7 @@ function initializeForm(token: string) {
     formInstance
       .createElement('card-number', {
         styles: {
-          color: '#fff',
+          color: '#ddd',
         },
       })
       .mount('#card-number-element');

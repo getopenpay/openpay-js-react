@@ -35,7 +35,7 @@ export type ElementsFormProps = {
   onPaymentRequestLoad?: (paymentRequests: Record<'apple_pay' | 'google_pay', PaymentRequestStatus>) => void;
 };
 
-export type Config = ElementsFormProps;
+export type Config = ElementsFormProps & { _frameUrl?: URL };
 
 export class OpenPayForm {
   config: Config;
@@ -104,7 +104,10 @@ export class OpenPayForm {
     const queryString = this.buildQueryString(options);
 
     frame.name = `${type}-element`;
-    frame.src = `${this.config.baseUrl}/app/v1/${type}-element/?${queryString.toString()}`;
+    const url = new URL(`/app/v1/${frame.name}`, this.config.baseUrl);
+    url.search = queryString.toString();
+    frame.src = url.href;
+    this.config._frameUrl = url;
     frame.style.border = 'none';
     frame.style.width = '100%';
 

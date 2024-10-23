@@ -49,7 +49,13 @@ export class OpenPayFormEventHandler {
   }
 
   handleMessage(event: MessageEvent) {
-    if (event.origin !== this.formInstance.config.baseUrl || !event.source) return;
+    if (!event.source) {
+      throw new Error(`No source found`);
+    }
+    if (event.origin !== this.formInstance.config._frameUrl?.origin) {
+      // Skipping if origin does not match
+      return;
+    }
 
     const eventData = parseEventPayload(JSON.parse(event.data));
     const isValid = this.validateEvent(eventData);
@@ -144,6 +150,7 @@ export class OpenPayFormEventHandler {
 
   handleLoadedEvent(source: MessageEventSource, elementId: string, payload: LoadedEventPayload) {
     this.eventTargets[elementId] = source;
+    console.log('handleLoadedEvent XXXXXXXXX', payload);
     if (!this.formInstance.sessionId) {
       this.formInstance.sessionId = payload.sessionId;
     }
