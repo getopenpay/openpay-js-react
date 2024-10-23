@@ -1,18 +1,17 @@
 import useAsyncEffect from 'use-async-effect';
-import { Amount, FieldName } from '@getopenpay/utils';
+import {
+  Amount,
+  FieldName,
+  CdeConnection,
+  getErrorMessage,
+  getCheckoutPreview,
+  getPrefill,
+  sum,
+  DynamicPreview,
+} from '@getopenpay/utils';
 import { sleep } from '@getopenpay/utils';
 import { useState } from 'react';
 import useDebounce from './use-debounce';
-import { getCheckoutPreview, getPrefill } from '@getopenpay/utils';
-import { CdeConnection } from '@getopenpay/utils';
-import { sum } from '@getopenpay/utils';
-import { getErrorMessage } from '@getopenpay/utils';
-
-export type DynamicPreview = {
-  amount: Amount | null;
-  isLoading: boolean;
-  error: string | null;
-};
 
 export const useDynamicPreview = (
   isEnabled: boolean,

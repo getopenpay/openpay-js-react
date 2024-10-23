@@ -1,6 +1,11 @@
 import { z } from 'zod';
-import { AllFieldNames, type ElementsStyle, PaymentRequestStatus } from './shared-models';
-import { DynamicPreview } from '../hooks/use-dynamic-preview';
+import { AllFieldNames, Amount, type ElementsStyle, PaymentRequestStatus } from './shared-models';
+
+export type DynamicPreview = {
+  amount: Amount | null;
+  isLoading: boolean;
+  error: string | null;
+};
 
 export type ElementProps<PlaceholderType extends z.ZodTypeAny = z.ZodString> = {
   styles?: ElementsStyle<z.ZodOptional<PlaceholderType>>;

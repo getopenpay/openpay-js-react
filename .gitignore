@@ -31,3 +31,7 @@ playwright-report
 ngrok.yml
 
 .turbo
+
+
+# Vite generated temporary files
+*.timestamp-*.mjs
