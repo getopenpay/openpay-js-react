@@ -23,6 +23,7 @@ function initializeForm(token: string) {
   if (previousFormInstance) {
     previousFormInstance.destroy();
   }
+  console.log('loadStripe', loadStripe.name);
   const formInstance = new OpenPayForm({
     checkoutSecureToken: token,
     formTarget: '#app',
