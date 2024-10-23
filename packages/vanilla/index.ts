@@ -70,6 +70,10 @@ export class OpenPayForm {
     this.connectionManager = new ConnectionManager();
     this.eventHandler = new OpenPayFormEventHandler(this);
 
+    const ojs_version = { version: __APP_VERSION__ };
+    // @ts-expect-error window typing
+    window['ojs_version'] = ojs_version;
+
     window.addEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));
   }
 
