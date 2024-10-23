@@ -7,7 +7,6 @@ const token = urlParams.get('token');
 const baseUrl = urlParams.get('baseUrl');
 const separateFrames = urlParams.get('separateFrames')?.toLowerCase() === 'true';
 
-console.log('loadStripe', loadStripe.name);
 let previousFormInstance: OpenPayForm | null = null;
 let validationErrors: Record<string, string[]> = {};
 let secureToken = token;
@@ -138,10 +137,8 @@ function initializeForm(token: string) {
       .createElement('card-number', {
         styles: {
           color: 'lightblue',
-          fontSize: '1rem',
           placeholderStyle: {
-            letterSpacing: '2px',
-            color: '#4169E1', // Royal Blue - an eye-pleasing shade of blue
+            color: '#4169E1',
             fontFamily: 'monospace',
           },
         },
@@ -150,10 +147,10 @@ function initializeForm(token: string) {
     formInstance
       .createElement('card-expiry', {
         styles: {
-          color: '#fff',
+          color: 'lightblue',
           placeholderStyle: {
-            fontFamily: 'serif',
-            color: '#FF6B6B', // A pleasing, softer shade of red
+            color: '#4169E1',
+            fontFamily: 'monospace',
           },
         },
       })
@@ -161,10 +158,10 @@ function initializeForm(token: string) {
     formInstance
       .createElement('card-cvc', {
         styles: {
-          color: '#fff',
+          color: 'lightblue',
           placeholderStyle: {
-            color: '#4CAF50', // A pleasing shade of green
-            fontFamily: 'cursive',
+            color: '#4169E1',
+            fontFamily: 'monospace',
           },
         },
       })
@@ -177,9 +174,10 @@ function initializeForm(token: string) {
     formInstance
       .createElement('card', {
         styles: {
-          color: '#fff',
+          color: 'lightblue',
           placeholderStyle: {
-            color: 'red',
+            color: '#4169E1',
+            fontFamily: 'monospace',
           },
         },
       })
