@@ -152,7 +152,6 @@ export const confirmPaymentFlowForStripeLink = async (payload: PaymentFlowStarte
   if (!nextActionMetadata.stripe_pk || !nextActionMetadata.client_secret) {
     throw new Error(`Invalid next action metadata format: ${JSON.stringify(nextActionMetadata)}`);
   }
-  console.log(payload);
   const { elements, stripe } = getGlobalStripeElements();
   await stripe.confirmSetup({
     elements,
@@ -160,7 +159,6 @@ export const confirmPaymentFlowForStripeLink = async (payload: PaymentFlowStarte
     confirmParams: { return_url: window.location.href },
     redirect: 'if_required',
   });
-  // throw new Error('Pause');
 };
 
 export const confirmPaymentFlowFor3DS = async (payload: PaymentFlowStartedEventPayload): Promise<void> => {

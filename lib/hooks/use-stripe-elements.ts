@@ -23,8 +23,6 @@ export const useStripeElements = (
   availableCPMs: CheckoutPaymentMethod[] | undefined,
   formDiv: HTMLDivElement | null,
   onUserCompleteUIFlow: (checkoutPaymentMethod: CheckoutPaymentMethod) => void,
-  // onValidationError: undefined | ((field: FieldName, errors: string[], elementId?: string) => void),
-  // onError: (errMsg: string) => void,
   dynamicPreview: DynamicPreview
 ): UseStripeElementsOutput => {
   const isLoading = secureToken === undefined || availableCPMs === undefined || !formDiv || !cdeConn;
