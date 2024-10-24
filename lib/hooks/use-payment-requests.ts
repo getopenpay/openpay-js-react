@@ -104,15 +104,16 @@ export const usePaymentRequests = (
       initialPreview.currency,
       isSetupMode
     );
-    // const linkPr = await createStripePaymentRequest(
-    //   stripePubKey,
-    //   initialPreview.amountAtom,
-    //   initialPreview.currency,
-    //   isSetupMode,
-    //   true
-    // );
-    setGlobalPaymentRequest(pr, pr);
+    const linkPr = await createStripePaymentRequest(
+      stripePubKey,
+      initialPreview.amountAtom,
+      initialPreview.currency,
+      isSetupMode,
+      true
+    );
+    setGlobalPaymentRequest(pr, linkPr);
     const canMakePayment = await pr.canMakePayment();
+    await linkPr.canMakePayment();
     console.log('Can make payment?', canMakePayment);
 
     for (const provider of PaymentRequestProvider.options) {
@@ -120,12 +121,13 @@ export const usePaymentRequests = (
       console.log(`Processing provider ${providerFriendlyName}`);
       try {
         const cpm = allStripeCPMs.find((cpm) => cpm.provider === provider);
+        const isAvailable = canMakePayment?.[OUR_PROVIDER_TO_STRIPES[provider]] ?? false;
         if (!cpm) {
           throw new Error(`${provider} is not available as a stripe checkout method`);
         }
         setStatus.set(provider, {
           isLoading: false,
-          isAvailable: canMakePayment?.[OUR_PROVIDER_TO_STRIPES[provider]] ?? false,
+          isAvailable,
           startFlow: (params?: PaymentRequestStartParams) =>
             startPaymentRequestUserFlow(formDiv, cpm, onUserCompleteUIFlow, onValidationError, onError, params),
         });

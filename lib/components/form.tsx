@@ -6,11 +6,7 @@ import { CheckoutPaymentMethod, EventType, SubmitEventPayload } from '../utils/s
 import { FRAME_BASE_URL } from '../utils/constants';
 import { v4 as uuidv4 } from 'uuid';
 import { usePaymentRequests } from '../hooks/use-payment-requests';
-import {
-  confirmPaymentFlowFor3DS,
-  confirmPaymentFlowForStripeLink,
-  confirmPaymentFlowForStripePR,
-} from '../utils/stripe';
+import { confirmPaymentFlowFor3DS, confirmPaymentFlowForStripePR } from '../utils/stripe';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 import { getErrorMessage } from '../utils/errors';
 import { useCDEConnection } from '../utils/cde-connection';
@@ -173,16 +169,12 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
             console.log('[form] Confirming payment flow (Stripe 3DS');
             await confirmPaymentFlowFor3DS(eventPayload);
           } else if (nextActionType === 'stripe_payment_request') {
-            if (eventPayload.paymentFlowMetadata?.checkoutPaymentMethod?.provider === 'stripe_link') {
-              await confirmPaymentFlowForStripeLink(eventPayload);
-            } else {
-              if (!stripePm) {
-                // This is only applicable for PRs
-                throw new Error(`Stripe PM not set`);
-              }
-              console.log('[form] Confirming payment flow (Stripe PR)');
-              await confirmPaymentFlowForStripePR(eventPayload, stripePm);
+            if (!stripePm) {
+              // This is only applicable for PRs
+              throw new Error(`Stripe PM not set`);
             }
+            console.log('[form] Confirming payment flow (Stripe PR)');
+            await confirmPaymentFlowForStripePR(eventPayload, stripePm);
           } else {
             throw new Error(`Unknown next action type: ${nextActionType}`);
           }

@@ -80,7 +80,7 @@ export const createStripePaymentRequest = async (
     },
     requestPayerName: true,
     requestPayerEmail: true,
-    // disableWallets: !isLinkOnly ? undefined : ['applePay', 'browserCard', 'googlePay'],
+    disableWallets: !isLinkOnly ? [] : ['applePay', 'browserCard', 'googlePay'],
   });
 
   return paymentRequest;
