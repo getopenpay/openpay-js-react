@@ -20,9 +20,9 @@ export type ElementType = 'card' | 'card-number' | 'card-expiry' | 'card-cvc';
 export type ElementsFormProps = {
   className?: string;
   checkoutSecureToken: string;
-  onFocus?: (elementId: string) => void;
-  onBlur?: (elementId: string) => void;
-  onChange?: (elementId: string) => void;
+  onFocus?: (elementId: string, field: AllFieldNames) => void;
+  onBlur?: (elementId: string, field: AllFieldNames) => void;
+  onChange?: (elementId: string, field: AllFieldNames, errors?: string[]) => void;
   onLoad?: (totalAmountAtoms?: number, currency?: string) => void;
   onLoadError?: (message: string) => void;
   onValidationError?: (field: AllFieldNames, errors: string[], elementId?: string) => void;

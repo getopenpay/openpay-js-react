@@ -152,6 +152,7 @@ type InputEventType = z.infer<typeof InputEventType>;
 export const InputEventPayload = z.object({
   type: InputEventType,
   elementType: PrivateFieldNameEnum,
+  errors: z.array(z.string()).optional(),
 });
 export type InputEventPayload = z.infer<typeof InputEventPayload>;
 

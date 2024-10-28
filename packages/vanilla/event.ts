@@ -19,6 +19,7 @@ import {
   confirmPaymentFlow as confirmPaymentFlowInCDE,
   getErrorMessage,
   TokenizeSuccessEventPayload,
+  AllFieldNames,
 } from '@getopenpay/utils';
 import { OpenPayForm } from './index';
 import { ConnectionManager } from './utils/connection';
@@ -69,13 +70,13 @@ export class OpenPayFormEventHandler {
         this.handleLayoutEvent(payload);
         break;
       case 'FOCUS':
-        this.handleFocusEvent(elementId);
+        this.handleFocusEvent(elementId, payload.elementType);
         break;
       case 'BLUR':
-        this.handleBlurEvent(elementId);
+        this.handleBlurEvent(elementId, payload.elementType);
         break;
       case 'CHANGE':
-        this.handleChangeEvent(elementId);
+        this.handleChangeEvent(elementId, payload.elementType, payload.errors);
         break;
       case 'LOADED':
         this.handleLoadedEvent(event.source, elementId, payload);
@@ -136,16 +137,16 @@ export class OpenPayFormEventHandler {
     this.formInstance.setFormHeight(height);
   }
 
-  handleFocusEvent(elementId: string) {
-    if (this.config.onFocus) this.config.onFocus(elementId);
+  handleFocusEvent(elementId: string, field: AllFieldNames) {
+    if (this.config.onFocus) this.config.onFocus(elementId, field);
   }
 
-  handleBlurEvent(elementId: string) {
-    if (this.config.onBlur) this.config.onBlur(elementId);
+  handleBlurEvent(elementId: string, field: AllFieldNames) {
+    if (this.config.onBlur) this.config.onBlur(elementId, field);
   }
 
-  handleChangeEvent(elementId: string) {
-    if (this.config.onChange) this.config.onChange(elementId);
+  handleChangeEvent(elementId: string, field: AllFieldNames, errors?: string[]) {
+    if (this.config.onChange) this.config.onChange(elementId, field, errors);
   }
 
   handleLoadedEvent(source: MessageEventSource, elementId: string, payload: LoadedEventPayload) {

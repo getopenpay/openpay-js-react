@@ -70,8 +70,8 @@ function initializeForm(token: string) {
         container.removeAttribute('data-focused');
       }
     },
-    onChange: () => {
-      console.log('Change');
+    onChange: (elementId, field, errors) => {
+      console.log({ elementId }, { field }, { errors });
       clearValidationError();
       hideError();
     },
