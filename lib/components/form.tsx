@@ -13,10 +13,6 @@ import { useCDEConnection } from '../utils/cde-connection';
 import { isJsonString } from '../utils/types';
 import { getPrefill, confirmPaymentFlow as confirmPaymentFlowInCDE } from '../utils/cde-client';
 import { useDynamicPreview } from '../hooks/use-dynamic-preview';
-import { useStripeElements } from '../hooks/use-stripe-elements';
-import { StripeLinkButton } from './stripe-link-button';
-import { NoOpElement } from './_common/no-op';
-import { StripeLinkAuthElement } from './stripe-link-auth-element';
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
   const {
@@ -494,22 +490,26 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     dynamicPreview
   );
 
-  const stripeElements = useStripeElements(
-    cdeConn,
-    checkoutSecureToken,
-    checkoutPaymentMethods,
-    formRef.current,
-    (cpm: CheckoutPaymentMethod) => onUserCompletePaymentRequestUI(null, cpm),
-    dynamicPreview
-  );
+  // TODO: uncomment if we need stripe elements later.
+  // Better if we can make stripe link work in prod without elements.
+  // const stripeElements = useStripeElements(
+  //   cdeConn,
+  //   checkoutSecureToken,
+  //   checkoutPaymentMethods,
+  //   formRef.current,
+  //   (cpm: CheckoutPaymentMethod) => onUserCompletePaymentRequestUI(null, cpm),
+  //   dynamicPreview
+  // );
 
   const childrenProps: ElementsFormChildrenProps = {
     submit: submitCard,
     applePay: paymentRequests.apple_pay,
     googlePay: paymentRequests.google_pay,
     stripeLink: {
-      button: stripeElements.isReady ? StripeLinkButton : NoOpElement,
-      authElement: stripeElements.isReady ? StripeLinkAuthElement : NoOpElement,
+      // TODO: uncomment if we need stripe elements later.
+      // Better if we can make stripe link work in prod without elements.
+      // button: stripeElements.isReady ? StripeLinkButton : NoOpElement,
+      // authElement: stripeElements.isReady ? StripeLinkAuthElement : NoOpElement,
       pr: paymentRequests.stripe_link,
     },
     loaded,

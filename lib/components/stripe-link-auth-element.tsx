@@ -10,6 +10,7 @@ const OJS_STRIPE_LINK_AUTH_ID = 'ojs-stripe-link-auth';
 const mountElement = (): void => {
   try {
     const { elements } = getGlobalStripeElements();
+    // TODO: uncomment if we need stripe elements later.
     // Note: please keep this here for now
     // const expressCheckoutElement = elements.create('expressCheckout', {
     //   buttonHeight,
