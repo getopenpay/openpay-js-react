@@ -51,7 +51,8 @@ export const createStripeElements = async (
 export const createElementsOptions = (amount: Amount): StripeElementsOptionsClientSecret => {
   console.log(amount);
   return {
-    clientSecret: 'seti_1QCcXVKKXdhjXGwFhd0btSQD_secret_R4m53UhbceUDHVoxq07r2zoEgqJg7wd',
+    // TODO: uncomment these later if we decide to use elements
+    // clientSecret: 'seti_1QCcXVKKXdhjXGwFhd0btSQD_secret_R4m53UhbceUDHVoxq07r2zoEgqJg7wd',
     // mode: 'payment',
     // amount: amount.amountAtom,
     // currency: amount.currency,
