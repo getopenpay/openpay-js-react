@@ -114,7 +114,7 @@ input {
   outline: 2px solid var(--color-primary);
 }
 
-#submit {
+.submit-button {
   width: 100%;
   margin-top: calc(var(--spacing) * 1.4);
   padding: calc(var(--spacing) * 0.75);
@@ -136,6 +136,7 @@ input {
   background-color: var(--color-disabled);
   cursor: not-allowed;
 }
+
 
 .loading {
   display: none;

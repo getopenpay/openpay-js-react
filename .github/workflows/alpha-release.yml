@@ -51,14 +51,17 @@ jobs:
           echo "VERSION=$(node -p "require('./packages/vanilla/package.json').version")" >> $GITHUB_ENV
 
       - name: Build Vanilla package
-        run: |
-          npm ci
-          npm run build:vanilla:alpha
+        run: echo "Skipping for testing purposes"
+        # run: |
+        #   npm ci
+        #   npm run build:vanilla:alpha
 
       - name: Publish Vanilla package
         working-directory: ./packages/vanilla
         run: |
-          npm version ${{ env.RELEASE_VERSION }} --no-git-tag-version
-          npm publish --tag alpha --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          echo "Skipping for testing purposes"
+        # run: |
+        #   npm version ${{ env.RELEASE_VERSION }} --no-git-tag-version
+        #   npm publish --tag alpha --access public
+        # env:
+        #   NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

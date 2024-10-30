@@ -56,18 +56,22 @@ jobs:
         if: 'github.event.release.prerelease'
         working-directory: ./packages/vanilla
         run: |
-          npm run build:alpha
-          npm version ${{ github.ref_name }} --no-git-tag-version
-          npm publish --tag alpha --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          echo "Skipping for testing purposes"
+        # run: |
+        #   npm run build:alpha
+        #   npm version ${{ github.ref_name }} --no-git-tag-version
+        #   npm publish --tag alpha --access public
+        # env:
+        #   NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
       - name: Build and publish Vanilla package (stable)
         if: '!github.event.release.prerelease'
         working-directory: ./packages/vanilla
         run: |
-          RELEASE_VERSION=$(npm view ./ version)
-          npm run build
-          npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          echo "Skipping for testing purposes"
+        # run: |
+        #   RELEASE_VERSION=$(npm view ./ version)
+        #   npm run build
+        #   npm publish --access public
+        # env:
+        #   NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

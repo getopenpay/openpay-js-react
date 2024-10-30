@@ -80,12 +80,14 @@
             <div id="card-cvc-element" class="card-element"></div>
           </div>
 
-          <button data-testid="submit-button" id="submit" type="button">Pay</button>
+          <button data-testid="submit-button" class="submit-button" id="submit" type="button">Pay</button>
 
           <!-- Apple pay button -->
-          <button id="apple-pay-button" style="display: none" type="button"></button>
+          <button id="apple-pay-button" class="submit-button" style="display: none" type="button">Apple Pay</button>
           <!-- Google pay button -->
-          <button id="google-pay-button" style="display: none" type="button"></button>
+          <button id="google-pay-button" class="submit-button" style="display: none" type="button">Google Pay</button>
+          <!-- Stripe link button -->
+          <button id="stripe-link-button" class="submit-button" style="display: none" type="button">Stripe Link</button>
           <div id="validation-error-container" class="error-message"></div>
         </div>
 
