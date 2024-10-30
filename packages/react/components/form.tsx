@@ -428,16 +428,21 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   );
 
   const onUserCompletePaymentRequestUI = async (
-    stripePm: PaymentRequestPaymentMethodEvent,
+    stripePm: PaymentRequestPaymentMethodEvent | null,
     checkoutPaymentMethod: CheckoutPaymentMethod
   ): Promise<void> => {
     if (!formRef.current || !onValidationError || !sessionId || !checkoutPaymentMethods) return;
     // Try all iframe targets, note that this loop will break as soon as one succeeds
     for (const [elementId, target] of Object.entries(eventTargets)) {
       if (!target) continue;
-      const paymentFlowMetadata = {
-        stripePmId: stripePm.paymentMethod.id,
-      };
+      const paymentFlowMetadata = stripePm
+        ? {
+            stripePmId: stripePm.paymentMethod.id,
+            checkoutPaymentMethod,
+          }
+        : {
+            checkoutPaymentMethod,
+          };
       const startPaymentFlowEvent = constructSubmitEventPayload(
         EventType.enum.START_PAYMENT_FLOW,
         sessionId,
@@ -448,7 +453,9 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         paymentFlowMetadata
       );
       if (!startPaymentFlowEvent) continue;
-      setStripePm(stripePm);
+      if (stripePm) {
+        setStripePm(stripePm);
+      }
       setCheckoutFired(true);
       setExtraData(startPaymentFlowEvent);
       emitEvent(target, formId, elementId, startPaymentFlowEvent, frameBaseUrl);
@@ -483,11 +490,28 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     dynamicPreview
   );
 
+  // TODO: uncomment if we need stripe elements later.
+  // Better if we can make stripe link work in prod without elements.
+  // const stripeElements = useStripeElements(
+  //   cdeConn,
+  //   checkoutSecureToken,
+  //   checkoutPaymentMethods,
+  //   formRef.current,
+  //   (cpm: CheckoutPaymentMethod) => onUserCompletePaymentRequestUI(null, cpm),
+  //   dynamicPreview
+  // );
+
   const childrenProps: ElementsFormChildrenProps = {
     submit: submitCard,
     applePay: paymentRequests.apple_pay,
     googlePay: paymentRequests.google_pay,
-    stripeLink: paymentRequests.stripe_link,
+    stripeLink: {
+      // TODO: uncomment if we need stripe elements later.
+      // Better if we can make stripe link work in prod without elements.
+      // button: stripeElements.isReady ? StripeLinkButton : NoOpElement,
+      // authElement: stripeElements.isReady ? StripeLinkAuthElement : NoOpElement,
+      pr: paymentRequests.stripe_link,
+    },
     loaded,
     preview: dynamicPreview,
   };

@@ -1,5 +1,11 @@
-import { PaymentRequest, PaymentRequestPaymentMethodEvent, Stripe as StripeType } from '@stripe/stripe-js';
-import { CheckoutPaymentMethod, PaymentFlowStartedEventPayload } from './shared-models';
+import {
+  PaymentRequest,
+  PaymentRequestPaymentMethodEvent,
+  StripeElements,
+  StripeElementsOptionsClientSecret,
+  Stripe as StripeType,
+} from '@stripe/stripe-js';
+import { Amount, CheckoutPaymentMethod, PaymentFlowStartedEventPayload } from './shared-models';
 
 export type StripeContext =
   | {
@@ -31,12 +37,37 @@ const getLoadedStripe = async (publishableKey: string): Promise<StripeType> => {
   return stripe;
 };
 
+export const createStripeElements = async (
+  stripePubKey: string,
+  elementsOptions: StripeElementsOptionsClientSecret
+): Promise<{ elements: StripeElements; stripe: StripeType }> => {
+  const stripe = await getLoadedStripe(stripePubKey);
+  return {
+    elements: stripe.elements(elementsOptions),
+    stripe,
+  };
+};
+
+export const createElementsOptions = (amount: Amount): StripeElementsOptionsClientSecret => {
+  console.log(amount);
+  return {
+    // TODO: uncomment these later if we decide to use elements
+    // clientSecret: 'seti_1QCcXVKKXdhjXGwFhd0btSQD_secret_R4m53UhbceUDHVoxq07r2zoEgqJg7wd',
+    // mode: 'payment',
+    // amount: amount.amountAtom,
+    // currency: amount.currency,
+    // setup_future_usage: 'off_session',
+  };
+};
+
 export const createStripePaymentRequest = async (
   stripePubKey: string,
   totalAmountAtom: number,
   currency: string,
-  isAmountPending?: boolean
+  isAmountPending?: boolean,
+  isLinkOnly?: boolean
 ): Promise<PaymentRequest> => {
+  console.log(isLinkOnly);
   const stripe = await getLoadedStripe(stripePubKey);
   const stripeCurrency = ourCurrencyToTheirs[currency.toLowerCase().trim()];
   const paymentRequest = stripe.paymentRequest({
@@ -50,6 +81,7 @@ export const createStripePaymentRequest = async (
     },
     requestPayerName: true,
     requestPayerEmail: true,
+    disableWallets: !isLinkOnly ? [] : ['applePay', 'browserCard', 'googlePay'],
   });
 
   return paymentRequest;
@@ -116,6 +148,20 @@ export const confirmPaymentFlowForStripePR = async (
   }
 };
 
+export const confirmPaymentFlowForStripeLink = async (payload: PaymentFlowStartedEventPayload): Promise<void> => {
+  const nextActionMetadata = payload.nextActionMetadata;
+  if (!nextActionMetadata.stripe_pk || !nextActionMetadata.client_secret) {
+    throw new Error(`Invalid next action metadata format: ${JSON.stringify(nextActionMetadata)}`);
+  }
+  const { elements, stripe } = getGlobalStripeElements();
+  await stripe.confirmSetup({
+    elements,
+    clientSecret: nextActionMetadata.client_secret,
+    confirmParams: { return_url: window.location.href },
+    redirect: 'if_required',
+  });
+};
+
 export const confirmPaymentFlowFor3DS = async (payload: PaymentFlowStartedEventPayload): Promise<void> => {
   const nextActionMetadata = payload.nextActionMetadata;
   const stripe = await getLoadedStripe(nextActionMetadata.stripe_pk);
@@ -134,4 +180,43 @@ export const confirmPaymentFlowFor3DS = async (payload: PaymentFlowStartedEventP
       `${confirmResult.error?.message ?? confirmResult.setupIntent?.last_setup_error?.message ?? 'Payment failed, please click submit again to pay.'}`
     );
   }
+};
+
+export const setGlobalStripeElements = (
+  elements: StripeElements,
+  confirmListener: () => void,
+  stripe: StripeType
+): void => {
+  if ('ojs_stripe_elements' in window) {
+    throw new Error('Attempted to set stripe elements twice');
+  }
+  // @ts-expect-error window typing
+  window['ojs_stripe_elements'] = elements;
+  // @ts-expect-error window typing
+  window['ojs_stripe_elements_confirm_listener'] = confirmListener;
+  // @ts-expect-error window typing
+  window['ojs_stripe'] = stripe;
+};
+
+export const hasGlobalStripeElements = (): boolean => {
+  return 'ojs_stripe_elements' in window;
+};
+
+export const getGlobalStripeElements = (): {
+  elements: StripeElements;
+  confirmListener: () => void;
+  stripe: StripeType;
+} => {
+  if (!hasGlobalStripeElements()) {
+    throw new Error('Global Stripe Elements not set');
+  }
+
+  return {
+    // @ts-expect-error window typing
+    elements: window['ojs_stripe_elements'],
+    // @ts-expect-error window typing
+    confirmListener: window['ojs_stripe_elements_confirm_listener'],
+    // @ts-expect-error window typing
+    stripe: window['ojs_stripe'],
+  };
 };
