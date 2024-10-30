@@ -23,7 +23,7 @@ jobs:
       - name: Build packages
         run: |
           npm ci
-          npm run build
+          npm run build:packages
 
       - name: Publish React package
         working-directory: ./packages/react
