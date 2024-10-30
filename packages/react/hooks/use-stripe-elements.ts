@@ -1,6 +1,7 @@
-import { CdeConnection } from '../utils/cde-connection';
-import { CheckoutPaymentMethod } from '../utils/shared-models';
-import { DynamicPreview, getCheckoutPreviewAmount } from './use-dynamic-preview';
+import { CdeConnection } from '@getopenpay/utils';
+import { CheckoutPaymentMethod } from '@getopenpay/utils';
+import { getCheckoutPreviewAmount } from './use-dynamic-preview';
+import { DynamicPreview } from '@getopenpay/utils';
 import { useEffect, useState } from 'react';
 import useAsyncEffect from 'use-async-effect';
 import {
@@ -10,8 +11,8 @@ import {
   hasGlobalStripeElements,
   parseStripePubKey,
   setGlobalStripeElements,
-} from '../utils/stripe';
-import { getPrefill } from '../utils/cde-client';
+} from '@getopenpay/utils';
+import { getPrefill } from '@getopenpay/utils';
 
 export type UseStripeElementsOutput = {
   isReady: boolean;

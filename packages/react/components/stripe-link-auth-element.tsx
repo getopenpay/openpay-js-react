@@ -1,5 +1,5 @@
 import { FC, useEffect } from 'react';
-import { getGlobalStripeElements } from '../utils/stripe';
+import { getGlobalStripeElements } from '@getopenpay/utils';
 
 export type LinkAuthElementProps = {
   className?: string;
