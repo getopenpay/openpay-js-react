@@ -1,6 +1,5 @@
-import { CdeConnection } from '@getopenpay/utils';
+import { CdeConnection, getCheckoutPreviewAmount } from '@getopenpay/utils';
 import { CheckoutPaymentMethod } from '@getopenpay/utils';
-import { getCheckoutPreviewAmount } from './use-dynamic-preview';
 import { DynamicPreview } from '@getopenpay/utils';
 import { useEffect, useState } from 'react';
 import useAsyncEffect from 'use-async-effect';

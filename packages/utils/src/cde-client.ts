@@ -1,13 +1,17 @@
 import { z } from 'zod';
 import { CdeConnection, CdeMessage } from './cde-connection';
 import {
+  Amount,
   CheckoutPreviewRequest,
   ConfirmPaymentFlowRequest,
   ConfirmPaymentFlowResponse,
+  FieldName,
   PaymentFlowStartedEventPayload,
   SubmitEventPayload,
 } from './shared-models';
 import { CDEResponseError, PaymentFormPrefill, PreviewCheckoutResponse } from './cde_models';
+import { sleep } from './stripe';
+import { sum } from './math';
 
 export const queryCDE = async <T extends z.ZodType>(
   cdeConn: CdeConnection,
@@ -63,4 +67,63 @@ export const confirmPaymentFlow = async (
   payload: ConfirmPaymentFlowRequest
 ): Promise<ConfirmPaymentFlowResponse> => {
   return await queryCDE(cdeConn, { type: 'confirm_payment_flow', payload }, ConfirmPaymentFlowResponse);
+};
+
+export const waitForFormFieldInput = async (
+  formDiv: HTMLDivElement,
+  fieldName: FieldName,
+  waitTimeMs?: number
+): Promise<HTMLInputElement | null> => {
+  const startWaitTime = Date.now();
+  waitTimeMs = waitTimeMs ?? 5000;
+  while (Date.now() - startWaitTime < waitTimeMs) {
+    const match = formDiv.querySelector(`input[data-opid=${fieldName}]`);
+    if (match !== null) {
+      if (!(match instanceof HTMLInputElement)) {
+        throw new Error(`Invalid state: matched input element had wrong class: ${match.tagName}`);
+      }
+      return match;
+    }
+    await sleep(300);
+  }
+  console.warn('Cannot find promo code input');
+  return null;
+};
+
+export const getCheckoutValue = async (
+  cdeConn: CdeConnection,
+  secureToken: string,
+  promoCode: string | undefined
+): Promise<Amount> => {
+  const checkoutPreview = await getCheckoutPreview(cdeConn, {
+    secure_token: secureToken,
+    promotion_code: promoCode,
+  });
+  const currencies = new Set(checkoutPreview.preview.invoices.map((inv) => inv.currency));
+  if (currencies.size !== 1) {
+    throw new Error(`Expected exactly one currency, got ${currencies.size}`);
+  }
+  const currency = currencies.values().next().value ?? 'usd';
+  const amountAtom = sum(checkoutPreview.preview.invoices.map((inv) => inv.remaining_amount_atom));
+  return {
+    currency,
+    amountAtom,
+  };
+};
+
+export const getCheckoutPreviewAmount = async (
+  cdeConn: CdeConnection,
+  secureToken: string,
+  isSetupMode: boolean,
+  promoCode: string | undefined
+): Promise<Amount> => {
+  // TODO refactor this later
+  if (isSetupMode) {
+    // TODO check later if there's a way to know currency in advance for setup mode
+    return { amountAtom: 0, currency: 'usd' };
+  } else {
+    promoCode = !promoCode ? undefined : promoCode;
+    const checkoutPreview = await getCheckoutValue(cdeConn, secureToken, promoCode);
+    return { amountAtom: checkoutPreview.amountAtom, currency: checkoutPreview.currency };
+  }
 };

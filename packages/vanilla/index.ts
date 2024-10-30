@@ -8,7 +8,7 @@ import {
 } from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
 import { ConnectionManager, createConnection } from './utils/connection';
-import { initializePaymentRequests } from './utils/payment-request';
+import { initializePaymentRequests, PaymentRequestProvider } from './utils/payment-request';
 
 export { FieldName };
 
@@ -29,7 +29,7 @@ export type ElementsFormProps = {
   onCheckoutError?: (message: string) => void;
   baseUrl?: string;
   formTarget?: string;
-  onPaymentRequestLoad?: (paymentRequests: Record<'apple_pay' | 'google_pay', PaymentRequestStatus>) => void;
+  onPaymentRequestLoad?: (paymentRequests: Record<PaymentRequestProvider, PaymentRequestStatus>) => void;
 };
 
 export type Config = ElementsFormProps & { _frameUrl?: URL };
@@ -45,7 +45,7 @@ export class OpenPayForm {
   private eventHandler: OpenPayFormEventHandler;
   private formProperties: { height: string };
   private connectionManager: ConnectionManager;
-  private paymentRequests: Record<'apple_pay' | 'google_pay', PaymentRequestStatus>;
+  private paymentRequests: Record<PaymentRequestProvider, PaymentRequestStatus>;
   private elements: Record<
     ElementType,
     { type: ElementType; node: HTMLIFrameElement; mount: (selector: string) => void }
@@ -85,10 +85,11 @@ export class OpenPayForm {
     }
   }
 
-  private initPaymentRequests(): Record<'apple_pay' | 'google_pay', PaymentRequestStatus> {
+  private initPaymentRequests(): Record<PaymentRequestProvider, PaymentRequestStatus> {
     return {
       apple_pay: { isLoading: true, isAvailable: false, startFlow: async () => {} },
       google_pay: { isLoading: true, isAvailable: false, startFlow: async () => {} },
+      stripe_link: { isLoading: true, isAvailable: false, startFlow: async () => {} },
     };
   }
 

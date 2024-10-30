@@ -13,12 +13,12 @@ import {
   PaymentRequestStatus,
   CdeConnection,
   DynamicPreview,
+  getCheckoutPreviewAmount,
 } from '@getopenpay/utils';
 import useMap from './use-map';
 import useAsyncEffect from 'use-async-effect';
 import { z } from 'zod';
 import { PaymentRequestPaymentMethodEvent, PaymentRequest } from '@stripe/stripe-js';
-import { getCheckoutPreviewAmount } from './use-dynamic-preview';
 import { useEffect, useState } from 'react';
 
 const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay', 'stripe_link']);

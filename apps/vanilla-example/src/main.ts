@@ -105,26 +105,42 @@ function initializeForm(token: string) {
         const applePayButton = document.querySelector('#apple-pay-button') as HTMLButtonElement;
         if (applePayButton) {
           applePayButton.style.display = 'flex';
-        }
-        applePayButton.addEventListener('click', () => {
-          console.log('Apple Pay button clicked');
-          paymentRequests.apple_pay.startFlow({
-            overridePaymentRequest: { amount: { amountAtom: 420, currency: 'usd' }, pending: false },
+
+          applePayButton.addEventListener('click', () => {
+            console.log('Apple Pay button clicked');
+            paymentRequests.apple_pay.startFlow({
+              overridePaymentRequest: { amount: { amountAtom: 420, currency: 'usd' }, pending: false },
+            });
           });
-        });
+        }
       }
       if (paymentRequests.google_pay.isAvailable) {
         console.log('Google Pay is available');
         const googlePayButton = document.querySelector('#google-pay-button') as HTMLButtonElement;
         if (googlePayButton) {
           googlePayButton.style.display = 'flex';
-        }
-        googlePayButton.addEventListener('click', () => {
-          console.log('Google Pay button clicked');
-          paymentRequests.google_pay.startFlow({
-            overridePaymentRequest: { amount: { amountAtom: 420, currency: 'usd' }, pending: false },
+
+          googlePayButton.addEventListener('click', () => {
+            console.log('Google Pay button clicked');
+            paymentRequests.google_pay.startFlow({
+              overridePaymentRequest: { amount: { amountAtom: 420, currency: 'usd' }, pending: false },
+            });
           });
-        });
+        }
+      }
+      if (paymentRequests.stripe_link.isAvailable) {
+        console.log('Stripe Link is available');
+        const stripeLinkButton = document.querySelector('#stripe-link-button') as HTMLButtonElement;
+        if (stripeLinkButton) {
+          stripeLinkButton.style.display = 'flex';
+
+          stripeLinkButton.addEventListener('click', () => {
+            console.log('Stripe Link button clicked');
+            paymentRequests.stripe_link.startFlow({
+              overridePaymentRequest: { amount: { amountAtom: 420, currency: 'usd' }, pending: false },
+            });
+          });
+        }
       }
     },
   });
