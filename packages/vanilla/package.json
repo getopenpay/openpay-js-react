@@ -28,7 +28,7 @@
     "lint:fix": "eslint . --fix --report-unused-disable-directives --max-warnings 0",
     "prepare": "husky",
     "build": "tsc -p tsconfig.build.json && vite build",
-    "dev": "tsc -p tsconfig.build.json && NODE_ENV=development vite build --mode development --watch"
+    "dev": "tsc -p tsconfig.build.json && vite build --mode development --watch"
   },
   "dependencies": {
     "@stripe/stripe-js": "^4.3.0",

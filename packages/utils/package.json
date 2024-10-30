@@ -14,7 +14,8 @@
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
-    "build": "vite build",
+    "build": "tsc -p tsconfig.json && vite build",
+    "dev": "tsc -p tsconfig.json && vite build --mode development --watch",
     "generate:component": "turbo gen react-component"
   },
   "dependencies": {
