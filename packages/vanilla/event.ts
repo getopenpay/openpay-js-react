@@ -20,9 +20,11 @@ import {
   getErrorMessage,
   TokenizeSuccessEventPayload,
   AllFieldNames,
+  CheckoutPaymentMethod,
 } from '@getopenpay/utils';
 import { OpenPayForm } from './index';
 import { ConnectionManager } from './utils/connection';
+import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 
 export class OpenPayFormEventHandler {
   formInstance: OpenPayForm;
@@ -33,6 +35,7 @@ export class OpenPayFormEventHandler {
   private config: OpenPayForm['config'];
   private tokenized: number;
   private connectionManager: ConnectionManager;
+  private stripePm: PaymentRequestPaymentMethodEvent | undefined;
 
   constructor(formInstance: OpenPayForm) {
     this.formInstance = formInstance;
@@ -185,10 +188,10 @@ export class OpenPayFormEventHandler {
       } else if (nextActionType === 'stripe_3ds') {
         await confirmPaymentFlowFor3DS(payload);
       } else if (nextActionType === 'stripe_payment_request') {
-        if (!this.formInstance.getStripePm()) {
+        if (!this.stripePm) {
           throw new Error(`Stripe PM not set`);
         }
-        await confirmPaymentFlowForStripePR(payload, this.formInstance.getStripePm()!);
+        await confirmPaymentFlowForStripePR(payload, this.stripePm);
       } else {
         throw new Error(`Unknown next action type: ${nextActionType}`);
       }
@@ -348,6 +351,34 @@ export class OpenPayFormEventHandler {
       this.postEventToFrame(target, elementId, tokenizeData);
     }
     this.tokenizedData = tokenizeData;
+  }
+
+  async onUserCompletePaymentRequestUI(
+    stripePm: PaymentRequestPaymentMethodEvent,
+    checkoutPaymentMethod: CheckoutPaymentMethod
+  ): Promise<void> {
+    if (!this.config.onValidationError || !this.formInstance.sessionId || !this.formInstance.checkoutPaymentMethods)
+      return;
+
+    for (const [elementId, element] of Object.entries(this.eventTargets ?? {})) {
+      const paymentFlowMetadata = { stripePmId: stripePm.paymentMethod.id };
+      const startPaymentFlowEvent = constructSubmitEventPayload(
+        EventType.enum.START_PAYMENT_FLOW,
+        this.formInstance.sessionId,
+        document.querySelector(this.formInstance.formTarget) ?? document.body,
+        this.config.onValidationError,
+        checkoutPaymentMethod,
+        false,
+        paymentFlowMetadata
+      );
+      if (!startPaymentFlowEvent) continue;
+      this.stripePm = stripePm;
+      this.formInstance.checkoutFired = true;
+      this.setTokenizedData(startPaymentFlowEvent);
+      this.postEventToFrame(element, elementId, startPaymentFlowEvent);
+      // emitEvent(element.node.contentWindow!, this.formId, elementId, startPaymentFlowEvent, this.config.baseUrl!);
+      break;
+    }
   }
 
   postEventToFrame(source: MessageEventSource, elementId: string, data: EventPayload) {

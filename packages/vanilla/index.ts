@@ -1,14 +1,11 @@
 import {
   AllFieldNames,
   CheckoutPaymentMethod,
-  constructSubmitEventPayload,
   convertStylesToQueryString,
   ElementProps,
-  EventType,
   FieldName,
   PaymentRequestStatus,
 } from '@getopenpay/utils';
-import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 import { OpenPayFormEventHandler } from './event';
 import { ConnectionManager, createConnection } from './utils/connection';
 import { initializePaymentRequests } from './utils/payment-request';
@@ -48,7 +45,6 @@ export class OpenPayForm {
   private eventHandler: OpenPayFormEventHandler;
   private formProperties: { height: string };
   private connectionManager: ConnectionManager;
-  private stripePm: PaymentRequestPaymentMethodEvent | undefined;
   private paymentRequests: Record<'apple_pay' | 'google_pay', PaymentRequestStatus>;
   private elements: Record<
     ElementType,
@@ -65,7 +61,6 @@ export class OpenPayForm {
     this.sessionId = null;
     this.checkoutPaymentMethods = [];
     this.checkoutFired = false;
-    this.stripePm = undefined;
     this.paymentRequests = this.initPaymentRequests();
     this.connectionManager = new ConnectionManager();
     this.eventHandler = new OpenPayFormEventHandler(this);
@@ -75,10 +70,6 @@ export class OpenPayForm {
     window['ojs_version'] = ojs_version;
 
     window.addEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));
-  }
-
-  public getStripePm() {
-    return this.stripePm;
   }
 
   public getConnectionManager() {
@@ -121,11 +112,11 @@ export class OpenPayForm {
       mount: (selector: string) => document.querySelector(selector)?.appendChild(frame),
     };
 
+    this.connectToElement(element);
     if (this.elements) {
       this.elements[type] = element;
     } else {
       this.elements = { [type]: element } as OpenPayForm['elements'];
-      this.connectToElement(element);
     }
 
     return element;
@@ -153,55 +144,6 @@ export class OpenPayForm {
 
   submit() {
     this.eventHandler.handleFormSubmit();
-    /*
-    if (!this.config.onValidationError || !this.sessionId || !this.checkoutPaymentMethods) return;
-
-    const cardCpm = this.checkoutPaymentMethods.find((cpm) => cpm.provider === 'credit_card');
-    if (!cardCpm) throw new Error('Card not available as a payment method in checkout');
-
-    const extraData = constructSubmitEventPayload(
-      EventType.enum.TOKENIZE,
-      this.sessionId,
-      document.querySelector(this.formTarget) ?? document.body,
-      this.config.onValidationError,
-      cardCpm,
-      false
-    );
-    if (!extraData) return;
-
-    for (const [elementId, element] of Object.entries(this.eventHandler.eventTargets ?? {})) {
-      emitEvent(element, this.formId, elementId, extraData, this.config.baseUrl!);
-    }
-
-    this.eventHandler.setExtraData(extraData);
-    */
-  }
-
-  async onUserCompletePaymentRequestUI(
-    stripePm: PaymentRequestPaymentMethodEvent,
-    checkoutPaymentMethod: CheckoutPaymentMethod
-  ): Promise<void> {
-    if (!this.config.onValidationError || !this.sessionId || !this.checkoutPaymentMethods) return;
-
-    for (const [elementId, element] of Object.entries(this.eventHandler.eventTargets ?? {})) {
-      const paymentFlowMetadata = { stripePmId: stripePm.paymentMethod.id };
-      const startPaymentFlowEvent = constructSubmitEventPayload(
-        EventType.enum.START_PAYMENT_FLOW,
-        this.sessionId,
-        document.querySelector(this.formTarget) ?? document.body,
-        this.config.onValidationError,
-        checkoutPaymentMethod,
-        false,
-        paymentFlowMetadata
-      );
-      if (!startPaymentFlowEvent) continue;
-      this.stripePm = stripePm;
-      this.checkoutFired = true;
-      this.eventHandler.setTokenizedData(startPaymentFlowEvent);
-      this.eventHandler.postEventToFrame(element, elementId, startPaymentFlowEvent);
-      // emitEvent(element.node.contentWindow!, this.formId, elementId, startPaymentFlowEvent, this.config.baseUrl!);
-      break;
-    }
   }
 
   onPaymentRequestError(errMsg: string): void {
@@ -223,7 +165,7 @@ export class OpenPayForm {
       this.config,
       this.checkoutPaymentMethods,
       cdeConn,
-      this.onUserCompletePaymentRequestUI.bind(this),
+      this.eventHandler.onUserCompletePaymentRequestUI.bind(this.eventHandler),
       this.config.onValidationError,
       this.onPaymentRequestError.bind(this)
     );
