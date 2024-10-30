@@ -6,8 +6,8 @@ on:
       - main
 
 jobs:
-  publish-react:
-    name: Publish React to NPM (Alpha)
+  publish:
+    name: Publish packages to NPM (Alpha)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -19,49 +19,36 @@ jobs:
       - name: Set hash and version variable
         run: |
           echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-          echo "VERSION=$(npm view ./ version)" >> $GITHUB_ENV
-          echo "RELEASE_VERSION=$(npm view ./ version)-alpha.$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
-      - name: Build React package
+      - name: Build packages
         run: |
           npm ci
-          npm run build:react:alpha
+          npm run build
 
       - name: Publish React package
         working-directory: ./packages/react
         run: |
-          npm version ${{ env.VERSION }}-alpha.${{ env.COMMIT_HASH }} --no-git-tag-version
-          npm publish --tag alpha --access public
+          echo "Preparing to publish vanilla package"
+          echo "VERSION=$(npm view ./ version)" >> $GITHUB_ENV
+          echo "RELEASE_VERSION=$(npm view ./ version)-alpha.$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "VERSION: ${{ env.VERSION }}"
+          echo "COMMIT_HASH: ${{ env.COMMIT_HASH }}"
+          echo "RELEASE_VERSION: ${{ env.RELEASE_VERSION }}"
+
+        # npm version ${{ env.VERSION }}-alpha.${{ env.COMMIT_HASH }} --no-git-tag-version
+        # npm publish --tag alpha --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
-  publish-vanilla:
-    name: Publish Vanilla to NPM (Alpha)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org/
-
-      - name: Set hash and version variable
-        run: |
-          echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-          echo "VERSION=$(node -p "require('./packages/vanilla/package.json').version")" >> $GITHUB_ENV
-
-      - name: Build Vanilla package
-        run: echo "Skipping for testing purposes"
-        # run: |
-        #   npm ci
-        #   npm run build:vanilla:alpha
-
-      - name: Publish Vanilla package
+      - name: Publish vanilla package
         working-directory: ./packages/vanilla
         run: |
-          echo "Skipping for testing purposes"
-        # run: |
-        #   npm version ${{ env.RELEASE_VERSION }} --no-git-tag-version
-        #   npm publish --tag alpha --access public
-        # env:
-        #   NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          echo "Preparing to publish vanilla package"
+          echo "VERSION=$(npm view ./ version)" >> $GITHUB_ENV
+          echo "RELEASE_VERSION=$(npm view ./ version)-alpha.$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "VERSION: ${{ env.VERSION }}"
+          echo "COMMIT_HASH: ${{ env.COMMIT_HASH }}"
+          echo "RELEASE_VERSION: ${{ env.RELEASE_VERSION }}"
+
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

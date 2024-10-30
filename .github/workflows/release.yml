@@ -5,7 +5,7 @@ on:
     types: [created]
 
 jobs:
-  publish-react:
+  publish-packages:
     name: Publish React to NPM
     runs-on: ubuntu-latest
     steps:
@@ -15,18 +15,20 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org/
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Build packages
+        run: |
+          npm ci
+          npm run build
 
       - name: Build and publish React package (alpha)
         if: 'github.event.release.prerelease'
         working-directory: ./packages/react
         run: |
           RELEASE_VERSION=${{ github.ref_name }}
-          npm run build:alpha
           echo "Tag name from github.ref_name: ${{  github.ref_name }}"
-          npm version $RELEASE_VERSION --no-git-tag-version
-          npm publish --tag alpha --access public
+          echo "RELEASE_VERSION: $RELEASE_VERSION"
+        # npm version $RELEASE_VERSION --no-git-tag-version
+        # npm publish --tag alpha --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
@@ -34,44 +36,26 @@ jobs:
         if: '!github.event.release.prerelease'
         working-directory: ./packages/react
         run: |
-          npm run build
-          npm publish --access public
+          RELEASE_VERSION=$(npm view ./ version)
+          echo "RELEASE_VERSION: $RELEASE_VERSION"
+        # npm run build
+        # npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
 
-  publish-vanilla:
-    name: Publish Vanilla to NPM
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org/
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build and publish Vanilla package (alpha)
+      - name: Publish Vanilla package (alpha)
         if: 'github.event.release.prerelease'
         working-directory: ./packages/vanilla
         run: |
-          echo "Skipping for testing purposes"
-        # run: |
-        #   npm run build:alpha
-        #   npm version ${{ github.ref_name }} --no-git-tag-version
-        #   npm publish --tag alpha --access public
-        # env:
-        #   NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          RELEASE_VERSION=${{ github.ref_name }}
+          echo "Tag name from github.ref_name: ${{  github.ref_name }}"
+          echo "RELEASE_VERSION: $RELEASE_VERSION"
 
-      - name: Build and publish Vanilla package (stable)
+      - name: Publish Vanilla package (stable)
         if: '!github.event.release.prerelease'
         working-directory: ./packages/vanilla
         run: |
-          echo "Skipping for testing purposes"
-        # run: |
-        #   RELEASE_VERSION=$(npm view ./ version)
-        #   npm run build
-        #   npm publish --access public
-        # env:
-        #   NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          RELEASE_VERSION=$(npm view ./ version)
+          echo "RELEASE_VERSION: $RELEASE_VERSION"
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

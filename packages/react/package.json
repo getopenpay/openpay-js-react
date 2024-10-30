@@ -18,11 +18,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json && vite build",
     "build:alpha": "npm run build -- --mode staging",
-    "dev": "tsc -p tsconfig.build.json && NODE_ENV=development vite build --mode development --watch",
+    "dev": "tsc -p tsconfig.build.json && vite build --mode development --watch",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
-    "lint:fix": "eslint . --fix --report-unused-disable-directives --max-warnings 0",
-    "test": "NODE_ENV=development npm run build -- --mode development && playwright test",
-    "prepare": "husky"
+    "lint:fix": "eslint . --fix --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
     "use-async-effect": "^2.2.7",
