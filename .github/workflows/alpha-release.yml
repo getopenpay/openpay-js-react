@@ -7,8 +7,11 @@ on:
 
 jobs:
   publish:
-    name: Publish packages to NPM (Alpha)
+    name: Publish ${{ matrix.package }} to NPM (Alpha)
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [react, vanilla]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -25,30 +28,16 @@ jobs:
           npm ci
           npm run build:packages
 
-      - name: Publish React package
-        working-directory: ./packages/react
+      - name: Publish package
+        working-directory: ./packages/${{ matrix.package }}s
         run: |
-          echo "Preparing to publish vanilla package"
+          echo "Preparing to publish ${{ matrix.package }} package"
           echo "VERSION=$(npm view ./ version)" >> $GITHUB_ENV
           echo "RELEASE_VERSION=$(npm view ./ version)-alpha.$(git rev-parse --short HEAD)" >> $GITHUB_ENV
           echo "VERSION: ${{ env.VERSION }}"
           echo "COMMIT_HASH: ${{ env.COMMIT_HASH }}"
           echo "RELEASE_VERSION: ${{ env.RELEASE_VERSION }}"
-
         # npm version ${{ env.VERSION }}-alpha.${{ env.COMMIT_HASH }} --no-git-tag-version
         # npm publish --tag alpha --access public
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-
-      - name: Publish vanilla package
-        working-directory: ./packages/vanilla
-        run: |
-          echo "Preparing to publish vanilla package"
-          echo "VERSION=$(npm view ./ version)" >> $GITHUB_ENV
-          echo "RELEASE_VERSION=$(npm view ./ version)-alpha.$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-          echo "VERSION: ${{ env.VERSION }}"
-          echo "COMMIT_HASH: ${{ env.COMMIT_HASH }}"
-          echo "RELEASE_VERSION: ${{ env.RELEASE_VERSION }}"
-
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
