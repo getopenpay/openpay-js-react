@@ -30,8 +30,8 @@ jobs:
           npm run build:packages
 
       - name: Publish package
-        working-directory: ./packages/${{ matrix.package }}
         run: |
+          cd packages/${{ matrix.package }}
           echo "Preparing to publish ${{ matrix.package }} package"
           echo "VERSION=$(npm view ./ version)" >> $GITHUB_ENV
           echo "RELEASE_VERSION=$(npm view ./ version)-alpha.$(git rev-parse --short HEAD)" >> $GITHUB_ENV
