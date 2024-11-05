@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@getopenpay/js": "*",
+    "@getopenpay/openpay-js": "*",
     "@stripe/stripe-js": "^4.3.0"
   },
   "devDependencies": {
