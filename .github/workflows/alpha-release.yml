@@ -31,14 +31,15 @@ jobs:
 
       - name: Publish package
         run: |
-          cd packages/${{ matrix.package }}
           echo "Preparing to publish ${{ matrix.package }} package"
-          echo "VERSION=$(npm view ./ version)" >> $GITHUB_ENV
-          echo "RELEASE_VERSION=$(npm view ./ version)-alpha.$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "VERSION=$(npm view ./packages/${{ matrix.package }} version)" >> $GITHUB_ENV
+          echo "RELEASE_VERSION=$(npm view ./packages/${{ matrix.package }} version)-alpha.$(git rev-parse --short HEAD)" >> $GITHUB_ENV
           echo "VERSION: ${{ env.VERSION }}"
           echo "COMMIT_HASH: ${{ env.COMMIT_HASH }}"
           echo "RELEASE_VERSION: ${{ env.RELEASE_VERSION }}"
-        # npm version ${{ env.VERSION }}-alpha.${{ env.COMMIT_HASH }} --no-git-tag-version
+          cd ./packages/${{ matrix.package }} && echo "Current directory: $(pwd)"
+          echo "Current directory content: $(pwd)"
+        # cd ./packages/${{ matrix.package }} && npm version ${{ env.RELEASE_VERSION }} --no-git-tag-version
         # npm publish --tag alpha --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

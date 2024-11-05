@@ -1,5 +1,5 @@
 import './style.css';
-import { OpenPayForm } from '@getopenpay/js';
+import { OpenPayForm } from '@getopenpay/openpay-js';
 import { loadStripe } from '@stripe/stripe-js';
 
 const urlParams = new URLSearchParams(window.location.search);
