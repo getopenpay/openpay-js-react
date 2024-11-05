@@ -31,6 +31,7 @@ jobs:
 
       - name: Publish package
         run: |
+          cd packages/${{ matrix.package }}
           echo "Preparing to publish ${{ matrix.package }} package"
           echo "VERSION=$(npm view ./packages/${{ matrix.package }} version)" >> $GITHUB_ENV
           echo "RELEASE_VERSION=$(npm view ./packages/${{ matrix.package }} version)-alpha.$(git rev-parse --short HEAD)" >> $GITHUB_ENV
