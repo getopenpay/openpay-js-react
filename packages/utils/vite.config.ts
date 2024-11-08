@@ -12,7 +12,7 @@ export default defineConfig({
       fileName: () => 'index.js',
     },
     rollupOptions: {
-      external: ['penpal', 'use-async-effect', 'uuid', 'zod'],
+      external: ['react', 'react-dom', 'react/jsx-runtime', 'penpal', 'use-async-effect', 'uuid', 'zod'],
       output: {
         assetFileNames: 'assets/[name][extname]',
       },
