@@ -3,19 +3,29 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*", "*/**", "tsconfig.json", "vite.config.ts"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*",
+        "index.ts",
+        "src/**/*.{ts,tsx,js,jsx}",
+        "tsconfig.json",
+        "tsconfig.*.json",
+        "vite.config.ts"
+      ],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", ".vite/**", "*.tsbuildinfo"]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "outputs": []
     },
     "lint:fix": {
-      "dependsOn": ["^lint:fix"]
+      "outputs": []
     },
     "dev": {
+      "cache": false,
       "persistent": true
     },
     "preview": {
+      "cache": false,
       "persistent": true
     }
   }

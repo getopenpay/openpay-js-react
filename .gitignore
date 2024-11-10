@@ -30,8 +30,10 @@ playwright-report
 
 ngrok.yml
 
+# Build caches
 .turbo
-
+.vite
+*.tsbuildinfo
 
 # Vite generated temporary files
 *.timestamp-*.mjs

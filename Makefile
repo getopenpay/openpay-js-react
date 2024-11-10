@@ -13,6 +13,10 @@ build:
 	npm run lint
 	npm run build
 
+# This will build only the packages and not the example apps
+build-packages:
+	npm run build:packages
+
 # Preview example apps using build outputs
 # Note: this requires the build step to have been run first
 preview:
