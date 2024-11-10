@@ -4,24 +4,33 @@ import dts from 'vite-plugin-dts';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react/jsx-runtime', 'penpal', 'use-async-effect', 'uuid', 'zod'],
+  },
   build: {
     copyPublicDir: false,
     lib: {
       formats: ['es'],
       entry: resolve(__dirname, './index.ts'),
-      fileName: () => 'index.js',
+      fileName: `index`,
     },
+    // commonjsOptions: {
+    //   include: ['react', 'react-dom', 'react/jsx-runtime', 'penpal', 'use-async-effect', 'uuid', 'zod'],
+    // },
     rollupOptions: {
-      external: ['react', 'react-dom', 'react/jsx-runtime', 'penpal', 'use-async-effect', 'uuid', 'zod'],
+      external: ['react', 'react-dom', 'react/jsx-runtime'],
       output: {
-        assetFileNames: 'assets/[name][extname]',
+        globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM',
+        },
       },
     },
   },
   plugins: [
     dts({
       rollupTypes: true,
-      tsconfigPath: resolve(__dirname, 'tsconfig.json'),
+      tsconfigPath: resolve(__dirname, 'tsconfig.build.json'),
     }),
   ],
 });

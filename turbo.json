@@ -1,17 +1,21 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["VITE_CDE_BASE_URL"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*", "src/**", "tsconfig.json", "vite.config.ts"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "*/**", "tsconfig.json", "vite.config.ts"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]
     },
+    "lint:fix": {
+      "dependsOn": ["^lint:fix"]
+    },
     "dev": {
-      "cache": false,
+      "persistent": true
+    },
+    "preview": {
       "persistent": true
     }
   }

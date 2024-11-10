@@ -1,5 +1,5 @@
 {
-  "extends": "@getopenpay/typescript-config/build.json",
+  "extends": "@getopenpay/config/build-tsconfig",
   "compilerOptions": {
     "outDir": "dist"
   },

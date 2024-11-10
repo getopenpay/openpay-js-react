@@ -7,6 +7,9 @@ export default defineConfig({
   esbuild: {
     drop: process.env.NODE_ENV === 'development' ? [] : ['console', 'debugger'],
   },
+  optimizeDeps: {
+    include: ['@getopenpay/utils', 'penpal', 'uuid', 'zod'],
+  },
   build: {
     copyPublicDir: false,
     lib: {
@@ -15,7 +18,7 @@ export default defineConfig({
       fileName: (format) => `index.${format}.js`,
     },
     rollupOptions: {
-      external: ['@stripe/stripe-js', 'uuid', 'zod', 'penpal'],
+      external: ['@stripe/stripe-js'],
       output: {
         assetFileNames: 'assets/[name][extname]',
       },
@@ -24,7 +27,6 @@ export default defineConfig({
   plugins: [
     dts({
       rollupTypes: true,
-      bundledPackages: ['@getopenpay/utils'],
       tsconfigPath: resolve(__dirname, 'tsconfig.build.json'),
     }),
   ],

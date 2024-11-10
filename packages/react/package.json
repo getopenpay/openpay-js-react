@@ -17,8 +17,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json && vite build",
-    "build:alpha": "npm run build -- --mode staging",
-    "dev": "tsc -p tsconfig.build.json && vite build --mode development --watch",
+    "dev": "tsc -p tsconfig.build.json & vite build --watch",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --fix --report-unused-disable-directives --max-warnings 0"
   },
@@ -32,8 +31,7 @@
     "react-dom": "^16.x || ^17.x || ^18.x"
   },
   "devDependencies": {
-    "@getopenpay/eslint-config": "*",
-    "@getopenpay/typescript-config": "*",
+    "@getopenpay/config": "*",
     "@getopenpay/utils": "*",
     "@stripe/stripe-js": "^4.3.0",
     "@types/react": "^18.2.0",

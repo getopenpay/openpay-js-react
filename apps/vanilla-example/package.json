@@ -6,13 +6,17 @@
   "scripts": {
     "dev": "vite --port 3033",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview --port 3033",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@getopenpay/openpay-js": "*",
     "@stripe/stripe-js": "^4.3.0"
   },
   "devDependencies": {
+    "@getopenpay/config": "*",
+    "eslint": "^8.57.0",
     "typescript": "^5.5.3",
     "vite": "^5.4.1",
     "vite-plugin-singlefile": "^2.0.2"

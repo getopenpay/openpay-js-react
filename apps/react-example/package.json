@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3032",
     "build": "next build",
-    "start": "next start -p 3131",
+    "preview": "next start -p 3131",
     "lint": "next lint",
     "lint:fix": "next lint --fix"
   },
@@ -20,8 +20,7 @@
     "react-dom": "^18"
   },
   "devDependencies": {
-    "@getopenpay/eslint-config": "*",
-    "@getopenpay/typescript-config": "*",
+    "@getopenpay/config": "*",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

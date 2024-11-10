@@ -1,5 +1,5 @@
 {
-  "name": "@getopenpay",
+  "name": "@getopenpay/core",
   "description": "Accept payments through OpenPay, right on your site",
   "author": "OpenPay <info@getopenpay.com> (https://getopenpay.com)",
   "license": "ISC",
@@ -10,7 +10,7 @@
     "dev": "turbo dev",
     "lint": "turbo lint",
     "lint:fix": "turbo lint -- --fix",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "preview": "turbo run preview --filter=react-example --filter=vanilla-example"
   },
   "devDependencies": {
     "prettier": "^3.2.5",

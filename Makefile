@@ -9,6 +9,7 @@ dev:
 start: dev
 
 build:
+	npm run lint
 	npm run build
 
 publish: build
@@ -17,4 +18,3 @@ publish: build
 
 precommit:
 	npm run lint:fix
-	cd ./example && npm run lint:fix
