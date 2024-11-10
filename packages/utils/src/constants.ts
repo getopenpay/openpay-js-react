@@ -1,1 +1,1 @@
-export const FRAME_BASE_URL = 'https://cde.getopenpay.com/sdfsd';
+export const FRAME_BASE_URL = 'https://cde.getopenpay.com';
