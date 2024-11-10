@@ -1,15 +1,25 @@
-.PHONY: install dev start install-stg install-dev install-prod
+.PHONY: dev preview build install install-dev install-alpha install-latest dev-stg dev-prod
 
-install-stg:
-	python ./install_helper.py stg
+install:
+	npm install
 
 install-dev:
-	python ./install_helper.py dev
+	python ../install_helper.py dev @getopenpay/openpay-js-react
 
-install-prod:
-	python ./install_helper.py prod
+install-alpha:
+	python ../install_helper.py alpha @getopenpay/openpay-js-react
 
-dev:
-	npm run dev
+install-latest:
+	python ../install_helper.py latest @getopenpay/openpay-js-react
 
-start: dev
+dev-stg:
+	npm run dev:stg
+
+dev-prod:
+	npm run dev:prod
+
+preview:
+	npm run preview
+
+build:
+	npm run build

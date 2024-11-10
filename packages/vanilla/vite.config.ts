@@ -8,7 +8,7 @@ export default defineConfig({
     drop: process.env.NODE_ENV === 'development' ? [] : ['console', 'debugger'],
   },
   optimizeDeps: {
-    include: ['@getopenpay/utils', 'penpal', 'uuid', 'zod'],
+    include: ['penpal', 'uuid', 'zod'],
   },
   build: {
     copyPublicDir: false,
