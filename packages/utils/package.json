@@ -9,7 +9,7 @@
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "build": "tsc -p tsconfig.build.json && vite build",
-    "dev": "tsc -p tsconfig.build.json"
+    "dev": "vite build --watch"
   },
   "dependencies": {
     "penpal": "^6.2.2",

@@ -33,6 +33,7 @@ export default defineConfig({
     react(),
     dts({
       rollupTypes: true,
+      include: ['**/*', '../utils/**/*'], // Needs this to invalidate when utils change
       tsconfigPath: resolve(__dirname, 'tsconfig.build.json'),
     }),
   ],
