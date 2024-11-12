@@ -8,6 +8,11 @@ install:
 dev: 
 	npm run dev
 
+# This will run only the packages in watch mode
+# Can be useful for development with staging or production CDE in example apps
+dev-packages:
+	npm run dev-packages
+
 # This will lint and build all packages and example apps
 build:
 	npm run lint
@@ -15,7 +20,7 @@ build:
 
 # This will build only the packages and not the example apps
 build-packages:
-	npm run build:packages
+	npm run build-packages
 
 # Preview example apps using build outputs
 # Note: this requires the build step to have been run first

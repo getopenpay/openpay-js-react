@@ -12,6 +12,7 @@ export default defineConfig({
     include: ['@getopenpay/utils', 'penpal', 'use-async-effect', 'uuid', 'zod'],
   },
   build: {
+    emptyOutDir: false,
     copyPublicDir: false,
     lib: {
       entry: resolve(__dirname, './index.ts'),

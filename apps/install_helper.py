@@ -13,7 +13,7 @@ import sys
 def run_cmd(cmd_arr, show_log=True):
     if show_log:
         print(f'🏃 {" ".join(cmd_arr)}')
-    process = subprocess.run(cmd_arr, stdout=subprocess.PIPE)
+    process = subprocess.run(cmd_arr, stdout=subprocess.PIPE, check=True)
     return process.stdout.decode('utf-8')
 
 

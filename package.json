@@ -6,11 +6,12 @@
   "private": true,
   "scripts": {
     "build": "turbo build",
-    "build:packages": "turbo build --filter=@getopenpay/*",
+    "build-packages": "turbo build --filter=@getopenpay/*",
     "dev": "turbo dev",
     "lint": "turbo lint",
     "lint:fix": "turbo lint -- --fix",
-    "preview": "turbo run preview --filter=react-example --filter=vanilla-example"
+    "preview": "turbo run preview --filter=react-example --filter=vanilla-example",
+    "dev-packages": "turbo run dev --filter=@getopenpay/*"
   },
   "devDependencies": {
     "prettier": "^3.2.5",

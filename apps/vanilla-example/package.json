@@ -5,15 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "VITE_BASE_URL=http://localhost:8001 vite --port 3033",
-    "dev:stg": "VITE_BASE_URL=https://cde.openpaystaging.com vite --port 3033",
-    "dev:prod": "VITE_BASE_URL=https://cde.getopenpay.com vite --port 3033",
+    "dev-stg": "VITE_BASE_URL=https://cde.openpaystaging.com vite --port 3033",
+    "dev-prod": "VITE_BASE_URL=https://cde.getopenpay.com vite --port 3033",
     "build": "tsc && vite build",
     "preview": "vite preview --port 3033",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
-    "@getopenpay/openpay-js": "0.1.4",
+    "@getopenpay/openpay-js": "*",
     "@stripe/stripe-js": "^4.3.0"
   },
   "devDependencies": {

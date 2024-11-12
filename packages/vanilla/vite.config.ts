@@ -11,6 +11,7 @@ export default defineConfig({
     include: ['penpal', 'uuid', 'zod'],
   },
   build: {
+    emptyOutDir: false,
     copyPublicDir: false,
     lib: {
       name: 'OpenPay',

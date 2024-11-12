@@ -13,10 +13,10 @@ install-latest:
 	python ../install_helper.py latest @getopenpay/openpay-js-react
 
 dev-stg:
-	npm run dev:stg
+	npm run dev-stg
 
 dev-prod:
-	npm run dev:prod
+	npm run dev-prod
 
 preview:
 	npm run preview
