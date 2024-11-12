@@ -45,6 +45,29 @@ It will watch for changes in all dependencies and apps.
 
 The example apps will default the base url to local CDE (http://localhost:8001) and will use the local version of the packages.
 
+## Publishing packages
+
+For consistent versioning, we should use the same version for both packages.
+To update the version of the packages, run `make bump-version VERSION=<version_number>`.
+
+If you're updating something in the `packages/**`, please make sure to update the version of the packages.
+
+The workflow will process publishing the packages to npm after respective release is published in GitHub.
+
+### Pre-release (alpha)
+
+- PR containing version bump merged to main,
+- create a new release in GitHub with a tag the same as the version number + `-alpha`.
+  for example, if the version is `0.1.4`, the tag should be `0.1.4-alpha`.
+- Choose `Set as the pre-release` and publish the release.
+
+### Latest release
+
+- PR containing version bump merged to main,
+- create a new release in GitHub with a tag the same as the version number.
+  for example, if the version is `0.1.4`, the tag should be `0.1.4`.
+- Choose `Set as the latest release` and publish the release.
+
 ## Development with staging or production CDE
 
 In some cases, if we don't need to use local CDE or want to test with staging or production CDE:

@@ -31,6 +31,7 @@ preview:
 precommit:
 	npm run lint:fix
 
-publish: build
-	npm whoami || npm adduser
-	npm publish
+# Usage: make bump-version VERSION=patch|minor|major|1.2.3 [COMMIT=false]
+bump-version:
+	cd packages/vanilla && npm version $(VERSION) 
+	cd packages/react && npm version $(VERSION)

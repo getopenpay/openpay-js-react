@@ -23,6 +23,7 @@ jobs:
         run: |
           npm ci
           npm run build-packages
+        # This step is currently not really necessary, but it will be needed if we use the vanilla package in the react package
 
       - name: Publish package
         working-directory: ./packages/${{ matrix.package }}
