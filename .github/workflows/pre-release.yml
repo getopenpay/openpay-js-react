@@ -1,0 +1,36 @@
+name: 'Publish pre-release'
+
+on:
+  release:
+    types: [prereleased]
+
+jobs:
+  publish-packages:
+    name: Publish packages to NPM (Pre-release)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [react, vanilla]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org/
+          cache: 'npm'
+
+      - name: Build packages
+        run: |
+          npm ci
+          npm run build-packages
+
+      - name: Publish package
+        working-directory: ./packages/${{ matrix.package }}
+        run: |
+          RELEASE_VERSION=${{ github.ref_name }}
+          echo "Tag name from github.ref_name: ${{ github.ref_name }}"
+          echo "RELEASE_VERSION: $RELEASE_VERSION"
+          npm version $RELEASE_VERSION --no-git-tag-version
+          npm publish --tag alpha --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

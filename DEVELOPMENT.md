@@ -28,12 +28,15 @@ If a new file is added to utils, it should be added to the `index.ts` exports.
 
 The `@getopenpay/openpay-js` package. It is bundled to the dist folder to be publishable.
 
-- vite library configuration is used to generate `umd` and `esm` bundles of the package.
+- vite library configuration is used to generate `umd` and `esm` bundles of the package. (umd is to be used able to use directly in the browser without bundler and esm is to be used in the bundler environment)
 - vite dts plugin + `tsconfig.build.json` is used to generate the types.
 
 ### packages/react
 
 The `@getopenpay/openpay-js-react` package.
+
+- vite library configuration is used to generate `esm` bundle of the package. (since react is mostly used in bundler environment, we only generate `esm` bundle)
+- vite dts plugin + `tsconfig.build.json` is used to generate the types.
 
 ## Local Development
 

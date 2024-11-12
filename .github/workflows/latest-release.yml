@@ -1,0 +1,35 @@
+name: 'Publish latest release'
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  publish-packages:
+    name: Publish packages to NPM (Latest)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [react, vanilla]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org/
+          cache: 'npm'
+
+      - name: Build packages
+        run: |
+          npm ci
+          npm run build:packages
+
+      - name: Publish package
+        working-directory: ./packages/${{ matrix.package }}
+        run: |
+          CURRENT_VERSION=$(npm view ./ version)
+          echo "Current version: $CURRENT_VERSION"
+          npm version ${{ github.ref_name }} --no-git-tag-version
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
