@@ -6,7 +6,7 @@ on:
 
 jobs:
   publish-packages:
-    name: Publish packages to NPM (Latest)
+    name: Publish ${{ matrix.package }} (Latest)
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -22,14 +22,18 @@ jobs:
       - name: Build packages
         run: |
           npm ci
-          npm run build:packages
+          npm run build-packages
 
       - name: Publish package
         working-directory: ./packages/${{ matrix.package }}
         run: |
           CURRENT_VERSION=$(npm view ./ version)
           echo "Current version: $CURRENT_VERSION"
-          npm version ${{ github.ref_name }} --no-git-tag-version
+
+          RELEASE_VERSION=$CURRENT_VERSION
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_ENV
+
+          RELEASE_VERSION=$RELEASE_VERSION npm run build
           npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

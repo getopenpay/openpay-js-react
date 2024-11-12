@@ -6,7 +6,7 @@ on:
 
 jobs:
   publish-packages:
-    name: Publish packages to NPM (Pre-release)
+    name: Publish ${{ matrix.package }} (Pre-release)
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -23,14 +23,16 @@ jobs:
         run: |
           npm ci
           npm run build-packages
-
       - name: Publish package
         working-directory: ./packages/${{ matrix.package }}
         run: |
-          RELEASE_VERSION=${{ github.ref_name }}
-          echo "Tag name from github.ref_name: ${{ github.ref_name }}"
+          CURRENT_VERSION=$(npm view ./ version)
+          echo "Current version: $CURRENT_VERSION"
+          RELEASE_VERSION="$CURRENT_VERSION-alpha.$(git rev-parse --short HEAD)"
           echo "RELEASE_VERSION: $RELEASE_VERSION"
-          npm version $RELEASE_VERSION --no-git-tag-version
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_ENV
+          RELEASE_VERSION=$RELEASE_VERSION npm run build
+          npm version "$RELEASE_VERSION" --no-git-tag-version
           npm publish --tag alpha --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
