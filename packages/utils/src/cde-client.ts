@@ -2,14 +2,25 @@ import { z } from 'zod';
 import { CdeConnection, CdeMessage } from './cde-connection';
 import {
   Amount,
+  CardElementsCheckoutRequest,
   CheckoutPreviewRequest,
   ConfirmPaymentFlowRequest,
   ConfirmPaymentFlowResponse,
+  ElementType,
   FieldName,
   PaymentFlowStartedEventPayload,
+  SetupCheckoutRequest,
   SubmitEventPayload,
+  TokenizeCardRequest,
+  TokenizeCardResponse,
 } from './shared-models';
-import { CDEResponseError, PaymentFormPrefill, PreviewCheckoutResponse } from './cde_models';
+import {
+  CDEResponseError,
+  CheckoutSuccessResponse,
+  PaymentFormPrefill,
+  PreviewCheckoutResponse,
+  SetupCheckoutResponse,
+} from './cde_models';
 import { sleep } from './stripe';
 import { sum } from './math';
 
@@ -126,4 +137,33 @@ export const getCheckoutPreviewAmount = async (
     const checkoutPreview = await getCheckoutValue(cdeConn, secureToken, promoCode);
     return { amountAtom: checkoutPreview.amountAtom, currency: checkoutPreview.currency };
   }
+};
+
+export const tokenizeCard = async (
+  allCdeConnections: Map<ElementType, CdeConnection>,
+  payload: TokenizeCardRequest
+): Promise<TokenizeCardResponse[]> => {
+  if (allCdeConnections.size === 0) {
+    throw new Error('No CDE connections found');
+  }
+  const responses: TokenizeCardResponse[] = [];
+  for (const cdeConn of allCdeConnections.values()) {
+    const response = await queryCDE(cdeConn, { type: 'tokenize_card', payload }, TokenizeCardResponse);
+    responses.push(response);
+  }
+  return responses;
+};
+
+export const checkoutCardElements = async (
+  cdeConn: CdeConnection,
+  payload: CardElementsCheckoutRequest
+): Promise<CheckoutSuccessResponse> => {
+  return await queryCDE(cdeConn, { type: 'checkout_card_elements', payload }, CheckoutSuccessResponse);
+};
+
+export const setupCheckout = async (
+  cdeConn: CdeConnection,
+  payload: SetupCheckoutRequest
+): Promise<SetupCheckoutResponse> => {
+  return await queryCDE(cdeConn, { type: 'setup_payment_method', payload }, SetupCheckoutResponse);
 };

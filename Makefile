@@ -3,12 +3,12 @@
 install:
 	npm install
 
-dev:
+dev: install
 	npm run dev
 
 start: dev
 
-build:
+build: install
 	npm run build
 
 publish: build
@@ -18,3 +18,7 @@ publish: build
 precommit:
 	npm run lint:fix
 	cd ./example && npm run lint:fix
+
+test-vanilla:
+	cd ./apps/vanilla-example && make dev
+ 

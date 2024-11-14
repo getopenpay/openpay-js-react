@@ -321,6 +321,7 @@ export class OpenPayFormEventHandler {
     }
   }
 
+  // TODO ASAP: refactor this first
   handleFormSubmit() {
     if (
       !this.formInstance.sessionId ||
@@ -353,6 +354,7 @@ export class OpenPayFormEventHandler {
     this.tokenizedData = tokenizeData;
   }
 
+  // TODO ASAP: remove this
   async onUserCompletePaymentRequestUI(
     stripePm: PaymentRequestPaymentMethodEvent,
     checkoutPaymentMethod: CheckoutPaymentMethod

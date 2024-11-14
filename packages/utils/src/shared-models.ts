@@ -42,6 +42,8 @@ export type PrivateFieldNameEnum = z.infer<typeof PrivateFieldNameEnum>;
 export const AllFieldNames = z.union([FieldNameEnum, PrivateFieldNameEnum]);
 export type AllFieldNames = z.infer<typeof AllFieldNames>;
 
+export type ElementType = 'card' | 'card-number' | 'card-expiry' | 'card-cvc';
+
 /**
  * Core models
  */
@@ -314,3 +316,49 @@ export const ConfirmPaymentFlowResponse = z.object({
   payment_methods: z.array(PaymentMethodMinimal),
 });
 export type ConfirmPaymentFlowResponse = z.infer<typeof ConfirmPaymentFlowResponse>;
+
+// FieldValidationError
+export const FieldValidationError = z.object({
+  elementType: z.string(),
+  errors: z.array(z.string()),
+});
+export type FieldValidationError = z.infer<typeof FieldValidationError>;
+
+// TokenizeCardRequest
+export const TokenizeCardRequest = z.object({
+  session_id: z.string(),
+});
+export type TokenizeCardRequest = z.infer<typeof TokenizeCardRequest>;
+
+// TokenizeCardErrorResponse
+export const TokenizeCardErrorResponse = z.object({
+  success: z.literal(false),
+  error_type: z.literal('validation_error'),
+  errors: z.array(FieldValidationError),
+});
+export type TokenizeCardErrorResponse = z.infer<typeof TokenizeCardErrorResponse>;
+
+// TokenizeCardResponse
+export const TokenizeCardResponse = z.discriminatedUnion('success', [
+  z.object({ success: z.literal(true) }),
+  TokenizeCardErrorResponse,
+]);
+export type TokenizeCardResponse = z.infer<typeof TokenizeCardResponse>;
+
+// CardElementsCheckoutRequest
+export const CardElementsCheckoutRequest = z.object({
+  session_id: z.string(),
+  checkout_payment_method: CheckoutPaymentMethod,
+  non_cde_form_fields: RequiredFormFields,
+  do_not_use_legacy_cc_flow: z.boolean().optional(),
+  existing_cc_pm_id: nullOrUndefOr(z.string()),
+});
+export type CardElementsCheckoutRequest = z.infer<typeof CardElementsCheckoutRequest>;
+
+// SetupCheckoutRequest
+export const SetupCheckoutRequest = z.object({
+  session_id: z.string(),
+  checkout_payment_method: CheckoutPaymentMethod,
+  non_cde_form_fields: RequiredFormFields,
+});
+export type SetupCheckoutRequest = z.infer<typeof SetupCheckoutRequest>;

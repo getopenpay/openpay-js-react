@@ -2,17 +2,20 @@ import {
   AllFieldNames,
   CheckoutPaymentMethod,
   convertStylesToQueryString,
+  createInputsDictFromForm,
   ElementProps,
+  ElementType,
   FieldName,
+  findCheckoutPaymentMethodStrict,
+  OjsContext,
+  OjsFlows,
   PaymentRequestStatus,
 } from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
 import { ConnectionManager, createConnection } from './utils/connection';
 import { initializePaymentRequests, PaymentRequestProvider } from './utils/payment-request';
-
+import { makeCallbackSafe } from '@getopenpay/utils';
 export { FieldName };
-
-export type ElementType = 'card' | 'card-number' | 'card-expiry' | 'card-cvc';
 
 export type ElementsFormProps = {
   className?: string;
@@ -41,6 +44,7 @@ export class OpenPayForm {
   checkoutPaymentMethods: Array<CheckoutPaymentMethod>;
   formTarget: string;
   checkoutFired: boolean;
+  ojsVersion: string;
   private referer: string;
   private eventHandler: OpenPayFormEventHandler;
   private formProperties: { height: string };
@@ -52,6 +56,7 @@ export class OpenPayForm {
   > | null;
 
   constructor(config: Config) {
+    OpenPayForm.assignInstance(this);
     this.config = { ...config, baseUrl: config.baseUrl ?? 'https://cde.getopenpay.com' };
     this.elements = null;
     this.formId = `opjs-form-${window.crypto.randomUUID()}`;
@@ -64,12 +69,30 @@ export class OpenPayForm {
     this.paymentRequests = this.initPaymentRequests();
     this.connectionManager = new ConnectionManager();
     this.eventHandler = new OpenPayFormEventHandler(this);
-
-    const ojs_version = { version: __APP_VERSION__ };
-    // @ts-expect-error window typing
-    window['ojs_version'] = ojs_version;
+    this.ojsVersion = __APP_VERSION__;
 
     window.addEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));
+  }
+
+  /**
+   * Assign the instance to the window as a singleton
+   * @param form - The OpenPayForm instance
+   */
+  static assignInstance(form: OpenPayForm) {
+    if (OpenPayForm.getInstance()) {
+      throw new Error('OpenPay instance already exists. Only one instance is allowed.');
+    }
+    // @ts-expect-error window typing
+    window['_op_form'] = form;
+  }
+
+  /**
+   * Get the singleton instance of OpenPayForm
+   * @returns The OpenPayForm instance
+   */
+  static getInstance(): OpenPayForm | null {
+    // @ts-expect-error window typing
+    return window['_op_form'] ?? null;
   }
 
   public getConnectionManager() {
@@ -85,6 +108,7 @@ export class OpenPayForm {
     }
   }
 
+  // TODO ASAP: remove this
   private initPaymentRequests(): Record<PaymentRequestProvider, PaymentRequestStatus> {
     return {
       apple_pay: { isLoading: true, isAvailable: false, startFlow: async () => {} },
@@ -143,8 +167,46 @@ export class OpenPayForm {
       .catch((err) => console.error('[FORM] Error connecting to CDE iframe', err));
   }
 
+  private getFormDiv(): HTMLElement {
+    return document.querySelector(this.formTarget) ?? document.body;
+  }
+
+  private createOjsFlowContext(): OjsContext {
+    if (this.sessionId === null) {
+      throw new Error(`Cannot create flow context as sessionId is not available`);
+    }
+    return {
+      formDiv: this.getFormDiv(),
+      elementsSessionId: this.sessionId,
+      cdeConnections: this.connectionManager.getAllConnections(),
+    };
+  }
+
+  private getNonCdeFormInputs(): Record<string, unknown> {
+    return createInputsDictFromForm(this.getFormDiv());
+  }
+
+  private createOjsFlowCallbacks() {
+    const noOp = () => {};
+    return {
+      onCheckoutError: makeCallbackSafe('onCheckoutError', this.config.onCheckoutError ?? noOp),
+      onCheckoutStarted: makeCallbackSafe('onCheckoutStarted', this.config.onCheckoutStarted ?? noOp),
+      onCheckoutSuccess: makeCallbackSafe('onCheckoutSuccess', this.config.onCheckoutSuccess ?? noOp),
+      onSetupPaymentMethodSuccess: makeCallbackSafe(
+        'onSetupPaymentMethodSuccess',
+        this.config.onSetupPaymentMethodSuccess ?? noOp
+      ),
+      onValidationError: makeCallbackSafe('onValidationError', this.config.onValidationError ?? noOp),
+    };
+  }
+
   submit() {
-    this.eventHandler.handleFormSubmit();
+    OjsFlows.runStripeCcFlow({
+      context: this.createOjsFlowContext(),
+      checkoutPaymentMethod: findCheckoutPaymentMethodStrict(this.checkoutPaymentMethods, 'credit_card'),
+      nonCdeFormInputs: this.getNonCdeFormInputs(),
+      flowCallbacks: this.createOjsFlowCallbacks(),
+    });
   }
 
   onPaymentRequestError(errMsg: string): void {
@@ -153,6 +215,7 @@ export class OpenPayForm {
     if (this.config.onCheckoutError) this.config.onCheckoutError(errMsg);
   }
 
+  // TODO ASAP: remove this
   private async initializePaymentRequests() {
     if (!this.config.checkoutSecureToken || !this.checkoutPaymentMethods || !this.formTarget) return;
 

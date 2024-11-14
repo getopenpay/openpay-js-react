@@ -84,3 +84,21 @@ export const getErrorMessage = (e: unknown): string => {
     return e + '';
   }
 };
+
+/**
+ * Wraps a callback in a try-catch to prevent the form from crashing if the callback throws an error.
+ * @param callbackName - The name of the callback (for logging purposes)
+ * @param fn - The callback function to wrap
+ * @returns The wrapped callback
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const makeCallbackSafe = <T extends (...args: any[]) => any>(callbackName: string, fn: T): T => {
+  return ((...args: Parameters<T>): ReturnType<T> | undefined => {
+    try {
+      return fn(...args);
+    } catch (error) {
+      console.error(`[form] Error running callback (${callbackName}):`, error);
+      return undefined;
+    }
+  }) as T;
+};

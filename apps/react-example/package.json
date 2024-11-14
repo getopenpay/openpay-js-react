@@ -10,13 +10,13 @@
     "lint:fix": "next lint --fix"
   },
   "dependencies": {
+    "@getopenpay/react": "*",
     "@getopenpay/utils": "*",
     "@stripe/stripe-js": "^4.3.0",
     "classnames": "^2.5.1",
     "fraction.js": "^4.3.7",
     "next": "14.2.5",
     "react": "^18",
-    "@getopenpay/react": "*",
     "react-dom": "^18"
   },
   "devDependencies": {
