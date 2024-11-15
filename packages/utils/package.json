@@ -3,20 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
+  "main": "./index.ts",
+  "module": "./index.ts",
   "scripts": {
     "lint": "eslint . --max-warnings 0",
-    "build": "tsc -p tsconfig.json && vite build",
-    "dev": "tsc -p tsconfig.json && vite build --mode development --watch",
-    "generate:component": "turbo gen react-component"
+    "lint:fix": "eslint . --fix",
+    "build": "tsc -p tsconfig.build.json && vite build",
+    "dev": "vite build --watch"
   },
   "dependencies": {
     "penpal": "^6.2.2",
@@ -24,16 +17,14 @@
     "uuid": "^10.0.0",
     "zod": "^3.23.8"
   },
+  "peerDependencies": {
+    "react": "^16.x || ^17.x || ^18.x",
+    "react-dom": "^16.x || ^17.x || ^18.x"
+  },
   "devDependencies": {
-    "@getopenpay/eslint-config": "*",
-    "@getopenpay/typescript-config": "*",
-    "@turbo/gen": "^1.12.4",
-    "@types/eslint": "^8.56.5",
-    "@types/node": "^20.11.24",
-    "@types/react": "^18.2.61",
-    "@types/react-dom": "^18.2.19",
+    "@getopenpay/config": "*",
+    "typescript": "^5.2.2",
     "eslint": "^8.57.0",
-    "typescript": "^5.3.3",
     "vite": "^5.3.4",
     "vite-plugin-dts": "^4.0.0-beta.2"
   }

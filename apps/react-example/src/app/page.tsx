@@ -1,6 +1,6 @@
 'use client';
 import { FC, useCallback, useEffect, useState } from 'react';
-import { ElementsForm, CardCvcElement, CardElement, CardNumberElement, CardExpiryElement } from '@getopenpay/react';
+import { ElementsForm, CardCvcElement, CardElement, CardNumberElement, CardExpiryElement } from '@getopenpay/openpay-js-react';
 import FormWrapper from '@/components/form-wrapper';
 import InputField from '@/components/input-field';
 import BillingDetails from '@/components/billing-details';
@@ -103,7 +103,7 @@ const Form: FC<FormProps> = (props) => {
       onCheckoutSuccess={onCheckoutSuccess}
       onSetupPaymentMethodSuccess={onSetupPaymentMethodSuccess}
       onCheckoutError={onCheckoutError}
-      baseUrl={props.baseUrl}
+      baseUrl={props.baseUrl ?? process.env.NEXT_PUBLIC_BASE_URL}
     >
       {({ submit, applePay, googlePay, loaded, stripeLink }) => (
         <FormWrapper error={validationErrors}>

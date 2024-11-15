@@ -7,7 +7,11 @@ export default defineConfig({
   esbuild: {
     drop: process.env.NODE_ENV === 'development' ? [] : ['console', 'debugger'],
   },
+  optimizeDeps: {
+    include: ['penpal', 'uuid', 'zod'],
+  },
   build: {
+    emptyOutDir: false,
     copyPublicDir: false,
     lib: {
       name: 'OpenPay',
@@ -15,7 +19,7 @@ export default defineConfig({
       fileName: (format) => `index.${format}.js`,
     },
     rollupOptions: {
-      external: ['@stripe/stripe-js', 'uuid', 'zod', 'penpal'],
+      external: ['@stripe/stripe-js'],
       output: {
         assetFileNames: 'assets/[name][extname]',
       },
@@ -23,12 +27,14 @@ export default defineConfig({
   },
   plugins: [
     dts({
+      include: ['**/*', '../utils/**/*'], // Needs this to invalidate when utils change
       rollupTypes: true,
-      bundledPackages: ['@getopenpay/utils'],
       tsconfigPath: resolve(__dirname, 'tsconfig.build.json'),
     }),
   ],
   define: {
     __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
+    __RELEASE_VERSION__: JSON.stringify(process.env.RELEASE_VERSION ?? 'local_build'),
   },
+  cacheDir: './.vite',
 });

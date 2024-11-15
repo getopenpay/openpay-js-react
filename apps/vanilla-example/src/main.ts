@@ -4,7 +4,7 @@ import { loadStripe } from '@stripe/stripe-js';
 
 const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('token');
-const baseUrl = urlParams.get('baseUrl');
+const baseUrl = urlParams.get('baseUrl') || import.meta.env.VITE_BASE_URL;
 const separateFrames = urlParams.get('separateFrames')?.toLowerCase() === 'true';
 
 let previousFormInstance: OpenPayForm | null = null;

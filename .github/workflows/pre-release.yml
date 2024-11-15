@@ -1,0 +1,40 @@
+name: 'Publish pre-release'
+
+on:
+  release:
+    types: [prereleased]
+
+jobs:
+  publish-packages:
+    name: Publish ${{ matrix.package }} (Pre-release)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [react, vanilla]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org/
+          cache: 'npm'
+
+      - name: Build packages
+        run: |
+          npm ci
+          npm run build-packages
+        # This step is currently not really necessary, but it will be needed if we use the vanilla package in the react package
+
+      - name: Publish package
+        working-directory: ./packages/${{ matrix.package }}
+        run: |
+          CURRENT_VERSION=$(npm view ./ version)
+          echo "Current version: $CURRENT_VERSION"
+          RELEASE_VERSION="$CURRENT_VERSION-alpha.$(git rev-parse --short HEAD)"
+          echo "RELEASE_VERSION: $RELEASE_VERSION"
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_ENV
+          RELEASE_VERSION=$RELEASE_VERSION npm run build
+          npm version "$RELEASE_VERSION" --no-git-tag-version
+          npm publish --tag alpha --access public
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
