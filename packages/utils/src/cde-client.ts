@@ -23,6 +23,26 @@ import {
 } from './cde_models';
 import { sleep } from './stripe';
 import { sum } from './math';
+import { CustomError } from 'ts-custom-error';
+
+/*
+ * An actual custom Error object, created from a CDEResponseError object
+ * Note that CDEResponseError is a normal JSON (zod) object returned by CDE endpoints,
+ * while this class is a real subclass of Error.
+ */
+export class CdeError extends CustomError {
+  response: CDEResponseError;
+
+  public constructor(response: CDEResponseError) {
+    const friendlyMessage = `[cde-client] Error querying CDE: ${response.message}`;
+    super(friendlyMessage);
+    this.response = response;
+  }
+
+  originalErrorMessage(): string {
+    return this.response.message;
+  }
+}
 
 export const queryCDE = async <T extends z.ZodType>(
   cdeConn: CdeConnection,
@@ -33,7 +53,7 @@ export const queryCDE = async <T extends z.ZodType>(
   console.log('[cde-client] Querying CDE with path and connection:', data.type, cdeConn);
   const response = await cdeConn.send(data);
   if (isCDEResponseError(response)) {
-    throw new Error(`[cde-client] Error querying CDE: ${response.message}`);
+    throw new CdeError(response);
   }
   console.log('[cde-client] Got response from CDE:', response);
   if (!checkIfConformsToSchema(response, responseSchema)) {

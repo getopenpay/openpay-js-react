@@ -54,6 +54,8 @@ export class OpenPayForm {
     ElementType,
     { type: ElementType; node: HTMLIFrameElement; mount: (selector: string) => void }
   > | null;
+  // For easier debugging
+  static ojsFlows: typeof OjsFlows = OjsFlows;
 
   constructor(config: Config) {
     OpenPayForm.assignInstance(this);

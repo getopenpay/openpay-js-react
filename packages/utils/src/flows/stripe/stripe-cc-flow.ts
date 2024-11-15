@@ -1,4 +1,4 @@
-import { checkoutCardElements, getPrefill, setupCheckout, tokenizeCard } from '../../cde-client';
+import { CdeError, checkoutCardElements, getPrefill, setupCheckout, tokenizeCard } from '../../cde-client';
 import {
   AllFieldNames,
   FieldName,
@@ -60,6 +60,9 @@ export const runStripeCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
     } catch (error) {
       // TODO ASAP: figure out error handling here, especially for 3DS
       console.error('[flow][stripe-cc] Error checking out card info in CDE:', error);
+      if (error instanceof CdeError) {
+        console.error('Got CDE error', error.originalErrorMessage);
+      }
       throw error;
     }
   }
