@@ -14,7 +14,7 @@ dev-packages:
 	npm run dev-packages
 
 # This will lint and build all packages and example apps
-build:
+build: install
 	npm run lint
 	npm run build
 

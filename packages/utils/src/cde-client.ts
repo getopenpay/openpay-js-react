@@ -39,7 +39,7 @@ export class CdeError extends CustomError {
     this.response = response;
   }
 
-  originalErrorMessage(): string {
+  get originalErrorMessage(): string {
     return this.response.message;
   }
 }
@@ -166,11 +166,11 @@ export const tokenizeCard = async (
   if (allCdeConnections.size === 0) {
     throw new Error('No CDE connections found');
   }
-  const responses: TokenizeCardResponse[] = [];
-  for (const cdeConn of allCdeConnections.values()) {
-    const response = await queryCDE(cdeConn, { type: 'tokenize_card', payload }, TokenizeCardResponse);
-    responses.push(response);
-  }
+  const responses = await Promise.all(
+    Array.from(allCdeConnections.values()).map((cdeConn) =>
+      queryCDE(cdeConn, { type: 'tokenize_card', payload }, TokenizeCardResponse)
+    )
+  );
   return responses;
 };
 

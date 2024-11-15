@@ -60,6 +60,10 @@ export class OpenPayFormEventHandler {
       // Skipping if origin does not match
       return;
     }
+    if (typeof event.data === 'object' && event.data['penpal']) {
+      // Penpal message, do not handle
+      return;
+    }
 
     const eventData = parseEventPayload(JSON.parse(event.data));
     const isValid = this.validateEvent(eventData);
@@ -295,6 +299,7 @@ export class OpenPayFormEventHandler {
 
   handleErrorEvent(payload: ErrorEventPayload) {
     if (payload.message === '3DS_REQUIRED') {
+      // TODO ASAP: check this flow out
       const cardCpm = this.formInstance.checkoutPaymentMethods?.find((cpm) => cpm.provider === 'credit_card');
       if (!this.formInstance.sessionId || !this.formInstance.formTarget || !this.config.onValidationError || !cardCpm)
         return;

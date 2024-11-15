@@ -111,3 +111,21 @@ export const addBasicCheckoutCallbackHandlers = (
     }
   };
 };
+
+export const createOjsFlowLoggers = (
+  prefix: string
+): {
+  log: typeof console.log;
+  err: typeof console.error;
+} => {
+  return {
+    log: (...args) => {
+      // Do this to prevent minification issues
+      window['console'].log(`[flow][${prefix}]`, ...args);
+    },
+    err: (...args) => {
+      // Do this to prevent minification issues
+      window['console'].error(`[flow][${prefix}]`, ...args);
+    },
+  };
+};
