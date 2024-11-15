@@ -1,13 +1,16 @@
 {
-  "name": "@getopenpay/eslint-config",
+  "name": "@getopenpay/config",
   "version": "0.0.0",
   "private": true,
   "files": [
-    "library.js",
-    "next.js"
+    "./base-eslint.js"
   ],
+  "exports": {
+    "./eslint": "./base-eslint.js",
+    "./base-tsconfig": "./base-tsconfig.json",
+    "./build-tsconfig": "./build-tsconfig.json"
+  },
   "devDependencies": {
-    "@vercel/style-guide": "^5.2.0",
     "eslint-config-turbo": "^2.0.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-only-warn": "^1.1.0",

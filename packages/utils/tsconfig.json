@@ -1,7 +1,3 @@
 {
-  "extends": "@getopenpay/typescript-config/build.json",
-  "exclude": ["node_modules", "dist"],
-  "compilerOptions": {
-    "outDir": "./dist"
-  }
+  "extends": "@getopenpay/config/base-tsconfig"
 }

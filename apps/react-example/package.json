@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3032",
+    "dev": "NEXT_PUBLIC_BASE_URL=http://localhost:8001 next dev -p 3032",
+    "dev-stg": "NEXT_PUBLIC_BASE_URL=https://cde.openpaystaging.com next dev -p 3032",
+    "dev-prod": "NEXT_PUBLIC_BASE_URL=https://cde.getopenpay.com next dev -p 3032",
     "build": "next build",
-    "start": "next start -p 3131",
+    "preview": "next start -p 3032",
     "lint": "next lint",
     "lint:fix": "next lint --fix"
   },
   "dependencies": {
-    "@getopenpay/react": "*",
+    "@getopenpay/openpay-js-react": "*",
     "@getopenpay/utils": "*",
     "@stripe/stripe-js": "^4.3.0",
     "classnames": "^2.5.1",
@@ -20,8 +22,7 @@
     "react-dom": "^18"
   },
   "devDependencies": {
-    "@getopenpay/eslint-config": "*",
-    "@getopenpay/typescript-config": "*",
+    "@getopenpay/config": "*",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

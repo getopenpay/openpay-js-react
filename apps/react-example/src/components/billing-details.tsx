@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { FieldName } from '@getopenpay/react';
+import { FieldName } from '@getopenpay/openpay-js-react';
 import InputField from './input-field';
 
 interface InputProps {

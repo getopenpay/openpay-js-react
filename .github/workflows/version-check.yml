@@ -1,0 +1,64 @@
+name: Version Check
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/**'
+
+jobs:
+  version-check:
+    name: Check Package Versions
+    runs-on: ubuntu-latest
+
+    permissions: write-all
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Get PR package versions
+        id: pr_versions
+        run: |
+          PR_VANILLA_VERSION=$(jq -r .version packages/vanilla/package.json)
+          PR_REACT_VERSION=$(jq -r .version packages/react/package.json)
+          echo "pr_vanilla=$PR_VANILLA_VERSION" >> $GITHUB_OUTPUT
+          echo "pr_react=$PR_REACT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Checkout main branch
+        run: |
+          git fetch origin main
+          git checkout origin/main
+
+      - name: Get main package versions
+        id: main_versions
+        run: |
+          MAIN_VANILLA_VERSION=$(jq -r .version packages/vanilla/package.json)
+          MAIN_REACT_VERSION=$(jq -r .version packages/react/package.json)
+          echo "main_vanilla=$MAIN_VANILLA_VERSION" >> $GITHUB_OUTPUT
+          echo "main_react=$MAIN_REACT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Prepare comment message
+        id: prepare_message
+        if: steps.pr_versions.outputs.pr_vanilla == steps.main_versions.outputs.main_vanilla || steps.pr_versions.outputs.pr_react == steps.main_versions.outputs.main_react
+        run: |
+          MESSAGE="Found changes in \`pacakges/**\` but versions were not updated. @${{ github.event.pull_request.user.login }}, please consider bumping the version of the followings."
+          if [ "${{ steps.pr_versions.outputs.pr_vanilla }}" = "${{ steps.main_versions.outputs.main_vanilla }}" ]; then
+            MESSAGE="$MESSAGE <br /> - \`packages/vanilla\`: Current version in main: \`${{ steps.main_versions.outputs.main_vanilla }}\`"
+          fi
+          if [ "${{ steps.pr_versions.outputs.pr_react }}" = "${{ steps.main_versions.outputs.main_react }}" ]; then
+            MESSAGE="$MESSAGE <br /> - \`packages/react\`: Current version in main: \`${{ steps.main_versions.outputs.main_react }}\`"
+          fi
+          MESSAGE="$MESSAGE <br /> Version numbers should be incremented when making changes to the packages."
+          echo "message=$MESSAGE" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR
+        if: steps.pr_versions.outputs.pr_vanilla == steps.main_versions.outputs.main_vanilla || steps.pr_versions.outputs.pr_react == steps.main_versions.outputs.main_react
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: ${{ steps.prepare_message.outputs.message }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
