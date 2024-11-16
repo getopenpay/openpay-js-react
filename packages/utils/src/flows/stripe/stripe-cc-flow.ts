@@ -77,20 +77,24 @@ export const runStripeCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
           log__`Launching Stripe 3DS dialog flow`;
           await launchStripe3DSDialogFlow(nextActionMetadata);
 
-          log__`Confirming payment flow`;
-          const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
-            secure_token: prefill.token,
-            existing_cc_pm_id: startPfResult.cc_pm_id,
-          });
-          const createdPaymentMethod = parsePaymentFlowConfirmation(confirmResult);
+          // TODO ASAP: ideally we also do confirmPaymentFlow for non-setup mode,
+          // but for some reason 3DS_REQUIRED is thrown again during confirmPaymentFlow
+          // even though the 3DS flow has been completed.
 
           if (prefill.mode === 'setup') {
+            log__`Confirming payment flow`;
+            const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
+              secure_token: prefill.token,
+              existing_cc_pm_id: startPfResult.cc_pm_id,
+            });
+            const createdPaymentMethod = parsePaymentFlowConfirmation(confirmResult);
             return { mode: 'setup', result: createdPaymentMethod };
           } else {
             const result = await checkoutCardElements(anyCdeConnection, {
               ...commonCheckoutParams,
               // We use the existing payment method ID from start_payment_flow
               existing_cc_pm_id: startPfResult.cc_pm_id,
+              do_not_use_legacy_cc_flow: true,
             });
             return { mode: 'checkout', result };
           }

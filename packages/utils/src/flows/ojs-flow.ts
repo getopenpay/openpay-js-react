@@ -131,8 +131,8 @@ export const createOjsFlowLoggers = (
   return {
     log,
     err,
-    // Aliases
-    log__: log,
-    err__: err,
+    // Template strings (e.g. log__`hello`)
+    log__: (...args) => log(args.join('')),
+    err__: (...args) => err(args.join('')),
   };
 };
