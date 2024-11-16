@@ -20,6 +20,8 @@ import {
   PaymentFormPrefill,
   PreviewCheckoutResponse,
   SetupCheckoutResponse,
+  StartPaymentFlowForCCRequest,
+  StartPaymentFlowForCCResponse,
 } from './cde_models';
 import { sleep } from './stripe';
 import { sum } from './math';
@@ -91,6 +93,13 @@ export const startPaymentFlow = async (
   payload: SubmitEventPayload
 ): Promise<PaymentFlowStartedEventPayload> => {
   return await queryCDE(cdeConn, { type: 'start_payment_flow', payload }, PaymentFlowStartedEventPayload);
+};
+
+export const startPaymentFlowForCC = async (
+  cdeConn: CdeConnection,
+  payload: StartPaymentFlowForCCRequest
+): Promise<StartPaymentFlowForCCResponse> => {
+  return await queryCDE(cdeConn, { type: 'start_payment_flow_for_cc', payload }, StartPaymentFlowForCCResponse);
 };
 
 export const confirmPaymentFlow = async (

@@ -117,15 +117,22 @@ export const createOjsFlowLoggers = (
 ): {
   log: typeof console.log;
   err: typeof console.error;
+  log__: typeof console.log;
+  err__: typeof console.error;
 } => {
+  const log: typeof console.log = (...args) => {
+    // Do this to prevent minification issues
+    window['console'].log(`[flow][${prefix}]`, ...args);
+  };
+  const err: typeof console.error = (...args) => {
+    // Do this to prevent minification issues
+    window['console'].error(`[flow][${prefix}]`, ...args);
+  };
   return {
-    log: (...args) => {
-      // Do this to prevent minification issues
-      window['console'].log(`[flow][${prefix}]`, ...args);
-    },
-    err: (...args) => {
-      // Do this to prevent minification issues
-      window['console'].error(`[flow][${prefix}]`, ...args);
-    },
+    log,
+    err,
+    // Aliases
+    log__: log,
+    err__: err,
   };
 };

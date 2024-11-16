@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { RequiredFormFields } from './shared-models';
 
 export const nullOrUndefOr = <T extends z.ZodType>(zType: T): z.ZodNullable<z.ZodOptional<T>> =>
   z.nullable(zType.optional());
@@ -217,9 +218,21 @@ export const StartPaymentFlowResponse = z.object({
 });
 export type StartPaymentFlowResponse = z.infer<typeof StartPaymentFlowResponse>;
 
+// StartPaymentFlowForCCRequest
+export const StartPaymentFlowForCCRequest = z.object({
+  session_id: z.string(),
+  non_cde_form_fields: RequiredFormFields,
+  checkout_payment_method: CheckoutPaymentMethod,
+});
+export type StartPaymentFlowForCCRequest = z.infer<typeof StartPaymentFlowForCCRequest>;
+
 // StartPaymentFlowForCCResponse
 export const StartPaymentFlowForCCResponse = z.object({
   required_user_actions: z.array(z.record(z.string(), z.any())),
   cc_pm_id: z.string(),
 });
 export type StartPaymentFlowForCCResponse = z.infer<typeof StartPaymentFlowForCCResponse>;
+
+// GenericNextActionMetadata
+export const GenericNextActionMetadata = z.record(z.any());
+export type GenericNextActionMetadata = z.infer<typeof GenericNextActionMetadata>;
