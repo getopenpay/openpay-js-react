@@ -10,11 +10,11 @@ import {
   OjsContext,
   OjsFlows,
   PaymentRequestStatus,
+  makeCallbackSafe,
 } from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
 import { ConnectionManager, createConnection } from './utils/connection';
-import { initializePaymentRequests, PaymentRequestProvider } from './utils/payment-request';
-import { makeCallbackSafe } from '@getopenpay/utils';
+import { PaymentRequestProvider } from './utils/payment-request';
 export { FieldName };
 
 export type ElementsFormProps = {
@@ -32,6 +32,7 @@ export type ElementsFormProps = {
   onCheckoutError?: (message: string) => void;
   baseUrl?: string;
   formTarget?: string;
+  // TODO ASAP: call this
   onPaymentRequestLoad?: (paymentRequests: Record<PaymentRequestProvider, PaymentRequestStatus>) => void;
 };
 
@@ -49,7 +50,6 @@ export class OpenPayForm {
   private eventHandler: OpenPayFormEventHandler;
   private formProperties: { height: string };
   private connectionManager: ConnectionManager;
-  private paymentRequests: Record<PaymentRequestProvider, PaymentRequestStatus>;
   private elements: Record<
     ElementType,
     { type: ElementType; node: HTMLIFrameElement; mount: (selector: string) => void }
@@ -58,7 +58,7 @@ export class OpenPayForm {
   static ojsFlows: typeof OjsFlows = OjsFlows;
 
   constructor(config: Config) {
-    OpenPayForm.assignInstance(this);
+    OpenPayForm.assignAsSingleton(this);
     this.config = { ...config, baseUrl: config.baseUrl ?? 'https://cde.getopenpay.com' };
     this.elements = null;
     this.formId = `opjs-form-${window.crypto.randomUUID()}`;
@@ -68,7 +68,6 @@ export class OpenPayForm {
     this.sessionId = null;
     this.checkoutPaymentMethods = [];
     this.checkoutFired = false;
-    this.paymentRequests = this.initPaymentRequests();
     this.connectionManager = new ConnectionManager();
     this.eventHandler = new OpenPayFormEventHandler(this);
     this.ojsVersion = __APP_VERSION__;
@@ -80,7 +79,7 @@ export class OpenPayForm {
    * Assign the instance to the window as a singleton
    * @param form - The OpenPayForm instance
    */
-  static assignInstance(form: OpenPayForm) {
+  static assignAsSingleton(form: OpenPayForm) {
     if (OpenPayForm.getInstance()) {
       throw new Error('OpenPay instance already exists. Only one instance is allowed.');
     }
@@ -108,15 +107,6 @@ export class OpenPayForm {
         element.node.style.height = height;
       });
     }
-  }
-
-  // TODO ASAP: remove this
-  private initPaymentRequests(): Record<PaymentRequestProvider, PaymentRequestStatus> {
-    return {
-      apple_pay: { isLoading: true, isAvailable: false, startFlow: async () => {} },
-      google_pay: { isLoading: true, isAvailable: false, startFlow: async () => {} },
-      stripe_link: { isLoading: true, isAvailable: false, startFlow: async () => {} },
-    };
   }
 
   createElement(type: ElementType, options: ElementProps = {}) {
@@ -164,7 +154,8 @@ export class OpenPayForm {
     createConnection(element.node)
       .then((conn) => {
         this.connectionManager.addConnection(element.type, conn);
-        this.initializePaymentRequests();
+        // TODO ASAP: do this
+        // this.initializePaymentRequests();
       })
       .catch((err) => console.error('[FORM] Error connecting to CDE iframe', err));
   }
@@ -215,30 +206,6 @@ export class OpenPayForm {
     console.error('[form] Error from payment request:', errMsg);
     this.checkoutFired = false;
     if (this.config.onCheckoutError) this.config.onCheckoutError(errMsg);
-  }
-
-  // TODO ASAP: remove this
-  private async initializePaymentRequests() {
-    if (!this.config.checkoutSecureToken || !this.checkoutPaymentMethods || !this.formTarget) return;
-
-    const cdeConn = this.connectionManager.getConnection();
-    if (!cdeConn) {
-      console.error('[form] CDE connection not established');
-      return;
-    }
-
-    this.paymentRequests = await initializePaymentRequests(
-      this.config,
-      this.checkoutPaymentMethods,
-      cdeConn,
-      this.eventHandler.onUserCompletePaymentRequestUI.bind(this.eventHandler),
-      this.config.onValidationError,
-      this.onPaymentRequestError.bind(this)
-    );
-
-    if (this.config.onPaymentRequestLoad) {
-      this.config.onPaymentRequestLoad(this.paymentRequests);
-    }
   }
 
   destroy() {
