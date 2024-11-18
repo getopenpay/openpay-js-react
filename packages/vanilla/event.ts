@@ -25,6 +25,7 @@ import {
 import { OpenPayForm } from './index';
 import { ConnectionManager } from './utils/connection';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
+import { show3DSPopup } from './3ds-elements/frame';
 
 export class OpenPayFormEventHandler {
   formInstance: OpenPayForm;
@@ -295,6 +296,8 @@ export class OpenPayFormEventHandler {
 
   handleErrorEvent(payload: ErrorEventPayload) {
     if (payload.message === '3DS_REQUIRED') {
+      show3DSPopup({ url: 'https://www.google.com' });
+
       const cardCpm = this.formInstance.checkoutPaymentMethods?.find((cpm) => cpm.provider === 'credit_card');
       if (!this.formInstance.sessionId || !this.formInstance.formTarget || !this.config.onValidationError || !cardCpm)
         return;
