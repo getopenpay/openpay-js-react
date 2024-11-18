@@ -1,3 +1,24 @@
+import { createConnection } from '../utils/connection';
+
+function startPolling(iframe: HTMLIFrameElement, onSuccess: () => void): NodeJS.Timeout {
+  const pollingInterval = setInterval(async () => {
+    try {
+      console.log('🔄 Polling CDE connection...');
+      const connection = await createConnection(iframe);
+      if (connection) {
+        console.log('🟢 CDE connection successful! Stopping polling...');
+        clearInterval(pollingInterval);
+        onSuccess();
+      }
+    } catch (error) {
+      console.error('🔴 CDE connection failed, continuing to poll...');
+      // Connection failed, continue polling
+    }
+  }, 2000); // Poll every second
+  return pollingInterval;
+}
+
+export const SIMULATE_3DS_URL = 'simulate-3ds.html';
 /**
  * This injects an iframe into a shadow DOM and returns the overlay element.
  */
@@ -23,8 +44,8 @@ export function show3DSPopup({ url }: { url: string }) {
       background-color: rgba(0, 0, 0, 0.5);
     }
     .container {
-      width: clamp(300px, 40%, 600px);
-      height: clamp(300px, 80%, 600px);
+      width: clamp(28rem, 35%, 30rem);
+      height: clamp(20rem, 80%, 46rem);
       background-color: white;
       position: relative;
       animation: fadeIn 0.3s ease-out;
@@ -67,18 +88,34 @@ export function show3DSPopup({ url }: { url: string }) {
   frame.src = url;
   frame.className = 'frame';
 
+  // Setup connection polling
+  const pollingInterval = startPolling(frame, () => {
+    // On successful CDE connection, remove the popup
+    if (shadowRoot.contains(overlay)) {
+      shadowRoot.removeChild(overlay);
+    }
+  });
+
+  // Clean up function
+  const cleanup = () => {
+    clearInterval(pollingInterval);
+    if (shadowRoot.contains(overlay)) {
+      shadowRoot.removeChild(overlay);
+    }
+  };
+
   // Cancel button
   const cancelButton = document.createElement('button');
   cancelButton.textContent = 'Cancel';
   cancelButton.className = 'cancel-button';
-  cancelButton.addEventListener('click', () => {
-    shadowRoot.removeChild(overlay);
-  });
+  cancelButton.addEventListener('click', cleanup);
 
   container.appendChild(cancelButton);
   container.appendChild(frame);
   overlay.appendChild(container);
   shadowRoot.appendChild(overlay);
+
+  return { cleanup };
 }
 
 export function handle3DSStatus() {}

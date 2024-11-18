@@ -1,10 +1,12 @@
 import { CdeConnection, checkIfValidCdeConnectionObject, isResultValid } from '@getopenpay/utils';
 import { connectToChild } from 'penpal';
 
-export async function createConnection(iframe: HTMLIFrameElement): Promise<CdeConnection> {
+export async function createConnection(iframe: HTMLIFrameElement, origin?: string): Promise<CdeConnection> {
   const connection = connectToChild({
     iframe,
     debug: true,
+    // TODO: find a solution for this
+    childOrigin: origin ?? 'http://localhost:8001',
   });
   const connectionObj = await connection.promise;
   const isValidObject = await checkIfValidCdeConnectionObject(connectionObj);
