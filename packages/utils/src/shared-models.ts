@@ -42,7 +42,14 @@ export type PrivateFieldNameEnum = z.infer<typeof PrivateFieldNameEnum>;
 export const AllFieldNames = z.union([FieldNameEnum, PrivateFieldNameEnum]);
 export type AllFieldNames = z.infer<typeof AllFieldNames>;
 
-export type ElementType = 'card' | 'card-number' | 'card-expiry' | 'card-cvc';
+export enum ElementTypeEnum {
+  CARD = 'card',
+  CARD_NUMBER = 'card-number',
+  CARD_EXPIRY = 'card-expiry',
+  CARD_CVC = 'card-cvc',
+}
+export const ElementType = z.nativeEnum(ElementTypeEnum);
+export type ElementType = z.infer<typeof ElementType>;
 
 /**
  * Core models
