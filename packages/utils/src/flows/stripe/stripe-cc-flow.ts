@@ -8,22 +8,10 @@ import {
   tokenizeCard,
 } from '../../cde-client';
 import { StartPaymentFlowForCCResponse } from '../../cde_models';
-import {
-  AllFieldNames,
-  ConfirmPaymentFlowResponse,
-  FieldName,
-  RequiredFormFields,
-  TokenizeCardResponse,
-} from '../../shared-models';
 import { launchStripe3DSDialogFlow, Stripe3DSNextActionMetadata } from '../../stripe';
-import { extractIssuesPerField } from '../../zod-errors';
-import {
-  addBasicCheckoutCallbackHandlers,
-  createOjsFlowLoggers,
-  OnValidationError,
-  RunOjsFlow,
-  SimpleOjsFlowResult,
-} from '../ojs-flow';
+import { validateNonCdeFormFieldsForCC, validateTokenizeCardResults } from '../common/cc-flow-utils';
+import { parseConfirmPaymentFlowResponse } from '../common/common-flow-utils';
+import { addBasicCheckoutCallbackHandlers, createOjsFlowLoggers, RunOjsFlow, SimpleOjsFlowResult } from '../ojs-flow';
 
 // For gpay, apple pay, and stripe link:
 // TODO ASAP override empty zip code logic
@@ -43,7 +31,7 @@ export const runStripeCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
     const prefill = await getPrefill(anyCdeConnection);
 
     log__`Validating non-CDE form fields`;
-    const nonCdeFormFields = validateNonCdeFormFields(nonCdeFormInputs, flowCallbacks.onValidationError);
+    const nonCdeFormFields = validateNonCdeFormFieldsForCC(nonCdeFormInputs, flowCallbacks.onValidationError);
 
     log__`Tokenizing card info in CDE`;
     const tokenizeCardResults = await tokenizeCard(context.cdeConnections, {
@@ -87,7 +75,7 @@ export const runStripeCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
               secure_token: prefill.token,
               existing_cc_pm_id: startPfResult.cc_pm_id,
             });
-            const createdPaymentMethod = parsePaymentFlowConfirmation(confirmResult);
+            const createdPaymentMethod = parseConfirmPaymentFlowResponse(confirmResult);
             return { mode: 'setup', result: createdPaymentMethod };
           } else {
             const result = await checkoutCardElements(anyCdeConnection, {
@@ -107,62 +95,9 @@ export const runStripeCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
   }
 );
 
-/**
- * Parses and validates the payment flow confirmation response
+/*
+ * Parses the 3DS next action metadata from the start payment flow response
  */
-const parsePaymentFlowConfirmation = (response: ConfirmPaymentFlowResponse): { payment_method_id: string } => {
-  if (response.payment_methods.length !== 1) {
-    throw new Error(`Expected exactly one payment method, got ${response.payment_methods.length}`);
-  }
-  return { payment_method_id: response.payment_methods[0].id };
-};
-
-/**
- * Validates the non-CDE (non-sensitive) form fields
- */
-const validateNonCdeFormFields = (
-  nonCdeFormInputs: Record<string, unknown>,
-  onValidationError: OnValidationError
-): RequiredFormFields => {
-  const payload = RequiredFormFields.safeParse(nonCdeFormInputs);
-  if (!payload.success) {
-    const formatted = payload.error.format();
-    const issues = extractIssuesPerField(formatted);
-    for (const [fieldName, errors] of Object.entries(issues)) {
-      onValidationError(fieldName as FieldName, errors, fieldName);
-    }
-    log__`Got validation errors in non-CDE form fields: ${JSON.stringify(payload.data)}`;
-    throw new Error('Got validation errors in non-CDE form fields');
-  }
-
-  return payload.data;
-};
-
-/**
- * Validates the tokenizeCard CDE call result.
- * This mostly happens when the CDE fields (i.e. sensitive fields) have validation errors.
- */
-const validateTokenizeCardResults = (
-  tokenizeResults: TokenizeCardResponse[],
-  onValidationError: OnValidationError
-): void => {
-  for (const tokenizeResult of tokenizeResults) {
-    if (tokenizeResult.success === false) {
-      tokenizeResult.errors.forEach((error) => {
-        const parsed = AllFieldNames.safeParse(error.elementType);
-        if (!parsed.success) {
-          err__`Unknown field name in onValidationError: ${error.elementType}`;
-        } else {
-          const fieldName = parsed.data;
-          onValidationError(fieldName, error.errors);
-        }
-      });
-      log__`Error tokenizing card: got validation errors: ${JSON.stringify(tokenizeResult.errors)}`;
-      throw new Error('Got validation errors while tokenizing card');
-    }
-  }
-};
-
 const parse3DSNextActionMetadata = (response: StartPaymentFlowForCCResponse): Stripe3DSNextActionMetadata => {
   if (response.required_user_actions.length !== 1) {
     throw new Error(
