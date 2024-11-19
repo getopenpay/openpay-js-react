@@ -154,9 +154,8 @@ export class OpenPayFormEventHandler {
   }
 
   handleLoadedEvent(source: MessageEventSource, elementId: string, payload: LoadedEventPayload) {
-    // show3DSPopup({ url: SIMULATE_3DS_URL });
+    // show3DSPopup({ url: SIMULATE_3DS_URL, baseUrl: this.config.baseUrl! });
     this.eventTargets[elementId] = source;
-    console.log('handleLoadedEvent XXXXXXXXX', payload);
     if (!this.formInstance.sessionId) {
       this.formInstance.sessionId = payload.sessionId;
     }
@@ -298,7 +297,7 @@ export class OpenPayFormEventHandler {
   handleErrorEvent(payload: ErrorEventPayload) {
     if (payload.message === '3DS_REQUIRED') {
       const threeDSUrl = payload.headers?.['x-3ds-auth-url'] ?? SIMULATE_3DS_URL;
-      show3DSPopup({ url: threeDSUrl });
+      show3DSPopup({ url: threeDSUrl, baseUrl: this.config.baseUrl! });
 
       const cardCpm = this.formInstance.checkoutPaymentMethods?.find((cpm) => cpm.provider === 'credit_card');
       if (!this.formInstance.sessionId || !this.formInstance.formTarget || !this.config.onValidationError || !cardCpm)

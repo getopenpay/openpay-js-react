@@ -1,28 +1,28 @@
 import { createConnection } from '../utils/connection';
 
-function startPolling(iframe: HTMLIFrameElement, onSuccess: () => void): NodeJS.Timeout {
-  const pollingInterval = setInterval(async () => {
+function startPolling(iframe: HTMLIFrameElement, onSuccess: () => void, childOrigin?: string): NodeJS.Timeout {
+  const handlePolling = async () => {
     try {
       console.log('🔄 Polling CDE connection...');
-      const connection = await createConnection(iframe);
+      const connection = await createConnection(iframe, childOrigin);
       if (connection) {
         console.log('🟢 CDE connection successful! Stopping polling...');
         clearInterval(pollingInterval);
         onSuccess();
       }
     } catch (error) {
-      console.error('🔴 CDE connection failed, continuing to poll...');
+      // console.error('🔴 CDE connection failed, continuing to poll...');
       // Connection failed, continue polling
     }
-  }, 2000); // Poll every second
+  };
+  handlePolling();
+  const pollingInterval = setInterval(handlePolling, 1000); // Poll every second
   return pollingInterval;
 }
 
-export const SIMULATE_3DS_URL = 'simulate-3ds.html';
-/**
- * This injects an iframe into a shadow DOM and returns the overlay element.
- */
-export function show3DSPopup({ url }: { url: string }) {
+export const SIMULATE_3DS_URL = 'http://localhost:3033/simulate-3ds.html';
+
+export function show3DSPopup({ url, baseUrl }: { url: string; baseUrl: string }) {
   // Create a style element
   const style = document.createElement('style');
   style.textContent = `
@@ -85,16 +85,34 @@ export function show3DSPopup({ url }: { url: string }) {
   container.className = 'container';
 
   const frame = document.createElement('iframe');
+  // We do not directly load the url here
+  // because iframe origin is different from the child origin
+  // (iframe = user domain origin, child = our CDE domain origin).
+  // This workaround to look like we are sending events between 2 CDE pages.
   frame.src = url;
   frame.className = 'frame';
 
+  // Cancel button
+  const cancelButton = document.createElement('button');
+  cancelButton.textContent = 'Cancel';
+  cancelButton.className = 'cancel-button';
+
+  container.appendChild(cancelButton);
+  container.appendChild(frame);
+  overlay.appendChild(container);
+  shadowRoot.appendChild(overlay);
+
   // Setup connection polling
-  const pollingInterval = startPolling(frame, () => {
-    // On successful CDE connection, remove the popup
-    if (shadowRoot.contains(overlay)) {
-      shadowRoot.removeChild(overlay);
-    }
-  });
+  const pollingInterval = startPolling(
+    frame,
+    () => {
+      // On successful CDE connection, remove the popup
+      if (shadowRoot.contains(overlay)) {
+        shadowRoot.removeChild(overlay);
+      }
+    },
+    new URL(baseUrl).origin
+  );
 
   // Clean up function
   const cleanup = () => {
@@ -104,16 +122,7 @@ export function show3DSPopup({ url }: { url: string }) {
     }
   };
 
-  // Cancel button
-  const cancelButton = document.createElement('button');
-  cancelButton.textContent = 'Cancel';
-  cancelButton.className = 'cancel-button';
   cancelButton.addEventListener('click', cleanup);
-
-  container.appendChild(cancelButton);
-  container.appendChild(frame);
-  overlay.appendChild(container);
-  shadowRoot.appendChild(overlay);
 
   return { cleanup };
 }
