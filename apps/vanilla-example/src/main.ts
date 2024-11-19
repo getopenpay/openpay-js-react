@@ -29,7 +29,6 @@ function initializeForm(token: string) {
     formTarget: '#app',
     baseUrl: baseUrl || undefined,
     onLoad: (totalAmountAtoms, currency) => {
-      console.log('onLoad XXXXXXXXX', totalAmountAtoms, currency);
       const submitButton = document.querySelector('#submit') as HTMLButtonElement;
       if (submitButton && totalAmountAtoms && currency) {
         const amount = (totalAmountAtoms / 100).toFixed(2);
@@ -155,7 +154,7 @@ function initializeForm(token: string) {
         styles: {
           color: 'lightblue',
           placeholderStyle: {
-            color: '#4169E1',
+            color: 'lightblue',
             fontFamily: 'monospace',
           },
         },
@@ -166,7 +165,7 @@ function initializeForm(token: string) {
         styles: {
           color: 'lightblue',
           placeholderStyle: {
-            color: '#4169E1',
+            color: 'lightblue',
             fontFamily: 'monospace',
           },
         },
@@ -177,7 +176,7 @@ function initializeForm(token: string) {
         styles: {
           color: 'lightblue',
           placeholderStyle: {
-            color: '#4169E1',
+            color: 'lightblue',
             fontFamily: 'monospace',
           },
         },
@@ -193,7 +192,7 @@ function initializeForm(token: string) {
         styles: {
           color: 'lightblue',
           placeholderStyle: {
-            color: '#4169E1',
+            color: 'lightblue',
             fontFamily: 'monospace',
           },
         },

@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "VITE_BASE_URL=http://localhost:8001 vite --port 3033",
+    "dev": "VITE_BASE_URL=http://localhost:3030 vite --port 3033",
     "dev-stg": "VITE_BASE_URL=https://cde.openpaystaging.com vite --port 3033",
     "dev-prod": "VITE_BASE_URL=https://cde.getopenpay.com vite --port 3033",
     "build": "tsc && vite build",

@@ -10,3 +10,4 @@ export * from './src/cde-connection';
 export * from './src/cde-client';
 export * from './src/math';
 export * from './src/types';
+export * from './src/appearance';

@@ -2,17 +2,14 @@ import {
   AllFieldNames,
   CheckoutPaymentMethod,
   convertStylesToQueryString,
+  convertAppearanceToQueryString,
   ElementProps,
-  FieldName,
   PaymentRequestStatus,
+  AppearanceOptions,
 } from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
 import { ConnectionManager, createConnection } from './utils/connection';
 import { initializePaymentRequests, PaymentRequestProvider } from './utils/payment-request';
-
-export { FieldName };
-
-export type ElementType = 'card' | 'card-number' | 'card-expiry' | 'card-cvc';
 
 export type ElementsFormProps = {
   className?: string;
@@ -30,9 +27,12 @@ export type ElementsFormProps = {
   baseUrl?: string;
   formTarget?: string;
   onPaymentRequestLoad?: (paymentRequests: Record<PaymentRequestProvider, PaymentRequestStatus>) => void;
+  appearance?: AppearanceOptions;
 };
 
 export type Config = ElementsFormProps & { _frameUrl?: URL };
+
+export type ElementType = 'card' | 'card-number' | 'card-expiry' | 'card-cvc';
 
 export class OpenPayForm {
   config: Config;
@@ -127,9 +127,18 @@ export class OpenPayForm {
     const queryString = new URLSearchParams();
     queryString.append('referer', this.referer);
     queryString.append('formId', this.formId);
+
     if (options.styles) {
       queryString.append('styles', convertStylesToQueryString(options.styles));
     }
+
+    if (this.config.appearance) {
+      const appearanceString = convertAppearanceToQueryString(this.config.appearance);
+      if (appearanceString) {
+        queryString.append('appearance', appearanceString);
+      }
+    }
+
     queryString.append('secureToken', this.config.checkoutSecureToken);
     return queryString;
   }
