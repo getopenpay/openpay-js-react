@@ -162,6 +162,7 @@ type ErrorEventType = z.infer<typeof ErrorEventType>;
 export const ErrorEventPayload = z.object({
   type: ErrorEventType,
   message: RequiredString,
+  headers: z.record(z.string(), z.string()).optional(),
 });
 export type ErrorEventPayload = z.infer<typeof ErrorEventPayload>;
 

@@ -297,7 +297,8 @@ export class OpenPayFormEventHandler {
 
   handleErrorEvent(payload: ErrorEventPayload) {
     if (payload.message === '3DS_REQUIRED') {
-      show3DSPopup({ url: SIMULATE_3DS_URL });
+      const threeDSUrl = payload.headers?.['x-3ds-auth-url'] ?? SIMULATE_3DS_URL;
+      show3DSPopup({ url: threeDSUrl });
 
       const cardCpm = this.formInstance.checkoutPaymentMethods?.find((cpm) => cpm.provider === 'credit_card');
       if (!this.formInstance.sessionId || !this.formInstance.formTarget || !this.config.onValidationError || !cardCpm)
