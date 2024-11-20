@@ -1,14 +1,21 @@
-import { createConnection } from '../utils/connection';
+import { Ping3DSStatusResponse, ThreeDSStatus } from '@getopenpay/utils';
+import { pingCdeFor3dsStatus } from '../utils/connection';
+export const SIMULATE_3DS_URL = 'http://localhost:3033/simulate-3ds.html';
 
-function startPolling(iframe: HTMLIFrameElement, onSuccess: () => void, childOrigin?: string): NodeJS.Timeout {
+function startPolling(
+  iframe: HTMLIFrameElement,
+  onSuccess: (status: Ping3DSStatusResponse['status']) => void,
+  childOrigin: string
+): NodeJS.Timeout {
   const handlePolling = async () => {
     try {
       console.log('🔄 Polling CDE connection...');
-      const connection = await createConnection(iframe, childOrigin);
-      if (connection) {
+      const status = await pingCdeFor3dsStatus(iframe, childOrigin);
+      if (status) {
         console.log('🟢 CDE connection successful! Stopping polling...');
+        console.log('➡️ Got status:', status);
         clearInterval(pollingInterval);
-        onSuccess();
+        onSuccess(status);
       }
     } catch (error) {
       // console.error('🔴 CDE connection failed, continuing to poll...');
@@ -20,10 +27,7 @@ function startPolling(iframe: HTMLIFrameElement, onSuccess: () => void, childOri
   return pollingInterval;
 }
 
-export const SIMULATE_3DS_URL = 'http://localhost:3033/simulate-3ds.html';
-
-export function show3DSPopup({ url, baseUrl }: { url: string; baseUrl: string }) {
-  // Create a style element
+const createStyles = () => {
   const style = document.createElement('style');
   style.textContent = `
     @keyframes fadeIn {
@@ -67,64 +71,99 @@ export function show3DSPopup({ url, baseUrl }: { url: string; baseUrl: string })
       right: 0;
     }
   `;
+  return style;
+};
 
-  // Create a shadow host
+interface DOMElements {
+  shadowHost: HTMLDivElement;
+  shadowRoot: ShadowRoot;
+  overlay: HTMLDivElement;
+  container: HTMLDivElement;
+  frame: HTMLIFrameElement;
+  cancelButton: HTMLButtonElement;
+}
+
+const constructPopup = (url: string): DOMElements => {
   const shadowHost = document.createElement('div');
-  document.body.appendChild(shadowHost);
-
-  // Attach a shadow root to the host
+  // Used shadowRoot to avoid CSS conflicts with the parent
   const shadowRoot = shadowHost.attachShadow({ mode: 'open' });
-
-  // Append the style to the shadow root
-  shadowRoot.appendChild(style);
-
   const overlay = document.createElement('div');
-  overlay.className = 'overlay';
-
   const container = document.createElement('div');
-  container.className = 'container';
-
   const frame = document.createElement('iframe');
-  // We do not directly load the url here
-  // because iframe origin is different from the child origin
-  // (iframe = user domain origin, child = our CDE domain origin).
-  // This workaround to look like we are sending events between 2 CDE pages.
-  frame.src = url;
-  frame.className = 'frame';
-
-  // Cancel button
   const cancelButton = document.createElement('button');
+
+  const style = createStyles();
+  overlay.className = 'overlay';
+  container.className = 'container';
+  frame.className = 'frame';
+  frame.src = url;
   cancelButton.textContent = 'Cancel';
   cancelButton.className = 'cancel-button';
 
+  shadowRoot.appendChild(style);
   container.appendChild(cancelButton);
   container.appendChild(frame);
   overlay.appendChild(container);
   shadowRoot.appendChild(overlay);
+  document.body.appendChild(shadowHost);
 
-  // Setup connection polling
-  const pollingInterval = startPolling(
+  return {
+    shadowHost,
+    shadowRoot,
+    overlay,
+    container,
     frame,
-    () => {
-      // On successful CDE connection, remove the popup
-      if (shadowRoot.contains(overlay)) {
-        shadowRoot.removeChild(overlay);
-      }
-    },
-    new URL(baseUrl).origin
-  );
+    cancelButton,
+  };
+};
 
-  // Clean up function
-  const cleanup = () => {
-    clearInterval(pollingInterval);
+/**
+ * @returns `Promise<'success' | 'failure' | 'cancelled'>`
+ */
+export async function start3dsVerification({
+  url,
+  baseUrl,
+}: {
+  url: string;
+  baseUrl: string;
+}): Promise<Ping3DSStatusResponse['status']> {
+  const { shadowHost, shadowRoot, overlay, frame, cancelButton } = constructPopup(url);
+
+  // Cleanup function that handles all DOM removal
+  function cleanup() {
     if (shadowRoot.contains(overlay)) {
       shadowRoot.removeChild(overlay);
     }
-  };
+    if (document.body.contains(shadowHost)) {
+      document.body.removeChild(shadowHost);
+    }
+  }
 
-  cancelButton.addEventListener('click', cleanup);
+  return new Promise((resolve) => {
+    // Setup connection polling
+    const pollingInterval = startPolling(
+      frame,
+      (status) => {
+        setTimeout(() => {
+          cleanup();
+        }, 1500);
+        resolve(status);
+        cleanupEventListeners();
+      }, // onSuccessCallback
+      new URL(baseUrl).origin // childOrigin
+    );
 
-  return { cleanup };
+    function handleCancel() {
+      clearInterval(pollingInterval);
+      cleanup();
+      resolve(ThreeDSStatus.CANCELLED);
+      cleanupEventListeners();
+    }
+
+    cancelButton.addEventListener('click', handleCancel);
+
+    function cleanupEventListeners() {
+      cancelButton.removeEventListener('click', handleCancel);
+    }
+  });
 }
-
-export function handle3DSStatus() {}
