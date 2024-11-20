@@ -25,7 +25,8 @@ import {
 import { OpenPayForm } from './index';
 import { ConnectionManager } from './utils/connection';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
-import { start3dsVerification, SIMULATE_3DS_URL } from './3ds-elements/frame';
+import { SIMULATE_3DS_URL } from './3ds-elements/frame';
+import { start3dsVerification } from './3ds-elements/events';
 
 export class OpenPayFormEventHandler {
   formInstance: OpenPayForm;
@@ -154,6 +155,8 @@ export class OpenPayFormEventHandler {
   }
 
   async handleLoadedEvent(source: MessageEventSource, elementId: string, payload: LoadedEventPayload) {
+    const status = await start3dsVerification({ url: SIMULATE_3DS_URL, baseUrl: this.config.baseUrl! });
+    console.log('🔐 3DS status:', status);
     this.eventTargets[elementId] = source;
     if (!this.formInstance.sessionId) {
       this.formInstance.sessionId = payload.sessionId;
@@ -298,9 +301,7 @@ export class OpenPayFormEventHandler {
       const threeDSUrl = payload.headers?.['x-3ds-auth-url'] ?? SIMULATE_3DS_URL;
       // This will open a popup and process the 3DS flow
       // will return a status `success` | `failure` | `cancelled` which we can continue with
-      const status = await start3dsVerification({ url: threeDSUrl, baseUrl: this.config.baseUrl! }).catch((e) => {
-        console.error('🔴 Error 3DS flow:', e);
-      });
+      const status = await start3dsVerification({ url: threeDSUrl, baseUrl: this.config.baseUrl! });
       console.log('🔐 3DS status:', status);
       // TODO: continue with status
 

@@ -32,6 +32,17 @@ export default defineConfig(({ mode }) => {
         rollupTypes: true,
         tsconfigPath: resolve(__dirname, 'tsconfig.build.json'),
       }),
+      {
+        name: 'css-inline',
+        transform(code, id) {
+          if (id.endsWith('.css?inline')) {
+            return {
+              code: `export default ${JSON.stringify(code)}`,
+              map: null,
+            };
+          }
+        },
+      }, // To inline CSS into the bundle
     ],
     define: {
       __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
