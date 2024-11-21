@@ -26,12 +26,27 @@ export type OjsFlowParams = {
   flowCallbacks: OjsFlowCallbacks;
 };
 
+export type CanDoOjsFlowParams = {
+  /**
+   * Contains the context where OJS is run.
+   * Ideally this only contains "background" context (OJS-level objects), and not flow-level objects.
+   */
+  context: OjsContext;
+
+  /**
+   * The checkout payment method object to be used for the flow.
+   */
+  checkoutPaymentMethod: CheckoutPaymentMethod;
+};
+
 export interface OjsFlow {
   /**
    * Runs the OJS flow
    */
   runFlow: RunOjsFlow;
 }
+
+export type CanDoOjsFlow = (params: CanDoOjsFlowParams) => boolean;
 
 export type RunOjsFlow = (params: OjsFlowParams) => Promise<void>;
 
