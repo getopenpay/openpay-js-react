@@ -101,6 +101,11 @@ export type OjsContext = {
   elementsSessionId: string;
 
   /**
+   * All the checkout payment methods available in the session.
+   */
+  checkoutPaymentMethods: CheckoutPaymentMethod[];
+
+  /**
    * All the CDE connection objects (one for each CDE iframe).
    */
   cdeConnections: Map<ElementType, CdeConnection>;
@@ -171,8 +176,7 @@ export const createOjsFlowLoggers = (
   return {
     log,
     err,
-    // Template strings (e.g. log__`hello`)
-    log__: (...args) => log(args.join('')),
-    err__: (...args) => err(args.join('')),
+    log__: log,
+    err__: err,
   };
 };

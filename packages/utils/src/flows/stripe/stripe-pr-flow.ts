@@ -67,11 +67,10 @@ export type StripePrCpm = z.infer<typeof StripePrCpm>;
  */
 export const initStripePrFlow: InitOjsFlow<InitStripePrFlowResult> = addErrorCatcherForInit(
   async ({ context, allCPMs }): Promise<InitStripePrFlowResult> => {
-    log__`Checking if there are any CPMs for Stripe PR...`;
-    log__(StripePrCpm.description);
+    log__(`Checking if there are any CPMs for Stripe PR...`);
     const checkoutPaymentMethod = findCpmMatchingType(allCPMs, StripePrCpm);
 
-    log__`Initializing Stripe PR flow...`;
+    log__(`Initializing Stripe PR flow...`);
     const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
     const prefill = await getPrefill(anyCdeConnection);
     const isSetupMode = prefill.mode === 'setup';
@@ -85,10 +84,10 @@ export const initStripePrFlow: InitOjsFlow<InitStripePrFlowResult> = addErrorCat
     );
     const canMakePayment = await pr.canMakePayment();
     if (canMakePayment === null) {
-      err__`canMakePayment returned null`;
+      err__(`canMakePayment returned null`);
       return { isAvailable: false, reason: 'canMakePayment returned null' };
     }
-    log__`Stripe PR flow initialized successfully. Can make payment: ${canMakePayment}`;
+    log__(`Stripe PR flow initialized successfully. Can make payment: ${canMakePayment}`);
     return {
       isAvailable: true,
       pr,
@@ -113,11 +112,11 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
       customParams,
       initResult,
     }): Promise<SimpleOjsFlowResult> => {
-      log__`Running Stripe PR flow...`;
+      log__(`Running Stripe PR flow...`);
       const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
       const pr = initResult.pr;
 
-      log__`Validating non-CDE form fields`;
+      log__(`Validating non-CDE form fields`);
       const cleanedFormInputs = overrideEmptyZipCode(nonCdeFormInputs);
       const nonCdeFormFields = validateNonCdeFormFieldsForCC(cleanedFormInputs, flowCallbacks.onValidationError);
 
@@ -141,7 +140,7 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
 
       const prefill = await getPrefill(anyCdeConnection);
       if (prefill.mode === 'setup') {
-        log__`Confirming payment flow`;
+        log__(`Confirming payment flow`);
         const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
           secure_token: prefill.token,
         });
@@ -173,7 +172,7 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
 const overrideEmptyZipCode = (formInputs: Record<string, unknown>): Record<string, unknown> => {
   const newFormInputs = { ...formInputs };
   if (!newFormInputs[FieldName.ZIP_CODE]) {
-    log__`Overriding empty zip code (only for google pay and apple pay)`;
+    log__(`Overriding empty zip code (only for google pay and apple pay)`);
     newFormInputs[FieldName.ZIP_CODE] = '00000';
   }
   return newFormInputs;

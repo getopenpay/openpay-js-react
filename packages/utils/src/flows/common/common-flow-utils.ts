@@ -33,9 +33,10 @@ export const parseConfirmPaymentFlowResponse = (
 export const findCpmMatchingType = <T>(allCPMs: CheckoutPaymentMethod[], zodModel: z.ZodSchema<T>): T => {
   const cpm = allCPMs.find((cpm) => zodModel.safeParse(cpm).success);
   if (!cpm) {
-    err__`No CPMs found for model ${zodModel.description}`;
+    err__(`No CPMs found for model ${zodModel}`);
     err__(allCPMs);
-    throw new Error(`No CPMs found for model ${zodModel.description}`);
+    err__(`zodModel`);
+    throw new Error(`No CPMs found for model ${zodModel}`);
   }
   return zodModel.parse(cpm);
 };

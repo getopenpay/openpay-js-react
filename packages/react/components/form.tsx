@@ -381,7 +381,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
     const context: OjsContext = {
       formDiv: formRef.current,
-      elementsSessionId: sessionId,
+      elementsSessionId: '', // TODO ASAP
       cdeConnections,
     };
     return context;

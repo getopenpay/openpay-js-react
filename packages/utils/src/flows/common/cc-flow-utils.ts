@@ -18,7 +18,7 @@ export const validateNonCdeFormFieldsForCC = (
     for (const [fieldName, errors] of Object.entries(issues)) {
       onValidationError(fieldName as FieldName, errors, fieldName);
     }
-    err__`Got validation errors in non-CDE form fields: ${JSON.stringify(payload.data)}`;
+    err__(`Got validation errors in non-CDE form fields: ${JSON.stringify(payload.data)}`);
     throw new Error('Got validation errors in non-CDE form fields');
   }
 
@@ -39,13 +39,13 @@ export const validateTokenizeCardResults = (
       tokenizeResult.errors.forEach((error) => {
         const parsed = AllFieldNames.safeParse(error.elementType);
         if (!parsed.success) {
-          err__`Unknown field name in onValidationError: ${error.elementType}`;
+          err__(`Unknown field name in onValidationError: ${error.elementType}`);
         } else {
           const fieldName = parsed.data;
           onValidationError(fieldName, error.errors);
         }
       });
-      log__`Error tokenizing card: got validation errors: ${JSON.stringify(tokenizeResult.errors)}`;
+      log__(`Error tokenizing card: got validation errors: ${JSON.stringify(tokenizeResult.errors)}`);
       throw new Error('Got validation errors while tokenizing card');
     }
   }

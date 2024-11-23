@@ -12,6 +12,9 @@ const { log__, err__ } = createOjsFlowLoggers('init-flows');
  */
 export const initializeOjsFlows = (context: OjsContext, allCPMs: CheckoutPaymentMethod[]) => {
   return {
+    // Stripe CC
+    stripeCC: runInitFlowAsObservable('stripeCC', OjsFlows.stripeCC.init({ context, allCPMs })),
+
     // Stripe PR
     stripePR: runInitFlowAsObservable('stripePR', OjsFlows.stripePR.init({ context, allCPMs })),
 
@@ -39,10 +42,10 @@ const runInitFlowAsObservable = <T extends InitOjsFlowResult>(
 
   observable.subscribe({
     next: () => {
-      log__`${flowName} flow initialized`;
+      log__(`${flowName} flow initialized`);
     },
     error: (error) => {
-      err__`${flowName} flow initialization error:\n${JSON.stringify(error)}`;
+      err__(`${flowName} flow initialization error:\n${JSON.stringify(error)}`);
       // This shouldn't happen, since we're handling all the errors in the .catch block
       throw error;
     },
@@ -51,4 +54,4 @@ const runInitFlowAsObservable = <T extends InitOjsFlowResult>(
   return observable;
 };
 
-export type InitializedOjsFlows = ReturnType<typeof initializeOjsFlows>;
+export type OjsFlowsInitialization = ReturnType<typeof initializeOjsFlows>;

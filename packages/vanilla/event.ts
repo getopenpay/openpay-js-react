@@ -109,13 +109,10 @@ export class OpenPayFormEventHandler {
   handleLoadedEvent(source: MessageEventSource, elementId: string, payload: LoadedEventPayload) {
     this.eventTargets[elementId] = source;
     console.log('handleLoadedEvent XXXXXXXXX', payload);
-    if (!this.formInstance.sessionId) {
-      this.formInstance.sessionId = payload.sessionId;
-    }
+    this.formInstance.onCdeLoaded(payload);
     if (this.config.onLoad) {
       this.config.onLoad(payload.totalAmountAtoms, payload.currency);
     }
-    this.formInstance.checkoutPaymentMethods = payload.checkoutPaymentMethods;
   }
 
   handleLoadErrorEvent(payload: ErrorEventPayload) {

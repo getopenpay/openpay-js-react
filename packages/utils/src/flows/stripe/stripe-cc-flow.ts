@@ -20,14 +20,14 @@ const { log__, err__ } = createOjsFlowLoggers('stripe-cc');
  */
 export const runStripeCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
   async ({ context, checkoutPaymentMethod, nonCdeFormInputs, flowCallbacks }): Promise<SimpleOjsFlowResult> => {
-    log__`Running Stripe CC flow...`;
+    log__(`Running Stripe CC flow...`);
     const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
     const prefill = await getPrefill(anyCdeConnection);
 
-    log__`Validating non-CDE form fields`;
+    log__(`Validating non-CDE form fields`);
     const nonCdeFormFields = validateNonCdeFormFieldsForCC(nonCdeFormInputs, flowCallbacks.onValidationError);
 
-    log__`Tokenizing card info in CDE`;
+    log__(`Tokenizing card info in CDE`);
     const tokenizeCardResults = await tokenizeCard(context.cdeConnections, {
       session_id: context.elementsSessionId,
     });
@@ -41,22 +41,22 @@ export const runStripeCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
 
     try {
       if (prefill.mode === 'setup') {
-        log__`Setting up payment method in CDE`;
+        log__(`Setting up payment method in CDE`);
         const result = await setupCheckout(anyCdeConnection, commonCheckoutParams);
         return { mode: 'setup', result };
       } else {
-        log__`Checking out card info in CDE`;
+        log__(`Checking out card info in CDE`);
         const result = await checkoutCardElements(anyCdeConnection, commonCheckoutParams);
         return { mode: 'checkout', result };
       }
     } catch (error) {
       if (error instanceof CdeError) {
         if (error.originalErrorMessage === '3DS_REQUIRED') {
-          log__`Card requires 3DS, starting non-legacy payment flow`;
+          log__(`Card requires 3DS, starting non-legacy payment flow`);
           const startPfResult = await startPaymentFlowForCC(anyCdeConnection, commonCheckoutParams);
           const nextActionMetadata = parse3DSNextActionMetadata(startPfResult);
 
-          log__`Launching Stripe 3DS dialog flow`;
+          log__(`Launching Stripe 3DS dialog flow`);
           await launchStripe3DSDialogFlow(nextActionMetadata);
 
           // TODO ASAP: ideally we also do confirmPaymentFlow for non-setup mode,
@@ -64,7 +64,7 @@ export const runStripeCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
           // even though the 3DS flow has been completed.
 
           if (prefill.mode === 'setup') {
-            log__`Confirming payment flow`;
+            log__(`Confirming payment flow`);
             const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
               secure_token: prefill.token,
               existing_cc_pm_id: startPfResult.cc_pm_id,
@@ -82,7 +82,7 @@ export const runStripeCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
           }
         }
       }
-      err__`Error checking out card info in CDE:`;
+      err__(`Error checking out card info in CDE:`);
       err__(error);
       throw error;
     }

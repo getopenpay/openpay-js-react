@@ -1,6 +1,5 @@
 import {
   AllFieldNames,
-  CheckoutPaymentMethod,
   convertStylesToQueryString,
   createInputsDictFromForm,
   ElementProps,
@@ -12,10 +11,11 @@ import {
   PaymentRequestStatus,
   makeCallbackSafe,
   initializeOjsFlows,
-  InitializedOjsFlows,
+  OjsFlowsInitialization,
   PR_LOADING,
   PR_ERROR,
   PaymentRequestStartParams,
+  LoadedEventPayload,
 } from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
 import { ConnectionManager, createConnection } from './utils/connection';
@@ -48,8 +48,6 @@ export type Config = ElementsFormProps & { _frameUrl?: URL };
 export class OpenPayForm {
   config: Config;
   formId: string;
-  sessionId: null | string;
-  checkoutPaymentMethods: Array<CheckoutPaymentMethod>;
   formTarget: string;
   checkoutFired: boolean;
   ojsVersion: string;
@@ -57,7 +55,8 @@ export class OpenPayForm {
   private eventHandler: OpenPayFormEventHandler;
   private formProperties: { height: string };
   private connectionManager: ConnectionManager;
-  private initializedFlows: InitializedOjsFlows;
+  private ojsFlowsInitialization: OjsFlowsInitialization | null;
+  private cdeLoadedPayload: LoadedEventPayload | null;
   private elements: Record<
     ElementType,
     { type: ElementType; node: HTMLIFrameElement; mount: (selector: string) => void }
@@ -73,16 +72,12 @@ export class OpenPayForm {
     this.referer = window.location.origin;
     this.formTarget = config.formTarget ?? 'body';
     this.formProperties = { height: '1px' };
-    this.sessionId = null;
-    this.checkoutPaymentMethods = [];
+    this.cdeLoadedPayload = null;
+    this.ojsFlowsInitialization = null;
     this.checkoutFired = false;
     this.connectionManager = new ConnectionManager();
     this.eventHandler = new OpenPayFormEventHandler(this);
     this.ojsVersion = __APP_VERSION__;
-
-    // OJS flows initialization
-    this.initializedFlows = initializeOjsFlows(this.createOjsFlowContext(), this.checkoutPaymentMethods);
-    this.initializedFlows.stripePR.subscribe((status) => this.onStripePRStatusChange(status));
 
     window.addEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));
   }
@@ -120,6 +115,18 @@ export class OpenPayForm {
       });
     }
   }
+
+  onCdeLoaded = (payload: LoadedEventPayload) => {
+    if (this.cdeLoadedPayload) {
+      return;
+    }
+    this.cdeLoadedPayload = payload;
+    // OJS flows initialization
+    const initialization = initializeOjsFlows(this.createOjsFlowContext(), payload.checkoutPaymentMethods);
+    initialization.stripeCC.subscribe((status) => window['console'].log('stripeCC status', status));
+    initialization.stripePR.subscribe((status) => this.onStripePRStatusChange(status));
+    this.ojsFlowsInitialization = initialization;
+  };
 
   onStripePRStatusChange = (initStatus: Loadable<InitStripePrFlowResult>) => {
     if (initStatus.status === 'loading') {
@@ -203,12 +210,13 @@ export class OpenPayForm {
   }
 
   private createOjsFlowContext(): OjsContext {
-    if (this.sessionId === null) {
-      throw new Error(`Cannot create flow context as sessionId is not available`);
+    if (!this.cdeLoadedPayload) {
+      throw new Error('Requested context while CDE not yet loaded');
     }
     return {
       formDiv: this.getFormDiv(),
-      elementsSessionId: this.sessionId,
+      elementsSessionId: this.cdeLoadedPayload.sessionId,
+      checkoutPaymentMethods: this.cdeLoadedPayload.checkoutPaymentMethods,
       cdeConnections: this.connectionManager.getAllConnections(),
     };
   }
@@ -232,9 +240,11 @@ export class OpenPayForm {
   }
 
   submit() {
+    const context = this.createOjsFlowContext();
     OjsFlows.stripeCC.run({
-      context: this.createOjsFlowContext(),
-      checkoutPaymentMethod: findCheckoutPaymentMethodStrict(this.checkoutPaymentMethods, 'credit_card'),
+      context,
+      // TODO ASAP: get from initCCFlow
+      checkoutPaymentMethod: findCheckoutPaymentMethodStrict(context.checkoutPaymentMethods, 'credit_card'),
       nonCdeFormInputs: this.getNonCdeFormInputs(),
       flowCallbacks: this.createOjsFlowCallbacks(),
       customParams: undefined, // This flow requires no custom params
@@ -247,9 +257,10 @@ export class OpenPayForm {
     initResult: InitStripePrFlowSuccess,
     params?: PaymentRequestStartParams
   ): Promise<void> => {
+    const context = this.createOjsFlowContext();
     return OjsFlows.stripePR.run({
-      context: this.createOjsFlowContext(),
-      checkoutPaymentMethod: findCheckoutPaymentMethodStrict(this.checkoutPaymentMethods, provider),
+      context,
+      checkoutPaymentMethod: findCheckoutPaymentMethodStrict(context.checkoutPaymentMethods, provider),
       nonCdeFormInputs: this.getNonCdeFormInputs(),
       flowCallbacks: this.createOjsFlowCallbacks(),
       customParams: { provider, overridePaymentRequest: params?.overridePaymentRequest },
