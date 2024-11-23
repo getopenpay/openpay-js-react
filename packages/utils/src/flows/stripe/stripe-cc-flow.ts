@@ -13,13 +13,6 @@ import { validateNonCdeFormFieldsForCC, validateTokenizeCardResults } from '../c
 import { parseConfirmPaymentFlowResponse } from '../common/common-flow-utils';
 import { addBasicCheckoutCallbackHandlers, createOjsFlowLoggers, RunOjsFlow, SimpleOjsFlowResult } from '../ojs-flow';
 
-// For gpay, apple pay, and stripe link:
-// TODO ASAP override empty zip code logic
-// if (!extraData[FieldName.ZIP_CODE]) {
-//   log__('[flow] Overriding empty zip code (only for google pay, apple pay, and stripe link)');
-//   extraData[FieldName.ZIP_CODE] = '00000';
-// }
-
 const { log__, err__ } = createOjsFlowLoggers('stripe-cc');
 
 /*
@@ -27,6 +20,7 @@ const { log__, err__ } = createOjsFlowLoggers('stripe-cc');
  */
 export const runStripeCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
   async ({ context, checkoutPaymentMethod, nonCdeFormInputs, flowCallbacks }): Promise<SimpleOjsFlowResult> => {
+    log__`Running Stripe CC flow...`;
     const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
     const prefill = await getPrefill(anyCdeConnection);
 

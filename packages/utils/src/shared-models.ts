@@ -224,6 +224,15 @@ export const RequiredFormFields = z.object({
 });
 export type RequiredFormFields = z.infer<typeof RequiredFormFields>;
 
+// Like RequiredFormFields, but without first and last name
+export const PRFormFields = z.object({
+  [FieldName.EMAIL]: RequiredString,
+  [FieldName.ZIP_CODE]: RequiredString,
+  [FieldName.COUNTRY]: RequiredString,
+  [FieldName.PROMOTION_CODE]: OptionalString,
+});
+export type PRFormFields = z.infer<typeof PRFormFields>;
+
 const SubmitEventType = EventType.extract(['TOKENIZE', 'CHECKOUT', 'START_PAYMENT_FLOW']);
 type SubmitEventType = z.infer<typeof SubmitEventType>;
 export const SubmitEventPayload = z

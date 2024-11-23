@@ -16,12 +16,15 @@ import {
 } from './shared-models';
 import {
   CDEResponseError,
+  CheckoutRequest,
   CheckoutSuccessResponse,
   PaymentFormPrefill,
   PreviewCheckoutResponse,
   SetupCheckoutResponse,
   StartPaymentFlowForCCRequest,
   StartPaymentFlowForCCResponse,
+  StartPaymentFlowForPRRequest,
+  StartPaymentFlowResponse,
 } from './cde_models';
 import { sleep } from './stripe';
 import { sum } from './math';
@@ -100,6 +103,13 @@ export const startPaymentFlowForCC = async (
   payload: StartPaymentFlowForCCRequest
 ): Promise<StartPaymentFlowForCCResponse> => {
   return await queryCDE(cdeConn, { type: 'start_payment_flow_for_cc', payload }, StartPaymentFlowForCCResponse);
+};
+
+export const startPaymentFlowForPR = async (
+  cdeConn: CdeConnection,
+  payload: StartPaymentFlowForPRRequest
+): Promise<StartPaymentFlowResponse> => {
+  return await queryCDE(cdeConn, { type: 'start_payment_flow_for_pr', payload }, StartPaymentFlowResponse);
 };
 
 export const confirmPaymentFlow = async (
@@ -195,4 +205,11 @@ export const setupCheckout = async (
   payload: SetupCheckoutRequest
 ): Promise<SetupCheckoutResponse> => {
   return await queryCDE(cdeConn, { type: 'setup_payment_method', payload }, SetupCheckoutResponse);
+};
+
+export const performCheckout = async (
+  cdeConn: CdeConnection,
+  payload: CheckoutRequest
+): Promise<CheckoutSuccessResponse> => {
+  return await queryCDE(cdeConn, { type: 'checkout', payload }, CheckoutSuccessResponse);
 };

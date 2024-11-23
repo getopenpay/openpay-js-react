@@ -16,7 +16,7 @@ import { CheckoutPaymentMethod, EventType, SubmitEventPayload } from '@getopenpa
 import { FRAME_BASE_URL } from '@getopenpay/utils';
 import { v4 as uuidv4 } from 'uuid';
 import { usePaymentRequests } from '../hooks/use-payment-requests';
-import { confirmPaymentFlowFor3DS, confirmPaymentFlowForStripePR } from '@getopenpay/utils';
+import { confirmPaymentFlowFor3DS, confirmPaymentFlowForStripePRLegacy } from '@getopenpay/utils';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 import { getErrorMessage } from '@getopenpay/utils';
 import { isJsonString } from '@getopenpay/utils';
@@ -181,7 +181,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
               throw new Error(`Stripe PM not set`);
             }
             console.log('[form] Confirming payment flow (Stripe PR)');
-            await confirmPaymentFlowForStripePR(eventPayload, stripePm);
+            await confirmPaymentFlowForStripePRLegacy(eventPayload, stripePm);
           } else {
             throw new Error(`Unknown next action type: ${nextActionType}`);
           }
@@ -390,11 +390,13 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const submitCard = () => {
     const context = generateOjsFlowContext();
     if (!formRef.current || !sessionId || !anyCdeConn || !checkoutPaymentMethods || !context) return;
-    OjsFlows.runStripeCcFlow({
+    OjsFlows.stripeCC.run({
       context,
       checkoutPaymentMethod: findCheckoutPaymentMethodStrict(checkoutPaymentMethods, 'credit_card'),
       nonCdeFormInputs: createInputsDictFromForm(formRef.current),
       flowCallbacks: ojsFlowCallbacks,
+      customParams: undefined, // This flow requires no custom params
+      initResult: undefined, // This flow requires no initialization
     });
   };
 

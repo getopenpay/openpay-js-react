@@ -11,10 +11,17 @@ import {
   OjsFlows,
   PaymentRequestStatus,
   makeCallbackSafe,
+  initializeOjsFlows,
+  InitializedOjsFlows,
+  PR_LOADING,
+  PR_ERROR,
+  PaymentRequestStartParams,
 } from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
 import { ConnectionManager, createConnection } from './utils/connection';
 import { PaymentRequestProvider } from './utils/payment-request';
+import { InitStripePrFlowResult, InitStripePrFlowSuccess } from '@getopenpay/utils/src/flows/stripe/stripe-pr-flow';
+import { Loadable } from '@getopenpay/utils/src/flows/common/common-flow-utils';
 export { FieldName };
 
 export type ElementsFormProps = {
@@ -50,6 +57,7 @@ export class OpenPayForm {
   private eventHandler: OpenPayFormEventHandler;
   private formProperties: { height: string };
   private connectionManager: ConnectionManager;
+  private initializedFlows: InitializedOjsFlows;
   private elements: Record<
     ElementType,
     { type: ElementType; node: HTMLIFrameElement; mount: (selector: string) => void }
@@ -71,6 +79,10 @@ export class OpenPayForm {
     this.connectionManager = new ConnectionManager();
     this.eventHandler = new OpenPayFormEventHandler(this);
     this.ojsVersion = __APP_VERSION__;
+
+    // OJS flows initialization
+    this.initializedFlows = initializeOjsFlows(this.createOjsFlowContext(), this.checkoutPaymentMethods);
+    this.initializedFlows.stripePR.subscribe((status) => this.onStripePRStatusChange(status));
 
     window.addEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));
   }
@@ -108,6 +120,32 @@ export class OpenPayForm {
       });
     }
   }
+
+  onStripePRStatusChange = (initStatus: Loadable<InitStripePrFlowResult>) => {
+    if (initStatus.status === 'loading') {
+      this.config.onPaymentRequestLoad?.({ apple_pay: PR_LOADING, google_pay: PR_LOADING });
+    } else if (initStatus.status === 'error') {
+      this.config.onPaymentRequestLoad?.({ apple_pay: PR_ERROR, google_pay: PR_ERROR });
+    } else if (initStatus.status === 'loaded') {
+      const initResult = initStatus.result;
+      const canApplePay = initResult.isAvailable && initResult.availableProviders.applePay;
+      const canGooglePay = initResult.isAvailable && initResult.availableProviders.googlePay;
+      this.config.onPaymentRequestLoad?.({
+        apple_pay: {
+          isLoading: false,
+          isAvailable: canApplePay,
+          startFlow: async (userParams) =>
+            canApplePay ? this.submitPaymentRequest('apple_pay', initResult, userParams) : undefined,
+        },
+        google_pay: {
+          isLoading: false,
+          isAvailable: canGooglePay,
+          startFlow: async (userParams) =>
+            canGooglePay ? this.submitPaymentRequest('google_pay', initResult, userParams) : undefined,
+        },
+      });
+    }
+  };
 
   createElement(type: ElementType, options: ElementProps = {}) {
     if (!this.config) throw new Error('OpenPay form not initialized');
@@ -194,13 +232,30 @@ export class OpenPayForm {
   }
 
   submit() {
-    OjsFlows.runStripeCcFlow({
+    OjsFlows.stripeCC.run({
       context: this.createOjsFlowContext(),
       checkoutPaymentMethod: findCheckoutPaymentMethodStrict(this.checkoutPaymentMethods, 'credit_card'),
       nonCdeFormInputs: this.getNonCdeFormInputs(),
       flowCallbacks: this.createOjsFlowCallbacks(),
+      customParams: undefined, // This flow requires no custom params
+      initResult: undefined, // This flow requires no initialization
     });
   }
+
+  submitPaymentRequest = (
+    provider: PaymentRequestProvider,
+    initResult: InitStripePrFlowSuccess,
+    params?: PaymentRequestStartParams
+  ): Promise<void> => {
+    return OjsFlows.stripePR.run({
+      context: this.createOjsFlowContext(),
+      checkoutPaymentMethod: findCheckoutPaymentMethodStrict(this.checkoutPaymentMethods, provider),
+      nonCdeFormInputs: this.getNonCdeFormInputs(),
+      flowCallbacks: this.createOjsFlowCallbacks(),
+      customParams: { provider, overridePaymentRequest: params?.overridePaymentRequest },
+      initResult,
+    });
+  };
 
   onPaymentRequestError(errMsg: string): void {
     console.error('[form] Error from payment request:', errMsg);

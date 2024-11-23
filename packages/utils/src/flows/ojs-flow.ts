@@ -3,7 +3,7 @@ import { CheckoutSuccessResponse, SetupCheckoutResponse } from '../cde_models';
 import { getErrorMessage } from '../errors';
 import { AllFieldNames, CheckoutPaymentMethod, ElementType } from '../shared-models';
 
-export type OjsFlowParams = {
+export type OjsFlowParams<T_PARAMS = void, T_INIT_RESULT = void> = {
   /**
    * Contains the context where OJS is run.
    * Ideally this only contains "background" context (OJS-level objects), and not flow-level objects.
@@ -24,9 +24,19 @@ export type OjsFlowParams = {
    * Lifecycle callbacks for OJS flows.
    */
   flowCallbacks: OjsFlowCallbacks;
+
+  /**
+   * Custom parameters for the flow.
+   */
+  customParams: T_PARAMS;
+
+  /**
+   * The result of the InitOjsFlow function.
+   */
+  initResult: T_INIT_RESULT;
 };
 
-export type CanDoOjsFlowParams = {
+export type InitOjsFlowParams = {
   /**
    * Contains the context where OJS is run.
    * Ideally this only contains "background" context (OJS-level objects), and not flow-level objects.
@@ -34,21 +44,26 @@ export type CanDoOjsFlowParams = {
   context: OjsContext;
 
   /**
-   * The checkout payment method object to be used for the flow.
+   * List of all checkout payment methods available in the session.
+   * If no CPMs in the list are applicable to the flow, the initialization should return isAvailable: false.
    */
-  checkoutPaymentMethod: CheckoutPaymentMethod;
+  allCPMs: CheckoutPaymentMethod[];
 };
 
-export interface OjsFlow {
-  /**
-   * Runs the OJS flow
-   */
-  runFlow: RunOjsFlow;
-}
+export type InitOjsFlowResult = {
+  isAvailable: boolean;
+};
 
-export type CanDoOjsFlow = (params: CanDoOjsFlowParams) => boolean;
+export type InitOjsFlow<T extends InitOjsFlowResult> = (params: InitOjsFlowParams) => Promise<T>;
 
-export type RunOjsFlow = (params: OjsFlowParams) => Promise<void>;
+export type RunOjsFlow<T_PARAMS = unknown, T_INIT_RESULT = unknown> = (
+  params: OjsFlowParams<T_PARAMS, T_INIT_RESULT>
+) => Promise<void>;
+
+export type OjsFlow<T_PARAMS = unknown, T_INIT_RESULT extends InitOjsFlowResult = InitOjsFlowResult> = {
+  init?: InitOjsFlow<T_INIT_RESULT>;
+  run: RunOjsFlow<T_PARAMS, T_INIT_RESULT>;
+};
 
 export type SimpleOjsFlowResult =
   | {
@@ -102,10 +117,10 @@ export type OjsContext = {
  *
  * This does **NOT** handle other callbacks, such as `onValidationError`.
  */
-export const addBasicCheckoutCallbackHandlers = (
-  simpleOjsFlow: (params: OjsFlowParams) => Promise<SimpleOjsFlowResult>
-): RunOjsFlow => {
-  return async (params: OjsFlowParams): Promise<void> => {
+export const addBasicCheckoutCallbackHandlers = <T_PARAMS, T_INIT_RESULT>(
+  simpleOjsFlow: (params: OjsFlowParams<T_PARAMS, T_INIT_RESULT>) => Promise<SimpleOjsFlowResult>
+): RunOjsFlow<T_PARAMS, T_INIT_RESULT> => {
+  return async (params: OjsFlowParams<T_PARAMS, T_INIT_RESULT>): Promise<void> => {
     try {
       params.flowCallbacks.onCheckoutStarted();
       const flowResult = await simpleOjsFlow(params);
@@ -123,6 +138,16 @@ export const addBasicCheckoutCallbackHandlers = (
     } catch (error) {
       params.flowCallbacks.onCheckoutError(getErrorMessage(error));
       throw error;
+    }
+  };
+};
+
+export const addErrorCatcherForInit = <T extends InitOjsFlowResult>(init: InitOjsFlow<T>): InitOjsFlow<T> => {
+  return async (params) => {
+    try {
+      return await init(params);
+    } catch (error) {
+      return { isAvailable: false, reason: getErrorMessage(error) } as unknown as T;
     }
   };
 };

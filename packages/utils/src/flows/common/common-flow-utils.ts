@@ -1,4 +1,21 @@
-import { ConfirmPaymentFlowResponse } from '../../shared-models';
+import { z } from 'zod';
+import { CheckoutPaymentMethod, ConfirmPaymentFlowResponse } from '../../shared-models';
+import { createOjsFlowLoggers } from '../ojs-flow';
+
+const { err__ } = createOjsFlowLoggers('commmon');
+
+export type Loadable<T> =
+  | {
+      status: 'loading';
+    }
+  | {
+      status: 'loaded';
+      result: T;
+    }
+  | {
+      status: 'error';
+      message: string;
+    };
 
 /**
  * Parses and validates the payment flow confirmation response
@@ -11,4 +28,14 @@ export const parseConfirmPaymentFlowResponse = (
     throw new Error(`Expected exactly one payment method, got ${response.payment_methods.length}`);
   }
   return { payment_method_id: response.payment_methods[0].id };
+};
+
+export const findCpmMatchingType = <T>(allCPMs: CheckoutPaymentMethod[], zodModel: z.ZodSchema<T>): T => {
+  const cpm = allCPMs.find((cpm) => zodModel.safeParse(cpm).success);
+  if (!cpm) {
+    err__`No CPMs found for model ${zodModel.description}`;
+    err__(allCPMs);
+    throw new Error(`No CPMs found for model ${zodModel.description}`);
+  }
+  return zodModel.parse(cpm);
 };

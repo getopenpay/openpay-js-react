@@ -1,6 +1,7 @@
 import { CheckoutPaymentMethod } from '../shared-models';
-import { OjsContext } from './ojs-flow';
+import { OjsContext, OjsFlow } from './ojs-flow';
 import { runStripeCcFlow } from './stripe/stripe-cc-flow';
+import { initStripePrFlow, runStripePrFlow } from './stripe/stripe-pr-flow';
 
 export const findCheckoutPaymentMethodStrict = (
   cpms: CheckoutPaymentMethod[],
@@ -24,8 +25,20 @@ export const findCheckoutPaymentMethodStrict = (
 };
 
 export const OjsFlows = {
-  // Add all flows here, remember to run `make build` after to expose to the dependent libraries
-  runStripeCcFlow,
-};
+  // ✋ Note: For flows that require initialization, please add them to `init-flows.ts`
+
+  // Stripe
+  stripeCC: {
+    run: runStripeCcFlow,
+  },
+  stripePR: {
+    run: runStripePrFlow,
+    init: initStripePrFlow,
+  },
+
+  // 👉 Add more flows here
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+} satisfies Record<string, OjsFlow<any, any>>;
 
 export type { OjsContext };
