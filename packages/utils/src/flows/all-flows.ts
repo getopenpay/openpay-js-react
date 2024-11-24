@@ -1,5 +1,4 @@
 import { CheckoutPaymentMethod } from '../shared-models';
-import { initCCFlow } from './common/init-cc-flow';
 import { OjsContext, OjsFlow } from './ojs-flow';
 import { runStripeCcFlow } from './stripe/stripe-cc-flow';
 import { initStripePrFlow, runStripePrFlow } from './stripe/stripe-pr-flow';
@@ -30,7 +29,6 @@ export const OjsFlows = {
 
   // Stripe
   stripeCC: {
-    init: initCCFlow,
     run: runStripeCcFlow,
   },
   stripePR: {

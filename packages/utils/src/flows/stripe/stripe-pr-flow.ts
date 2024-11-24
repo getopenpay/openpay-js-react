@@ -71,9 +71,11 @@ export const initStripePrFlow: InitOjsFlow<InitStripePrFlowResult> = addErrorCat
     const checkoutPaymentMethod = findCpmMatchingType(allCPMs, StripePrCpm);
 
     log__(`Initializing Stripe PR flow...`);
+    log__(`context.cdeConnections`, context.cdeConnections);
     const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
     const prefill = await getPrefill(anyCdeConnection);
     const isSetupMode = prefill.mode === 'setup';
+    log__(`Getting initial preview amount`);
     const initialPreview = await getCheckoutPreviewAmount(anyCdeConnection, prefill.token, isSetupMode, undefined);
     // We initialize just one global payment request. Apple pay does NOT like having multiple PR objects.
     const pr = await createStripePaymentRequest(
@@ -82,12 +84,13 @@ export const initStripePrFlow: InitOjsFlow<InitStripePrFlowResult> = addErrorCat
       initialPreview.currency,
       isSetupMode
     );
+    log__(`Checking if can make payment`);
     const canMakePayment = await pr.canMakePayment();
     if (canMakePayment === null) {
       err__(`canMakePayment returned null`);
       return { isAvailable: false, reason: 'canMakePayment returned null' };
     }
-    log__(`Stripe PR flow initialized successfully. Can make payment: ${canMakePayment}`);
+    log__(`Stripe PR flow initialized successfully. Can make payment`, canMakePayment);
     return {
       isAvailable: true,
       pr,

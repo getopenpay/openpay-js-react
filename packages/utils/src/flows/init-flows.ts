@@ -12,9 +12,6 @@ const { log__, err__ } = createOjsFlowLoggers('init-flows');
  */
 export const initializeOjsFlows = (context: OjsContext, allCPMs: CheckoutPaymentMethod[]) => {
   return {
-    // Stripe CC
-    stripeCC: runInitFlowAsObservable('stripeCC', OjsFlows.stripeCC.init({ context, allCPMs })),
-
     // Stripe PR
     stripePR: runInitFlowAsObservable('stripePR', OjsFlows.stripePR.init({ context, allCPMs })),
 
@@ -41,8 +38,8 @@ const runInitFlowAsObservable = <T extends InitOjsFlowResult>(
   });
 
   observable.subscribe({
-    next: () => {
-      log__(`${flowName} flow initialized`);
+    next: (result) => {
+      log__(`${flowName} flow result`, result);
     },
     error: (error) => {
       err__(`${flowName} flow initialization error:\n${JSON.stringify(error)}`);

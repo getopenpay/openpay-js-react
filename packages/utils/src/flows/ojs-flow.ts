@@ -152,6 +152,8 @@ export const addErrorCatcherForInit = <T extends InitOjsFlowResult>(init: InitOj
     try {
       return await init(params);
     } catch (error) {
+      const { err__ } = createOjsFlowLoggers('init-error-catcher');
+      err__(error);
       return { isAvailable: false, reason: getErrorMessage(error) } as unknown as T;
     }
   };

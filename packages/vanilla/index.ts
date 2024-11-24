@@ -116,16 +116,29 @@ export class OpenPayForm {
     }
   }
 
+  tryInitOjsFlows = () => {
+    if (this.ojsFlowsInitialization !== null) {
+      return;
+    }
+    if (!this.cdeLoadedPayload) {
+      return;
+    }
+    if (this.connectionManager.getAllConnections().size === 0) {
+      return;
+    }
+    this.ojsFlowsInitialization = initializeOjsFlows(
+      this.createOjsFlowContext(),
+      this.cdeLoadedPayload.checkoutPaymentMethods
+    );
+    this.ojsFlowsInitialization.stripePR.subscribe((status) => this.onStripePRStatusChange(status));
+  };
+
   onCdeLoaded = (payload: LoadedEventPayload) => {
     if (this.cdeLoadedPayload) {
       return;
     }
     this.cdeLoadedPayload = payload;
-    // OJS flows initialization
-    const initialization = initializeOjsFlows(this.createOjsFlowContext(), payload.checkoutPaymentMethods);
-    initialization.stripeCC.subscribe((status) => window['console'].log('stripeCC status', status));
-    initialization.stripePR.subscribe((status) => this.onStripePRStatusChange(status));
-    this.ojsFlowsInitialization = initialization;
+    this.tryInitOjsFlows();
   };
 
   onStripePRStatusChange = (initStatus: Loadable<InitStripePrFlowResult>) => {
@@ -199,8 +212,7 @@ export class OpenPayForm {
     createConnection(element.node)
       .then((conn) => {
         this.connectionManager.addConnection(element.type, conn);
-        // TODO ASAP: do this
-        // this.initializePaymentRequests();
+        this.tryInitOjsFlows();
       })
       .catch((err) => console.error('[FORM] Error connecting to CDE iframe', err));
   }
@@ -210,14 +222,18 @@ export class OpenPayForm {
   }
 
   private createOjsFlowContext(): OjsContext {
+    const cdeConnections = this.connectionManager.getAllConnections();
     if (!this.cdeLoadedPayload) {
       throw new Error('Requested context while CDE not yet loaded');
+    }
+    if (cdeConnections.size === 0) {
+      throw new Error('No CDE connections found');
     }
     return {
       formDiv: this.getFormDiv(),
       elementsSessionId: this.cdeLoadedPayload.sessionId,
       checkoutPaymentMethods: this.cdeLoadedPayload.checkoutPaymentMethods,
-      cdeConnections: this.connectionManager.getAllConnections(),
+      cdeConnections,
     };
   }
 
