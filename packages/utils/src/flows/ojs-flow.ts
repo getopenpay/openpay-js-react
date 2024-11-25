@@ -170,11 +170,11 @@ export const createOjsFlowLoggers = (
 } => {
   const log: typeof console.log = (...args) => {
     // Do this to prevent minification issues
-    window['console'].log(`${chalk.green.bold('ojs|')}${chalk.bold.gray(`${prefix}`)}\t`, ...args);
+    window['console'].log(`${chalk.green.bold('ojs/')}${chalk.bold.gray(`${prefix}`)}\t`, ...args);
   };
   const err: typeof console.error = (...args) => {
     // Do this to prevent minification issues
-    window['console'].error(`${chalk.red.bold('ojs|')}${chalk.bold.gray(`${prefix}`)}\t`, ...args);
+    window['console'].error(`${chalk.red.bold('ojs/')}${chalk.bold.gray(`${prefix}`)}\t`, ...args);
   };
   return {
     log,
