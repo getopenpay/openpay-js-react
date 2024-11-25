@@ -39,7 +39,6 @@ export type ElementsFormProps = {
   onCheckoutError?: (message: string) => void;
   baseUrl?: string;
   formTarget?: string;
-  // TODO ASAP: call this
   onPaymentRequestLoad?: (paymentRequests: Record<PaymentRequestProvider, PaymentRequestStatus>) => void;
 };
 
@@ -259,7 +258,6 @@ export class OpenPayForm {
     const context = this.createOjsFlowContext();
     OjsFlows.stripeCC.run({
       context,
-      // TODO ASAP: get from initCCFlow
       checkoutPaymentMethod: findCheckoutPaymentMethodStrict(context.checkoutPaymentMethods, 'credit_card'),
       nonCdeFormInputs: this.getNonCdeFormInputs(),
       flowCallbacks: this.createOjsFlowCallbacks(),
