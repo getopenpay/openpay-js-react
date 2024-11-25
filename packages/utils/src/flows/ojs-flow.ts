@@ -2,6 +2,7 @@ import { CdeConnection } from '../cde-connection';
 import { CheckoutSuccessResponse, SetupCheckoutResponse } from '../cde_models';
 import { getErrorMessage } from '../errors';
 import { AllFieldNames, CheckoutPaymentMethod, ElementType } from '../shared-models';
+import chalk from 'chalk';
 
 export type OjsFlowParams<T_PARAMS = void, T_INIT_RESULT = void> = {
   /**
@@ -56,7 +57,7 @@ export type InitOjsFlowResult = {
 
 export type InitOjsFlow<T extends InitOjsFlowResult> = (params: InitOjsFlowParams) => Promise<T>;
 
-export type RunOjsFlow<T_PARAMS = unknown, T_INIT_RESULT = unknown> = (
+export type RunOjsFlow<T_PARAMS = undefined, T_INIT_RESULT = undefined> = (
   params: OjsFlowParams<T_PARAMS, T_INIT_RESULT>
 ) => Promise<void>;
 
@@ -169,11 +170,11 @@ export const createOjsFlowLoggers = (
 } => {
   const log: typeof console.log = (...args) => {
     // Do this to prevent minification issues
-    window['console'].log(`[flow][${prefix}]`, ...args);
+    window['console'].log(`${chalk.green.bold('ojs|')}${chalk.bold.gray(`${prefix}`)}\t`, ...args);
   };
   const err: typeof console.error = (...args) => {
     // Do this to prevent minification issues
-    window['console'].error(`[flow][${prefix}]`, ...args);
+    window['console'].error(`${chalk.red.bold('ojs|')}${chalk.bold.gray(`${prefix}`)}\t`, ...args);
   };
   return {
     log,

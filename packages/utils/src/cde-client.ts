@@ -178,7 +178,7 @@ export const getCheckoutPreviewAmount = async (
   }
 };
 
-export const tokenizeCard = async (
+export const tokenizeCardOnAllConnections = async (
   allCdeConnections: Map<ElementType, CdeConnection>,
   payload: TokenizeCardRequest
 ): Promise<TokenizeCardResponse[]> => {

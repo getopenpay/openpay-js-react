@@ -5,7 +5,7 @@ import {
   getPrefill,
   setupCheckout,
   startPaymentFlowForCC,
-  tokenizeCard,
+  tokenizeCardOnAllConnections,
 } from '../../cde-client';
 import { StartPaymentFlowForCCResponse } from '../../cde_models';
 import { launchStripe3DSDialogFlow, Stripe3DSNextActionMetadata } from '../../stripe';
@@ -28,7 +28,7 @@ export const runStripeCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
     const nonCdeFormFields = validateNonCdeFormFieldsForCC(nonCdeFormInputs, flowCallbacks.onValidationError);
 
     log__(`Tokenizing card info in CDE`);
-    const tokenizeCardResults = await tokenizeCard(context.cdeConnections, {
+    const tokenizeCardResults = await tokenizeCardOnAllConnections(context.cdeConnections, {
       session_id: context.elementsSessionId,
     });
     validateTokenizeCardResults(tokenizeCardResults, flowCallbacks.onValidationError);

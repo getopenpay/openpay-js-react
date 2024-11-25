@@ -18,7 +18,7 @@ export const validateNonCdeFormFieldsForCC = (
     for (const [fieldName, errors] of Object.entries(issues)) {
       onValidationError(fieldName as FieldName, errors, fieldName);
     }
-    err__(`Got validation errors in non-CDE form fields: ${JSON.stringify(payload.data)}`);
+    err__(`Got validation errors in non-CDE form fields`, issues);
     throw new Error('Got validation errors in non-CDE form fields');
   }
 

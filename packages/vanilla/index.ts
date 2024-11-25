@@ -90,7 +90,7 @@ export class OpenPayForm {
       throw new Error('OpenPay instance already exists. Only one instance is allowed.');
     }
     // @ts-expect-error window typing
-    window['_op_form'] = form;
+    window['ojs'] = form;
   }
 
   /**
@@ -99,7 +99,7 @@ export class OpenPayForm {
    */
   static getInstance(): OpenPayForm | null {
     // @ts-expect-error window typing
-    return window['_op_form'] ?? null;
+    return window['ojs'] ?? null;
   }
 
   public getConnectionManager() {
