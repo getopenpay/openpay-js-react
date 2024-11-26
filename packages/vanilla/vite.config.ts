@@ -6,14 +6,14 @@ import dts from 'vite-plugin-dts';
 export default defineConfig(({ mode }) => {
   return {
     esbuild: {
-      sourcemap: 'inline',
       drop: mode === 'development' ? [] : ['console', 'debugger'],
+      sourcemap: 'inline',
     },
     optimizeDeps: {
       include: ['penpal', 'uuid', 'zod'],
     },
     build: {
-      emptyOutDir: false,
+      emptyOutDir: mode === 'production',
       copyPublicDir: false,
       lib: {
         name: 'OpenPay',
