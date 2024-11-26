@@ -117,7 +117,7 @@ const parseCommon3DSNextActionMetadata = (response: StartPaymentFlowForCCRespons
 };
 
 const commonCC3DSFlow = async (threeDSUrl: string, startPfResult: StartPaymentFlowForCCResponse) => {
-  const status = await start3dsVerification({ url: threeDSUrl, baseUrl: 'http://localhost:8001' });
+  const status = await start3dsVerification({ url: threeDSUrl });
   log__(`3DS verification status: ${status}`);
   const nextActionMetadata = parseCommon3DSNextActionMetadata(startPfResult);
   log__('nextActionMetadata', nextActionMetadata);

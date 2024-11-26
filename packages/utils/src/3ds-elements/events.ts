@@ -1,5 +1,5 @@
 import { Ping3DSStatusResponse, ThreeDSStatus } from '@getopenpay/utils';
-import { pingCdeFor3dsStatus } from '../cde-client';
+import { CDE_POLLING_INTERVAL, pingCdeFor3dsStatus } from '../cde-client';
 import { createAndOpenFrame } from './frame';
 
 export interface PopupElements {
@@ -10,13 +10,12 @@ export interface PopupElements {
 
 export function startPolling(
   iframe: HTMLIFrameElement,
-  onSuccess: (status: Ping3DSStatusResponse['status']) => void,
-  childOrigin: string
+  onSuccess: (status: Ping3DSStatusResponse['status']) => void
 ): NodeJS.Timeout {
   const handlePolling = async () => {
     try {
       console.log('🔄 Polling CDE connection...');
-      const status = await pingCdeFor3dsStatus(iframe, childOrigin);
+      const status = await pingCdeFor3dsStatus(iframe);
       if (status) {
         console.log('🟢 CDE connection successful! Stopping polling...');
         console.log('➡️ Got status:', status);
@@ -28,7 +27,7 @@ export function startPolling(
     }
   };
   handlePolling();
-  const pollingInterval = setInterval(handlePolling, 1000); // Poll every second
+  const pollingInterval = setInterval(handlePolling, CDE_POLLING_INTERVAL);
   return pollingInterval;
 }
 
@@ -59,13 +58,7 @@ export function handleEvents({
 /**
  * @returns `Promise<'success' | 'failure' | 'cancelled'>`
  */
-export async function start3dsVerification({
-  url,
-  baseUrl,
-}: {
-  url: string;
-  baseUrl: string;
-}): Promise<Ping3DSStatusResponse['status']> {
+export async function start3dsVerification({ url }: { url: string }): Promise<Ping3DSStatusResponse['status']> {
   const elements = createAndOpenFrame(url);
 
   return new Promise((resolve) => {
@@ -77,7 +70,7 @@ export async function start3dsVerification({
       cleanupEventListeners?.();
     };
 
-    const pollingInterval = startPolling(elements.iframe, onSuccess, new URL(baseUrl).origin);
+    const pollingInterval = startPolling(elements.iframe, onSuccess);
 
     const cleanupEventListeners = handleEvents({
       elements,

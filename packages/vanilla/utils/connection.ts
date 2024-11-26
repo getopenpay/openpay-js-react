@@ -1,11 +1,4 @@
-import {
-  CdeConnection,
-  checkIfValidCdeConnectionObject,
-  ElementType,
-  isResultValid,
-  CdeMessage,
-  Ping3DSStatusResponse,
-} from '@getopenpay/utils';
+import { CdeConnection, checkIfValidCdeConnectionObject, ElementType, isResultValid } from '@getopenpay/utils';
 import { connectToChild } from 'penpal';
 
 export async function createConnection(iframe: HTMLIFrameElement, childOrigin?: string): Promise<CdeConnection> {
@@ -20,24 +13,6 @@ export async function createConnection(iframe: HTMLIFrameElement, childOrigin?: 
     throw new Error(`Got invalid CDE connection object`);
   }
   return connectionObj;
-}
-
-/**
- * @throws if the response is not valid or connection failed
- */
-export async function pingCdeFor3dsStatus(iframe: HTMLIFrameElement, childOrigin: string) {
-  const connection = connectToChild({
-    iframe,
-    debug: true,
-    timeout: 1000,
-    childOrigin,
-  });
-  const connectionObj = await connection.promise;
-  const message: CdeMessage = { type: 'ping-3ds-status' };
-  // @ts-expect-error `send` typing
-  const result = await connectionObj.send(message);
-  const parsed = Ping3DSStatusResponse.parse(result);
-  return parsed.status;
 }
 
 export class ConnectionManager {
