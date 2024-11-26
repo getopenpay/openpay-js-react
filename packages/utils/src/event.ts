@@ -2,16 +2,17 @@ import { v4 as uuidv4 } from 'uuid';
 import { ElementEvent, FieldName, EventPayload, SubmitEventPayload, CheckoutPaymentMethod } from './shared-models';
 import { extractIssuesPerField } from './zod-errors';
 
+// TODO remove initialDict later, bad pattern
 export const createInputsDictFromForm = (
   formDiv: HTMLElement,
-  initialDict: Record<string, unknown>
+  initialDict?: Record<string, unknown>
 ): Record<string, unknown> => {
   const includedInputs: HTMLInputElement[] = Array.from(formDiv.querySelectorAll('[data-opid]') ?? []);
   const extraData = includedInputs.reduce((acc, input) => {
     const key = input.getAttribute('data-opid');
     if (!key) return acc;
     return { ...acc, [key]: input.value };
-  }, initialDict);
+  }, initialDict ?? {});
   return extraData;
 };
 

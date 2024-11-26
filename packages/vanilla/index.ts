@@ -1,18 +1,29 @@
 import {
   AllFieldNames,
-  CheckoutPaymentMethod,
   convertStylesToQueryString,
+  createInputsDictFromForm,
   ElementProps,
+  ElementType,
   FieldName,
+  findCheckoutPaymentMethodStrict,
+  OjsContext,
+  OjsFlows,
   PaymentRequestStatus,
+  makeCallbackSafe,
+  initializeOjsFlows,
+  OjsFlowsInitialization,
+  PR_LOADING,
+  PR_ERROR,
+  PaymentRequestStartParams,
+  LoadedEventPayload,
+  ElementTypeEnumValue,
 } from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
 import { ConnectionManager, createConnection } from './utils/connection';
-import { initializePaymentRequests, PaymentRequestProvider } from './utils/payment-request';
-
+import { PaymentRequestProvider } from './utils/payment-request';
+import { InitStripePrFlowResult, InitStripePrFlowSuccess } from '@getopenpay/utils/src/flows/stripe/stripe-pr-flow';
+import { Loadable } from '@getopenpay/utils/src/flows/common/common-flow-utils';
 export { FieldName };
-
-export type ElementType = 'card' | 'card-number' | 'card-expiry' | 'card-cvc';
 
 export type ElementsFormProps = {
   className?: string;
@@ -37,39 +48,59 @@ export type Config = ElementsFormProps & { _frameUrl?: URL };
 export class OpenPayForm {
   config: Config;
   formId: string;
-  sessionId: null | string;
-  checkoutPaymentMethods: Array<CheckoutPaymentMethod>;
   formTarget: string;
   checkoutFired: boolean;
+  ojsVersion: string;
   private referer: string;
   private eventHandler: OpenPayFormEventHandler;
   private formProperties: { height: string };
   private connectionManager: ConnectionManager;
-  private paymentRequests: Record<PaymentRequestProvider, PaymentRequestStatus>;
+  private ojsFlowsInitialization: OjsFlowsInitialization | null;
+  private cdeLoadedPayload: LoadedEventPayload | null;
   private elements: Record<
     ElementType,
     { type: ElementType; node: HTMLIFrameElement; mount: (selector: string) => void }
   > | null;
+  // For easier debugging
+  static ojsFlows: typeof OjsFlows = OjsFlows;
 
   constructor(config: Config) {
+    OpenPayForm.assignAsSingleton(this);
     this.config = { ...config, baseUrl: config.baseUrl ?? 'https://cde.getopenpay.com' };
     this.elements = null;
     this.formId = `opjs-form-${window.crypto.randomUUID()}`;
     this.referer = window.location.origin;
     this.formTarget = config.formTarget ?? 'body';
     this.formProperties = { height: '1px' };
-    this.sessionId = null;
-    this.checkoutPaymentMethods = [];
+    this.cdeLoadedPayload = null;
+    this.ojsFlowsInitialization = null;
     this.checkoutFired = false;
-    this.paymentRequests = this.initPaymentRequests();
     this.connectionManager = new ConnectionManager();
     this.eventHandler = new OpenPayFormEventHandler(this);
-
-    const ojs_version = { version: __APP_VERSION__ };
-    // @ts-expect-error window typing
-    window['ojs_version'] = ojs_version;
+    this.ojsVersion = __APP_VERSION__;
 
     window.addEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));
+  }
+
+  /**
+   * Assign the instance to the window as a singleton
+   * @param form - The OpenPayForm instance
+   */
+  static assignAsSingleton(form: OpenPayForm) {
+    if (OpenPayForm.getInstance()) {
+      throw new Error('OpenPay instance already exists. Only one instance is allowed.');
+    }
+    // @ts-expect-error window typing
+    window['ojs'] = form;
+  }
+
+  /**
+   * Get the singleton instance of OpenPayForm
+   * @returns The OpenPayForm instance
+   */
+  static getInstance(): OpenPayForm | null {
+    // @ts-expect-error window typing
+    return window['ojs'] ?? null;
   }
 
   public getConnectionManager() {
@@ -85,16 +116,57 @@ export class OpenPayForm {
     }
   }
 
-  private initPaymentRequests(): Record<PaymentRequestProvider, PaymentRequestStatus> {
-    return {
-      apple_pay: { isLoading: true, isAvailable: false, startFlow: async () => {} },
-      google_pay: { isLoading: true, isAvailable: false, startFlow: async () => {} },
-      stripe_link: { isLoading: true, isAvailable: false, startFlow: async () => {} },
-    };
-  }
+  tryInitOjsFlows = () => {
+    if (this.ojsFlowsInitialization !== null) {
+      return;
+    }
+    if (!this.cdeLoadedPayload) {
+      return;
+    }
+    if (this.connectionManager.getAllConnections().size === 0) {
+      return;
+    }
+    this.ojsFlowsInitialization = initializeOjsFlows(this.createOjsFlowContext());
+    this.ojsFlowsInitialization.stripePR.subscribe((status) => this.onStripePRStatusChange(status));
+  };
 
-  createElement(type: ElementType, options: ElementProps = {}) {
+  onCdeLoaded = (payload: LoadedEventPayload) => {
+    if (this.cdeLoadedPayload) {
+      return;
+    }
+    this.cdeLoadedPayload = payload;
+    this.tryInitOjsFlows();
+  };
+
+  onStripePRStatusChange = (initStatus: Loadable<InitStripePrFlowResult>) => {
+    if (initStatus.status === 'loading') {
+      this.config.onPaymentRequestLoad?.({ apple_pay: PR_LOADING, google_pay: PR_LOADING });
+    } else if (initStatus.status === 'error') {
+      this.config.onPaymentRequestLoad?.({ apple_pay: PR_ERROR, google_pay: PR_ERROR });
+    } else if (initStatus.status === 'loaded') {
+      const initResult = initStatus.result;
+      const canApplePay = initResult.isAvailable && initResult.availableProviders.applePay;
+      const canGooglePay = initResult.isAvailable && initResult.availableProviders.googlePay;
+      this.config.onPaymentRequestLoad?.({
+        apple_pay: {
+          isLoading: false,
+          isAvailable: canApplePay,
+          startFlow: async (userParams) =>
+            canApplePay ? this.submitPaymentRequest('apple_pay', initResult, userParams) : undefined,
+        },
+        google_pay: {
+          isLoading: false,
+          isAvailable: canGooglePay,
+          startFlow: async (userParams) =>
+            canGooglePay ? this.submitPaymentRequest('google_pay', initResult, userParams) : undefined,
+        },
+      });
+    }
+  };
+
+  createElement(elementValue: ElementTypeEnumValue, options: ElementProps = {}) {
     if (!this.config) throw new Error('OpenPay form not initialized');
+    const type = ElementType.parse(elementValue);
 
     const frame = document.createElement('iframe');
     const queryString = this.buildQueryString(options);
@@ -138,42 +210,81 @@ export class OpenPayForm {
     createConnection(element.node)
       .then((conn) => {
         this.connectionManager.addConnection(element.type, conn);
-        this.initializePaymentRequests();
+        this.tryInitOjsFlows();
       })
       .catch((err) => console.error('[FORM] Error connecting to CDE iframe', err));
   }
 
-  submit() {
-    this.eventHandler.handleFormSubmit();
+  private getFormDiv(): HTMLElement {
+    return document.querySelector(this.formTarget) ?? document.body;
   }
+
+  private createOjsFlowContext(): OjsContext {
+    const cdeConnections = this.connectionManager.getAllConnections();
+    if (!this.cdeLoadedPayload) {
+      throw new Error('Requested context while CDE not yet loaded');
+    }
+    if (cdeConnections.size === 0) {
+      throw new Error('No CDE connections found');
+    }
+    return {
+      formDiv: this.getFormDiv(),
+      elementsSessionId: this.cdeLoadedPayload.sessionId,
+      checkoutPaymentMethods: this.cdeLoadedPayload.checkoutPaymentMethods,
+      cdeConnections,
+    };
+  }
+
+  private getNonCdeFormInputs(): Record<string, unknown> {
+    return createInputsDictFromForm(this.getFormDiv());
+  }
+
+  private createOjsFlowCallbacks() {
+    const noOp = () => {};
+    return {
+      onCheckoutError: makeCallbackSafe('onCheckoutError', this.config.onCheckoutError ?? noOp),
+      onCheckoutStarted: makeCallbackSafe('onCheckoutStarted', this.config.onCheckoutStarted ?? noOp),
+      onCheckoutSuccess: makeCallbackSafe('onCheckoutSuccess', this.config.onCheckoutSuccess ?? noOp),
+      onSetupPaymentMethodSuccess: makeCallbackSafe(
+        'onSetupPaymentMethodSuccess',
+        this.config.onSetupPaymentMethodSuccess ?? noOp
+      ),
+      onValidationError: makeCallbackSafe('onValidationError', this.config.onValidationError ?? noOp),
+    };
+  }
+
+  submit() {
+    const context = this.createOjsFlowContext();
+    OjsFlows.stripeCC.run({
+      context,
+      checkoutPaymentMethod: findCheckoutPaymentMethodStrict(context.checkoutPaymentMethods, 'credit_card'),
+      nonCdeFormInputs: this.getNonCdeFormInputs(),
+      flowCallbacks: this.createOjsFlowCallbacks(),
+      customParams: undefined, // This flow requires no custom params
+      initResult: undefined, // This flow requires no initialization
+    });
+  }
+
+  submitPaymentRequest = (
+    provider: PaymentRequestProvider,
+    initResult: InitStripePrFlowSuccess,
+    params?: PaymentRequestStartParams
+  ): Promise<void> => {
+    const context = this.createOjsFlowContext();
+    return OjsFlows.stripePR.run({
+      context,
+      checkoutPaymentMethod: findCheckoutPaymentMethodStrict(context.checkoutPaymentMethods, provider),
+      nonCdeFormInputs: this.getNonCdeFormInputs(),
+      flowCallbacks: this.createOjsFlowCallbacks(),
+      customParams: { provider, overridePaymentRequest: params?.overridePaymentRequest },
+      initResult,
+    });
+  };
 
   onPaymentRequestError(errMsg: string): void {
     console.error('[form] Error from payment request:', errMsg);
     this.checkoutFired = false;
     if (this.config.onCheckoutError) this.config.onCheckoutError(errMsg);
-  }
-
-  private async initializePaymentRequests() {
-    if (!this.config.checkoutSecureToken || !this.checkoutPaymentMethods || !this.formTarget) return;
-
-    const cdeConn = this.connectionManager.getConnection();
-    if (!cdeConn) {
-      console.error('[form] CDE connection not established');
-      return;
-    }
-
-    this.paymentRequests = await initializePaymentRequests(
-      this.config,
-      this.checkoutPaymentMethods,
-      cdeConn,
-      this.eventHandler.onUserCompletePaymentRequestUI.bind(this.eventHandler),
-      this.config.onValidationError,
-      this.onPaymentRequestError.bind(this)
-    );
-
-    if (this.config.onPaymentRequestLoad) {
-      this.config.onPaymentRequestLoad(this.paymentRequests);
-    }
   }
 
   destroy() {

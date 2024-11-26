@@ -1,18 +1,36 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ElementsContext, type ElementsContextValue } from '../hooks/context';
-import { constructSubmitEventPayload, emitEvent, parseEventPayload } from '@getopenpay/utils';
+import {
+  CdeConnection,
+  constructSubmitEventPayload,
+  createInputsDictFromForm,
+  ElementType,
+  emitEvent,
+  findCheckoutPaymentMethodStrict,
+  initializeOjsFlows,
+  makeCallbackSafe,
+  OjsFlows,
+  OjsFlowsInitialization,
+  parseEventPayload,
+  PaymentRequestStartParams,
+  PaymentRequestStatus,
+  PR_ERROR,
+  PR_LOADING,
+} from '@getopenpay/utils';
 import { ElementsFormChildrenProps, ElementsFormProps } from '@getopenpay/utils';
 import { CheckoutPaymentMethod, EventType, SubmitEventPayload } from '@getopenpay/utils';
 import { FRAME_BASE_URL } from '@getopenpay/utils';
 import { v4 as uuidv4 } from 'uuid';
-import { usePaymentRequests } from '../hooks/use-payment-requests';
-import { confirmPaymentFlowFor3DS, confirmPaymentFlowForStripePR } from '@getopenpay/utils';
+import { confirmPaymentFlowFor3DS, confirmPaymentFlowForStripePRLegacy } from '@getopenpay/utils';
 import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 import { getErrorMessage } from '@getopenpay/utils';
-import { useCDEConnection } from '@getopenpay/utils';
 import { isJsonString } from '@getopenpay/utils';
 import { getPrefill, confirmPaymentFlow as confirmPaymentFlowInCDE } from '@getopenpay/utils';
 import { useDynamicPreview } from '../hooks/use-dynamic-preview';
+import { OjsContext, OjsFlowCallbacks } from '@getopenpay/utils/src/flows/ojs-flow';
+import { getElementTypeFromIframeId, useCdeConnection } from '../hooks/use-cde-connection';
+import useMap from '../hooks/use-map';
+import { InitStripePrFlowSuccess } from '@getopenpay/utils/src/flows/stripe/stripe-pr-flow';
 
 const ElementsForm: FC<ElementsFormProps> = (props) => {
   const {
@@ -51,10 +69,16 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const [currency, setCurrency] = useState<string | undefined>(undefined);
   const [totalAmountAtoms, setTotalAmountAtoms] = useState<number | undefined>(undefined);
   const [checkoutPaymentMethods, setCheckoutPaymentMethods] = useState<CheckoutPaymentMethod[] | undefined>(undefined);
-  const [stripePm, setStripePm] = useState<PaymentRequestPaymentMethodEvent | undefined>(undefined);
+  const [stripePm] = useState<PaymentRequestPaymentMethodEvent | undefined>(undefined);
 
   const formId = useMemo(() => `opjs-form-${uuidv4()}`, []);
   const formRef = useRef<HTMLDivElement | null>(null);
+  const { cdeConns, anyCdeConn, connectToCdeIframe } = useCdeConnection();
+  const [ojsFlowsInitialization, setOjsFlowsInitialization] = useState<OjsFlowsInitialization | null>(null);
+  const [paymentRequests, setPaymentRequests] = useMap<Record<'apple_pay' | 'google_pay', PaymentRequestStatus>>({
+    apple_pay: PR_LOADING,
+    google_pay: PR_LOADING,
+  });
 
   useEffect(() => {
     const ojs_version = { version: __APP_VERSION__, release_version: __RELEASE_VERSION__ };
@@ -63,10 +87,9 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     console.log('OJS version:', ojs_version);
   }, []);
 
-  const { cdeConn, connectToCdeIframe } = useCDEConnection();
   const dynamicPreview = useDynamicPreview(
     enableDynamicPreviews ?? false,
-    cdeConn,
+    anyCdeConn,
     checkoutSecureToken,
     formRef.current
   );
@@ -151,7 +174,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
         if (!extraData) {
           throw new Error(`extraData not populated`);
         }
-        if (!cdeConn) {
+        if (!anyCdeConn) {
           throw new Error(`Not connected to CDE`);
         }
 
@@ -170,13 +193,13 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
               throw new Error(`Stripe PM not set`);
             }
             console.log('[form] Confirming payment flow (Stripe PR)');
-            await confirmPaymentFlowForStripePR(eventPayload, stripePm);
+            await confirmPaymentFlowForStripePRLegacy(eventPayload, stripePm);
           } else {
             throw new Error(`Unknown next action type: ${nextActionType}`);
           }
-          const prefill = await getPrefill(cdeConn);
+          const prefill = await getPrefill(anyCdeConn);
           if (prefill.mode === 'setup') {
-            const { payment_methods } = await confirmPaymentFlowInCDE(cdeConn, {
+            const { payment_methods } = await confirmPaymentFlowInCDE(anyCdeConn, {
               secure_token: prefill.token,
               existing_cc_pm_id: extraData.existingCCPMId,
             });
@@ -343,39 +366,107 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       frameBaseUrl,
       stripePm,
       checkoutPaymentMethods,
-      cdeConn,
+      anyCdeConn,
     ]
   );
 
-  const submitCard = useCallback(() => {
-    if (!formRef.current || !onValidationError || !sessionId || !checkoutPaymentMethods) return;
+  const ojsFlowCallbacks: OjsFlowCallbacks = useMemo(() => {
+    const noOp = () => {};
+    return {
+      onCheckoutError: makeCallbackSafe('onCheckoutError', onCheckoutError ?? noOp),
+      onCheckoutStarted: makeCallbackSafe('onCheckoutStarted', onCheckoutStarted ?? noOp),
+      onCheckoutSuccess: makeCallbackSafe('onCheckoutSuccess', onCheckoutSuccess ?? noOp),
+      onSetupPaymentMethodSuccess: makeCallbackSafe('onSetupPaymentMethodSuccess', onSetupPaymentMethodSuccess ?? noOp),
+      onValidationError: makeCallbackSafe('onValidationError', onValidationError ?? noOp),
+    };
+  }, [onCheckoutError, onCheckoutStarted, onCheckoutSuccess, onSetupPaymentMethodSuccess, onValidationError]);
 
-    const cardCpm = checkoutPaymentMethods.find((cpm) => cpm.provider === 'credit_card');
-    if (!cardCpm) {
-      throw new Error('Card not available as a payment method in checkout');
+  const generateOjsFlowContext = (): OjsContext | null => {
+    if (!formRef.current || !sessionId || !checkoutPaymentMethods) return null;
+
+    // Convert cdeConns (Record) to a Map
+    // TODO: refactor these out to use vanilla later
+    const cdeConnections: Map<ElementType, CdeConnection> = new Map();
+    Object.entries(cdeConns).forEach(([elementType, cdeConn]) => {
+      if (cdeConn) {
+        cdeConnections.set(elementType as ElementType, cdeConn);
+      }
+    });
+
+    if (cdeConnections.size === 0) {
+      return null;
     }
 
-    const extraData = constructSubmitEventPayload(
-      EventType.enum.TOKENIZE,
-      sessionId,
-      formRef.current,
-      onValidationError,
-      cardCpm,
-      false
-    );
-    if (!extraData) return;
+    const context: OjsContext = {
+      formDiv: formRef.current,
+      elementsSessionId: sessionId,
+      checkoutPaymentMethods,
+      cdeConnections,
+    };
+    return context;
+  };
 
-    console.log('[form] Submitting form:', extraData);
+  const submitPR = (
+    provider: 'apple_pay' | 'google_pay',
+    initResult: InitStripePrFlowSuccess,
+    params?: PaymentRequestStartParams
+  ) => {
+    const context = generateOjsFlowContext();
+    if (!context || !formRef.current) return;
+    return OjsFlows.stripePR.run({
+      context,
+      checkoutPaymentMethod: findCheckoutPaymentMethodStrict(context.checkoutPaymentMethods, provider),
+      nonCdeFormInputs: createInputsDictFromForm(formRef.current),
+      flowCallbacks: ojsFlowCallbacks,
+      customParams: { provider, overridePaymentRequest: params?.overridePaymentRequest },
+      initResult,
+    });
+  };
 
-    for (const [elementId, target] of Object.entries(eventTargets)) {
-      if (!target) continue;
-      emitEvent(target, formId, elementId, extraData, frameBaseUrl);
-    }
+  useEffect(() => {
+    if (ojsFlowsInitialization !== null) return; // Initialize only once
+    const context = generateOjsFlowContext();
+    if (!context) return;
+    const initialization = initializeOjsFlows(context);
+    setOjsFlowsInitialization(initialization);
+    initialization.stripePR.subscribe((status) => {
+      if (status.status === 'loading') {
+        setPaymentRequests.set('apple_pay', PR_LOADING);
+        setPaymentRequests.set('google_pay', PR_LOADING);
+      } else if (status.status === 'error') {
+        setPaymentRequests.set('apple_pay', PR_ERROR);
+        setPaymentRequests.set('google_pay', PR_ERROR);
+      } else if (status.status === 'loaded') {
+        const initResult = status.result;
+        const canApplePay = initResult.isAvailable && initResult.availableProviders.applePay;
+        const canGooglePay = initResult.isAvailable && initResult.availableProviders.googlePay;
+        setPaymentRequests.set('apple_pay', {
+          isLoading: false,
+          isAvailable: canApplePay,
+          startFlow: async (userParams) => (canApplePay ? submitPR('apple_pay', initResult, userParams) : undefined),
+        });
+        setPaymentRequests.set('google_pay', {
+          isLoading: false,
+          isAvailable: canGooglePay,
+          startFlow: async (userParams) => (canGooglePay ? submitPR('google_pay', initResult, userParams) : undefined),
+        });
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formRef.current, sessionId, checkoutPaymentMethods, Object.keys(cdeConns).length]);
 
-    // TODO: refactor this lol
-    extraData.type = EventType.enum.CHECKOUT;
-    setExtraData(extraData);
-  }, [formRef, eventTargets, formId, onValidationError, sessionId, frameBaseUrl, checkoutPaymentMethods]);
+  const submitCard = () => {
+    const context = generateOjsFlowContext();
+    if (!formRef.current || !sessionId || !anyCdeConn || !checkoutPaymentMethods || !context) return;
+    OjsFlows.stripeCC.run({
+      context,
+      checkoutPaymentMethod: findCheckoutPaymentMethodStrict(checkoutPaymentMethods, 'credit_card'),
+      nonCdeFormInputs: createInputsDictFromForm(formRef.current),
+      flowCallbacks: ojsFlowCallbacks,
+      customParams: undefined, // This flow requires no custom params
+      initResult: undefined, // This flow requires no initialization
+    });
+  };
 
   const onBeforeUnload = useCallback(
     (e: BeforeUnloadEvent) => {
@@ -413,62 +504,62 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   }, [sessionId, onMessage, onBeforeUnload]);
 
   const registerIframe = useCallback(
-    (iframe: HTMLIFrameElement) => {
+    async (iframe: HTMLIFrameElement) => {
+      // If the iframe is already registered, do nothing
       const existingIframe = iframes.find((existingIframe) => existingIframe.contentWindow === iframe.contentWindow);
       if (existingIframe) return;
+      setIframes((prevIframes) => [...prevIframes, iframe]);
 
       console.log('[form] Registering iframe:', iframe);
-      if (iframes.length === 0) {
-        // Only do the first iframe
-        connectToCdeIframe(iframe);
-      }
-      setIframes((prevIframes) => [...prevIframes, iframe]);
+      const elementType = getElementTypeFromIframeId(iframe.id);
+      await connectToCdeIframe(elementType, iframe);
     },
-    [iframes, connectToCdeIframe]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [iframes]
   );
 
-  const onUserCompletePaymentRequestUI = async (
-    stripePm: PaymentRequestPaymentMethodEvent | null,
-    checkoutPaymentMethod: CheckoutPaymentMethod
-  ): Promise<void> => {
-    if (!formRef.current || !onValidationError || !sessionId || !checkoutPaymentMethods) return;
-    // Try all iframe targets, note that this loop will break as soon as one succeeds
-    for (const [elementId, target] of Object.entries(eventTargets)) {
-      if (!target) continue;
-      const paymentFlowMetadata = stripePm
-        ? {
-            stripePmId: stripePm.paymentMethod.id,
-            checkoutPaymentMethod,
-          }
-        : {
-            checkoutPaymentMethod,
-          };
-      const startPaymentFlowEvent = constructSubmitEventPayload(
-        EventType.enum.START_PAYMENT_FLOW,
-        sessionId,
-        formRef.current,
-        onValidationError,
-        checkoutPaymentMethod,
-        false,
-        paymentFlowMetadata
-      );
-      if (!startPaymentFlowEvent) continue;
-      if (stripePm) {
-        setStripePm(stripePm);
-      }
-      setCheckoutFired(true);
-      setExtraData(startPaymentFlowEvent);
-      emitEvent(target, formId, elementId, startPaymentFlowEvent, frameBaseUrl);
-      // If first one succeeds, break
-      break;
-    }
-  };
+  // const onUserCompletePaymentRequestUI = async (
+  //   stripePm: PaymentRequestPaymentMethodEvent | null,
+  //   checkoutPaymentMethod: CheckoutPaymentMethod
+  // ): Promise<void> => {
+  //   if (!formRef.current || !onValidationError || !sessionId || !checkoutPaymentMethods) return;
+  //   // Try all iframe targets, note that this loop will break as soon as one succeeds
+  //   for (const [elementId, target] of Object.entries(eventTargets)) {
+  //     if (!target) continue;
+  //     const paymentFlowMetadata = stripePm
+  //       ? {
+  //           stripePmId: stripePm.paymentMethod.id,
+  //           checkoutPaymentMethod,
+  //         }
+  //       : {
+  //           checkoutPaymentMethod,
+  //         };
+  //     const startPaymentFlowEvent = constructSubmitEventPayload(
+  //       EventType.enum.START_PAYMENT_FLOW,
+  //       sessionId,
+  //       formRef.current,
+  //       onValidationError,
+  //       checkoutPaymentMethod,
+  //       false,
+  //       paymentFlowMetadata
+  //     );
+  //     if (!startPaymentFlowEvent) continue;
+  //     if (stripePm) {
+  //       setStripePm(stripePm);
+  //     }
+  //     setCheckoutFired(true);
+  //     setExtraData(startPaymentFlowEvent);
+  //     emitEvent(target, formId, elementId, startPaymentFlowEvent, frameBaseUrl);
+  //     // If first one succeeds, break
+  //     break;
+  //   }
+  // };
 
-  const onPaymentRequestError = (errMsg: string): void => {
-    console.error('[form] Error from payment request:', errMsg);
-    setCheckoutFired(false);
-    if (onCheckoutError) onCheckoutError(errMsg);
-  };
+  // const onPaymentRequestError = (errMsg: string): void => {
+  //   console.error('[form] Error from payment request:', errMsg);
+  //   setCheckoutFired(false);
+  //   if (onCheckoutError) onCheckoutError(errMsg);
+  // };
 
   const value: ElementsContextValue = {
     formId,
@@ -479,16 +570,16 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     baseUrl: frameBaseUrl,
   };
 
-  const paymentRequests = usePaymentRequests(
-    cdeConn,
-    checkoutSecureToken,
-    checkoutPaymentMethods,
-    formRef.current,
-    onUserCompletePaymentRequestUI,
-    onValidationError,
-    onPaymentRequestError,
-    dynamicPreview
-  );
+  // const paymentRequests = usePaymentRequests(
+  //   anyCdeConn,
+  //   checkoutSecureToken,
+  //   checkoutPaymentMethods,
+  //   formRef.current,
+  //   onUserCompletePaymentRequestUI,
+  //   onValidationError,
+  //   onPaymentRequestError,
+  //   dynamicPreview
+  // );
 
   // TODO: uncomment if we need stripe elements later.
   // Better if we can make stripe link work in prod without elements.
@@ -505,13 +596,13 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     submit: submitCard,
     applePay: paymentRequests.apple_pay,
     googlePay: paymentRequests.google_pay,
-    stripeLink: {
-      // TODO: uncomment if we need stripe elements later.
-      // Better if we can make stripe link work in prod without elements.
-      // button: stripeElements.isReady ? StripeLinkButton : NoOpElement,
-      // authElement: stripeElements.isReady ? StripeLinkAuthElement : NoOpElement,
-      pr: paymentRequests.stripe_link,
-    },
+    // stripeLink: {
+    // TODO: uncomment if we need stripe elements later.
+    // Better if we can make stripe link work in prod without elements.
+    // button: stripeElements.isReady ? StripeLinkButton : NoOpElement,
+    // authElement: stripeElements.isReady ? StripeLinkAuthElement : NoOpElement,
+    // pr: paymentRequests.stripe_link,
+    // },
     loaded,
     preview: dynamicPreview,
   };

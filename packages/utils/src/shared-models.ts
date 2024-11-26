@@ -42,6 +42,16 @@ export type PrivateFieldNameEnum = z.infer<typeof PrivateFieldNameEnum>;
 export const AllFieldNames = z.union([FieldNameEnum, PrivateFieldNameEnum]);
 export type AllFieldNames = z.infer<typeof AllFieldNames>;
 
+export enum ElementTypeEnum {
+  CARD = 'card',
+  CARD_NUMBER = 'card-number',
+  CARD_EXPIRY = 'card-expiry',
+  CARD_CVC = 'card-cvc',
+}
+export const ElementType = z.nativeEnum(ElementTypeEnum);
+export type ElementType = z.infer<typeof ElementType>;
+export type ElementTypeEnumValue = ElementTypeEnum[keyof ElementTypeEnum];
+
 /**
  * Core models
  */
@@ -216,6 +226,15 @@ export const RequiredFormFields = z.object({
 });
 export type RequiredFormFields = z.infer<typeof RequiredFormFields>;
 
+// Like RequiredFormFields, but without first and last name
+export const PRFormFields = z.object({
+  [FieldName.EMAIL]: RequiredString,
+  [FieldName.ZIP_CODE]: RequiredString,
+  [FieldName.COUNTRY]: RequiredString,
+  [FieldName.PROMOTION_CODE]: OptionalString,
+});
+export type PRFormFields = z.infer<typeof PRFormFields>;
+
 const SubmitEventType = EventType.extract(['TOKENIZE', 'CHECKOUT', 'START_PAYMENT_FLOW']);
 type SubmitEventType = z.infer<typeof SubmitEventType>;
 export const SubmitEventPayload = z
@@ -316,6 +335,51 @@ export const ConfirmPaymentFlowResponse = z.object({
 });
 export type ConfirmPaymentFlowResponse = z.infer<typeof ConfirmPaymentFlowResponse>;
 
+// FieldValidationError
+export const FieldValidationError = z.object({
+  elementType: z.string(),
+  errors: z.array(z.string()),
+});
+export type FieldValidationError = z.infer<typeof FieldValidationError>;
+
+// TokenizeCardRequest
+export const TokenizeCardRequest = z.object({
+  session_id: z.string(),
+});
+export type TokenizeCardRequest = z.infer<typeof TokenizeCardRequest>;
+
+// TokenizeCardErrorResponse
+export const TokenizeCardErrorResponse = z.object({
+  success: z.literal(false),
+  error_type: z.literal('validation_error'),
+  errors: z.array(FieldValidationError),
+});
+export type TokenizeCardErrorResponse = z.infer<typeof TokenizeCardErrorResponse>;
+
+// TokenizeCardResponse
+export const TokenizeCardResponse = z.discriminatedUnion('success', [
+  z.object({ success: z.literal(true) }),
+  TokenizeCardErrorResponse,
+]);
+export type TokenizeCardResponse = z.infer<typeof TokenizeCardResponse>;
+
+// CardElementsCheckoutRequest
+export const CardElementsCheckoutRequest = z.object({
+  session_id: z.string(),
+  checkout_payment_method: CheckoutPaymentMethod,
+  non_cde_form_fields: RequiredFormFields,
+  do_not_use_legacy_cc_flow: z.boolean().optional(),
+  existing_cc_pm_id: nullOrUndefOr(z.string()),
+});
+export type CardElementsCheckoutRequest = z.infer<typeof CardElementsCheckoutRequest>;
+
+// SetupCheckoutRequest
+export const SetupCheckoutRequest = z.object({
+  session_id: z.string(),
+  checkout_payment_method: CheckoutPaymentMethod,
+  non_cde_form_fields: RequiredFormFields,
+});
+export type SetupCheckoutRequest = z.infer<typeof SetupCheckoutRequest>;
 export enum ThreeDSStatus {
   SUCCESS = 'success',
   FAILURE = 'failure',

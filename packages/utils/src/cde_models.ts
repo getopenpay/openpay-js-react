@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PRFormFields, RequiredFormFields } from './shared-models';
 
 export const nullOrUndefOr = <T extends z.ZodType>(zType: T): z.ZodNullable<z.ZodOptional<T>> =>
   z.nullable(zType.optional());
@@ -186,6 +187,22 @@ export const CheckoutSuccessResponse = z.object({
 });
 export type CheckoutSuccessResponse = z.infer<typeof CheckoutSuccessResponse>;
 
+// CheckoutRequest
+export const CheckoutRequest = z.object({
+  secure_token: z.string(),
+  payment_input: z.any(), // Should follow AnyPaymentInput from CDE
+  customer_email: z.string(),
+  customer_zip_code: z.string(),
+  customer_country: z.string(),
+  line_items: z.array(LineItem),
+  total_amount_atom: z.number().int(),
+  cancel_at_end: z.boolean(),
+  checkout_payment_method: CheckoutPaymentMethod,
+  promotion_code: z.string().optional(),
+  do_not_use_legacy_cc_flow: z.boolean().optional(),
+});
+export type CheckoutRequest = z.infer<typeof CheckoutRequest>;
+
 export const SetupCheckoutResponse = z.object({
   payment_method_id: z.string(),
 });
@@ -217,9 +234,28 @@ export const StartPaymentFlowResponse = z.object({
 });
 export type StartPaymentFlowResponse = z.infer<typeof StartPaymentFlowResponse>;
 
+// StartPaymentFlowForPRRequest
+export const StartPaymentFlowForPRRequest = z.object({
+  fields: PRFormFields,
+  checkoutPaymentMethod: CheckoutPaymentMethod,
+});
+export type StartPaymentFlowForPRRequest = z.infer<typeof StartPaymentFlowForPRRequest>;
+
+// StartPaymentFlowForCCRequest
+export const StartPaymentFlowForCCRequest = z.object({
+  session_id: z.string(),
+  non_cde_form_fields: RequiredFormFields,
+  checkout_payment_method: CheckoutPaymentMethod,
+});
+export type StartPaymentFlowForCCRequest = z.infer<typeof StartPaymentFlowForCCRequest>;
+
 // StartPaymentFlowForCCResponse
 export const StartPaymentFlowForCCResponse = z.object({
   required_user_actions: z.array(z.record(z.string(), z.any())),
   cc_pm_id: z.string(),
 });
 export type StartPaymentFlowForCCResponse = z.infer<typeof StartPaymentFlowForCCResponse>;
+
+// GenericNextActionMetadata
+export const GenericNextActionMetadata = z.record(z.any());
+export type GenericNextActionMetadata = z.infer<typeof GenericNextActionMetadata>;
