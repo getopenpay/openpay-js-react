@@ -19,7 +19,7 @@ export default defineConfig({
       formats: ['es'],
     },
     rollupOptions: {
-      external: ['react', 'react-dom', 'react/jsx-runtime'],
+      external: ['react', 'react-dom', 'react/jsx-runtime', 'zod', 'penpal', 'uuid'],
       output: {
         globals: {
           react: 'React',
@@ -34,6 +34,7 @@ export default defineConfig({
     react(),
     dts({
       rollupTypes: true,
+      bundledPackages: ['@getopenpay/utils'],
       include: ['**/*', '../utils/**/*'], // Needs this to invalidate when utils change
       tsconfigPath: resolve(__dirname, 'tsconfig.build.json'),
     }),
