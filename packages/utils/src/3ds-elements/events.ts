@@ -1,5 +1,5 @@
 import { Ping3DSStatusResponse, ThreeDSStatus } from '@getopenpay/utils';
-import { pingCdeFor3dsStatus } from '../utils/connection';
+import { pingCdeFor3dsStatus } from '../cde-client';
 import { createAndOpenFrame } from './frame';
 
 export interface PopupElements {

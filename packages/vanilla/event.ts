@@ -112,14 +112,11 @@ export class OpenPayFormEventHandler {
 
   async handleLoadedEvent(source: MessageEventSource, elementId: string, payload: LoadedEventPayload) {
     console.log('handleLoadedEvent is deprecated:', source, elementId, payload);
-    // const status = await start3dsVerification({ url: SIMULATE_3DS_URL, baseUrl: this.config.baseUrl! });
-    // console.log('🔐 3DS status:', status);
-    // this.eventTargets[elementId] = source;
-    // console.log('handleLoadedEvent XXXXXXXXX', payload);
-    // this.formInstance.onCdeLoaded(payload);
-    // if (this.config.onLoad) {
-    //   this.config.onLoad(payload.totalAmountAtoms, payload.currency);
-    // }
+    this.eventTargets[elementId] = source;
+    this.formInstance.onCdeLoaded(payload);
+    if (this.config.onLoad) {
+      this.config.onLoad(payload.totalAmountAtoms, payload.currency);
+    }
   }
 
   handleLoadErrorEvent(payload: ErrorEventPayload) {

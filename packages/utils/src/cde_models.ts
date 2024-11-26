@@ -10,6 +10,7 @@ export const zStringReq = z.string().trim().min(1, { message: `Cannot be blank` 
 export const CDEResponseError = z.object({
   cde_response_type: z.literal('error'),
   message: z.string(),
+  headers: z.record(z.string(), z.string()).optional(),
 });
 export type CDEResponseError = z.infer<typeof CDEResponseError>;
 

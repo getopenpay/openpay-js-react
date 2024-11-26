@@ -255,7 +255,7 @@ export class OpenPayForm {
 
   submit() {
     const context = this.createOjsFlowContext();
-    OjsFlows.stripeCC.run({
+    OjsFlows.commonCC.run({
       context,
       checkoutPaymentMethod: findCheckoutPaymentMethodStrict(context.checkoutPaymentMethods, 'credit_card'),
       nonCdeFormInputs: this.getNonCdeFormInputs(),

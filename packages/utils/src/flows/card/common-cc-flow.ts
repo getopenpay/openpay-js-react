@@ -1,3 +1,4 @@
+import { start3dsVerification } from '../../3ds-elements/events';
 import {
   CdeError,
   checkoutCardElements,
@@ -8,19 +9,21 @@ import {
   tokenizeCardOnAllConnections,
 } from '../../cde-client';
 import { StartPaymentFlowForCCResponse } from '../../cde_models';
+import { Common3DSNextActionMetadata } from '../../shared-models';
 import { launchStripe3DSDialogFlow, Stripe3DSNextActionMetadata } from '../../stripe';
 import { validateNonCdeFormFieldsForCC, validateTokenizeCardResults } from '../common/cc-flow-utils';
 import { parseConfirmPaymentFlowResponse } from '../common/common-flow-utils';
 import { addBasicCheckoutCallbackHandlers, createOjsFlowLoggers, RunOjsFlow, SimpleOjsFlowResult } from '../ojs-flow';
 
-const { log__, err__ } = createOjsFlowLoggers('stripe-cc');
+const { log__, err__ } = createOjsFlowLoggers('common-cc');
+const { log__: stripeLog__ } = createOjsFlowLoggers('stripe-cc');
 
 /*
- * Runs the main Stripe CC flow
+ * Runs the main common CC flow
  */
-export const runStripeCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
+export const runCommonCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
   async ({ context, checkoutPaymentMethod, nonCdeFormInputs, flowCallbacks }): Promise<SimpleOjsFlowResult> => {
-    log__(`Running Stripe CC flow...`);
+    log__(`Running common CC flow...`);
     const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
     const prefill = await getPrefill(anyCdeConnection);
 
@@ -53,16 +56,19 @@ export const runStripeCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
       if (error instanceof CdeError) {
         if (error.originalErrorMessage === '3DS_REQUIRED') {
           log__(`Card requires 3DS, starting non-legacy payment flow`);
-          const startPfResult = await startPaymentFlowForCC(anyCdeConnection, commonCheckoutParams);
-          const nextActionMetadata = parse3DSNextActionMetadata(startPfResult);
 
-          log__(`Launching Stripe 3DS dialog flow`);
-          await launchStripe3DSDialogFlow(nextActionMetadata);
+          const threeDSUrl = error.response.headers?.['x-3ds-auth-url'];
+          const startPfResult = await startPaymentFlowForCC(anyCdeConnection, commonCheckoutParams);
+
+          if (threeDSUrl) {
+            await commonCC3DSFlow(threeDSUrl, startPfResult);
+          } else {
+            await stripeCC3DSFlow(startPfResult);
+          }
 
           // TODO ASAP: ideally we also do confirmPaymentFlow for non-setup mode,
           // but for some reason 3DS_REQUIRED is thrown again during confirmPaymentFlow
           // even though the 3DS flow has been completed.
-
           if (prefill.mode === 'setup') {
             log__(`Confirming payment flow`);
             const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
@@ -92,11 +98,33 @@ export const runStripeCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
 /*
  * Parses the 3DS next action metadata from the start payment flow response
  */
-const parse3DSNextActionMetadata = (response: StartPaymentFlowForCCResponse): Stripe3DSNextActionMetadata => {
+const parseStripe3DSNextActionMetadata = (response: StartPaymentFlowForCCResponse): Stripe3DSNextActionMetadata => {
   if (response.required_user_actions.length !== 1) {
     throw new Error(
       `Error occurred.\nDetails: got ${response.required_user_actions.length} required user actions. Expecting only one action`
     );
   }
   return Stripe3DSNextActionMetadata.parse(response.required_user_actions[0]);
+};
+
+const parseCommon3DSNextActionMetadata = (response: StartPaymentFlowForCCResponse): Common3DSNextActionMetadata => {
+  if (response.required_user_actions.length !== 1) {
+    throw new Error(
+      `Error occurred.\nDetails: got ${response.required_user_actions.length} required user actions. Expecting only one action`
+    );
+  }
+  return Common3DSNextActionMetadata.parse(response.required_user_actions[0]);
+};
+
+const commonCC3DSFlow = async (threeDSUrl: string, startPfResult: StartPaymentFlowForCCResponse) => {
+  const status = await start3dsVerification({ url: threeDSUrl, baseUrl: 'http://localhost:8001' });
+  log__(`3DS verification status: ${status}`);
+  const nextActionMetadata = parseCommon3DSNextActionMetadata(startPfResult);
+  log__('nextActionMetadata', nextActionMetadata);
+};
+
+const stripeCC3DSFlow = async (startPfResult: StartPaymentFlowForCCResponse) => {
+  const nextActionMetadata = parseStripe3DSNextActionMetadata(startPfResult);
+  stripeLog__('nextActionMetadata', nextActionMetadata);
+  await launchStripe3DSDialogFlow(nextActionMetadata);
 };
