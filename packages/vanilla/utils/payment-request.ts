@@ -18,13 +18,12 @@ import { Config } from '../index';
 import { PaymentRequestPaymentMethodEvent, PaymentRequest } from '@stripe/stripe-js';
 import { z } from 'zod';
 
-export const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay', 'stripe_link']);
+export const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay']);
 export type PaymentRequestProvider = z.infer<typeof PaymentRequestProvider>;
 
 const OUR_PROVIDER_TO_STRIPES: Record<PaymentRequestProvider, string> = {
   apple_pay: 'applePay',
   google_pay: 'googlePay',
-  stripe_link: 'link',
 };
 
 export async function initializePaymentRequests(
@@ -41,7 +40,6 @@ export async function initializePaymentRequests(
   const paymentRequests: Record<PaymentRequestProvider, PaymentRequestStatus> = {
     apple_pay: { isLoading: true, isAvailable: false, startFlow: async () => {} },
     google_pay: { isLoading: true, isAvailable: false, startFlow: async () => {} },
-    stripe_link: { isLoading: true, isAvailable: false, startFlow: async () => {} },
   };
 
   const allStripeCPMs = checkoutPaymentMethods.filter(

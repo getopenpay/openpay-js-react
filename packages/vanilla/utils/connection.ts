@@ -1,8 +1,9 @@
 import {
   CdeConnection,
-  CdeMessage,
   checkIfValidCdeConnectionObject,
+  ElementType,
   isResultValid,
+  CdeMessage,
   Ping3DSStatusResponse,
 } from '@getopenpay/utils';
 import { connectToChild } from 'penpal';
@@ -40,13 +41,13 @@ export async function pingCdeFor3dsStatus(iframe: HTMLIFrameElement, childOrigin
 }
 
 export class ConnectionManager {
-  private connections: Map<string, CdeConnection>;
+  private connections: Map<ElementType, CdeConnection>;
 
   constructor() {
-    this.connections = new Map<string, CdeConnection>();
+    this.connections = new Map<ElementType, CdeConnection>();
   }
 
-  public addConnection(id: string, connection: CdeConnection): void {
+  public addConnection(id: ElementType, connection: CdeConnection): void {
     this.connections.set(id, connection);
   }
 
@@ -56,5 +57,9 @@ export class ConnectionManager {
       throw new Error('Connection not found');
     }
     return connection;
+  }
+
+  public getAllConnections(): Map<ElementType, CdeConnection> {
+    return this.connections;
   }
 }

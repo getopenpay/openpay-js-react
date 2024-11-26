@@ -2,16 +2,52 @@ import { z } from 'zod';
 import { CdeConnection, CdeMessage } from './cde-connection';
 import {
   Amount,
+  CardElementsCheckoutRequest,
   CheckoutPreviewRequest,
   ConfirmPaymentFlowRequest,
   ConfirmPaymentFlowResponse,
+  ElementType,
   FieldName,
   PaymentFlowStartedEventPayload,
+  SetupCheckoutRequest,
   SubmitEventPayload,
+  TokenizeCardRequest,
+  TokenizeCardResponse,
 } from './shared-models';
-import { CDEResponseError, PaymentFormPrefill, PreviewCheckoutResponse } from './cde_models';
+import {
+  CDEResponseError,
+  CheckoutRequest,
+  CheckoutSuccessResponse,
+  PaymentFormPrefill,
+  PreviewCheckoutResponse,
+  SetupCheckoutResponse,
+  StartPaymentFlowForCCRequest,
+  StartPaymentFlowForCCResponse,
+  StartPaymentFlowForPRRequest,
+  StartPaymentFlowResponse,
+} from './cde_models';
 import { sleep } from './stripe';
 import { sum } from './math';
+import { CustomError } from 'ts-custom-error';
+
+/*
+ * An actual custom Error object, created from a CDEResponseError object
+ * Note that CDEResponseError is a normal JSON (zod) object returned by CDE endpoints,
+ * while this class is a real subclass of Error.
+ */
+export class CdeError extends CustomError {
+  response: CDEResponseError;
+
+  public constructor(response: CDEResponseError) {
+    const friendlyMessage = `[cde-client] Error querying CDE: ${response.message}`;
+    super(friendlyMessage);
+    this.response = response;
+  }
+
+  get originalErrorMessage(): string {
+    return this.response.message;
+  }
+}
 
 export const queryCDE = async <T extends z.ZodType>(
   cdeConn: CdeConnection,
@@ -22,7 +58,7 @@ export const queryCDE = async <T extends z.ZodType>(
   console.log('[cde-client] Querying CDE with path and connection:', data.type, cdeConn);
   const response = await cdeConn.send(data);
   if (isCDEResponseError(response)) {
-    throw new Error(`[cde-client] Error querying CDE: ${response.message}`);
+    throw new CdeError(response);
   }
   console.log('[cde-client] Got response from CDE:', response);
   if (!checkIfConformsToSchema(response, responseSchema)) {
@@ -60,6 +96,20 @@ export const startPaymentFlow = async (
   payload: SubmitEventPayload
 ): Promise<PaymentFlowStartedEventPayload> => {
   return await queryCDE(cdeConn, { type: 'start_payment_flow', payload }, PaymentFlowStartedEventPayload);
+};
+
+export const startPaymentFlowForCC = async (
+  cdeConn: CdeConnection,
+  payload: StartPaymentFlowForCCRequest
+): Promise<StartPaymentFlowForCCResponse> => {
+  return await queryCDE(cdeConn, { type: 'start_payment_flow_for_cc', payload }, StartPaymentFlowForCCResponse);
+};
+
+export const startPaymentFlowForPR = async (
+  cdeConn: CdeConnection,
+  payload: StartPaymentFlowForPRRequest
+): Promise<StartPaymentFlowResponse> => {
+  return await queryCDE(cdeConn, { type: 'start_payment_flow_for_pr', payload }, StartPaymentFlowResponse);
 };
 
 export const confirmPaymentFlow = async (
@@ -126,4 +176,40 @@ export const getCheckoutPreviewAmount = async (
     const checkoutPreview = await getCheckoutValue(cdeConn, secureToken, promoCode);
     return { amountAtom: checkoutPreview.amountAtom, currency: checkoutPreview.currency };
   }
+};
+
+export const tokenizeCardOnAllConnections = async (
+  allCdeConnections: Map<ElementType, CdeConnection>,
+  payload: TokenizeCardRequest
+): Promise<TokenizeCardResponse[]> => {
+  if (allCdeConnections.size === 0) {
+    throw new Error('No CDE connections found');
+  }
+  const responses = await Promise.all(
+    Array.from(allCdeConnections.values()).map((cdeConn) =>
+      queryCDE(cdeConn, { type: 'tokenize_card', payload }, TokenizeCardResponse)
+    )
+  );
+  return responses;
+};
+
+export const checkoutCardElements = async (
+  cdeConn: CdeConnection,
+  payload: CardElementsCheckoutRequest
+): Promise<CheckoutSuccessResponse> => {
+  return await queryCDE(cdeConn, { type: 'checkout_card_elements', payload }, CheckoutSuccessResponse);
+};
+
+export const setupCheckout = async (
+  cdeConn: CdeConnection,
+  payload: SetupCheckoutRequest
+): Promise<SetupCheckoutResponse> => {
+  return await queryCDE(cdeConn, { type: 'setup_payment_method', payload }, SetupCheckoutResponse);
+};
+
+export const performCheckout = async (
+  cdeConn: CdeConnection,
+  payload: CheckoutRequest
+): Promise<CheckoutSuccessResponse> => {
+  return await queryCDE(cdeConn, { type: 'checkout', payload }, CheckoutSuccessResponse);
 };

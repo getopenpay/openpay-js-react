@@ -6,6 +6,7 @@ import {
   Stripe as StripeType,
 } from '@stripe/stripe-js';
 import { Amount, CheckoutPaymentMethod, PaymentFlowStartedEventPayload } from './shared-models';
+import { z } from 'zod';
 
 export type StripeContext =
   | {
@@ -16,6 +17,20 @@ export type StripeContext =
       isStripeAvailable: false;
       stripePubKey: undefined;
     };
+
+export const Stripe3DSNextActionMetadata = z.object({
+  stripe_pk: z.string(),
+  client_secret: z.string(),
+  stripe_pm_id: z.string(),
+});
+export type Stripe3DSNextActionMetadata = z.infer<typeof Stripe3DSNextActionMetadata>;
+
+export const PaymentRequestNextActionMetadata = z.object({
+  type: z.string(),
+  client_secret: z.string(),
+  stripe_pk: z.string(),
+});
+export type PaymentRequestNextActionMetadata = z.infer<typeof PaymentRequestNextActionMetadata>;
 
 const ourCurrencyToTheirs: Record<string, string> = {
   usd: 'usd',
@@ -122,7 +137,7 @@ export const parseStripePubKey = (cpmMetadata?: CheckoutPaymentMethod['metadata'
   return stripePubKey;
 };
 
-export const confirmPaymentFlowForStripePR = async (
+export const confirmPaymentFlowForStripePRLegacy = async (
   payload: PaymentFlowStartedEventPayload,
   stripePm: PaymentRequestPaymentMethodEvent
 ): Promise<void> => {
@@ -148,6 +163,25 @@ export const confirmPaymentFlowForStripePR = async (
   }
 };
 
+export const confirmStripePrPM = async (
+  nextActionMetadata: PaymentRequestNextActionMetadata,
+  stripePm: PaymentRequestPaymentMethodEvent
+): Promise<void> => {
+  if (!nextActionMetadata.stripe_pk || !nextActionMetadata.client_secret) {
+    throw new Error(`Invalid next action metadata format: ${JSON.stringify(nextActionMetadata)}`);
+  }
+  const stripe = await getLoadedStripe(nextActionMetadata.stripe_pk);
+  const confirmResult = await stripe.confirmCardSetup(nextActionMetadata.client_secret, {
+    payment_method: stripePm.paymentMethod.id,
+  });
+  if (confirmResult.error) {
+    stripePm.complete('fail');
+    throw new Error(`Payment failed: ${confirmResult.error.message ?? `unknown`}`);
+  } else {
+    stripePm.complete('success');
+  }
+};
+
 export const confirmPaymentFlowForStripeLink = async (payload: PaymentFlowStartedEventPayload): Promise<void> => {
   const nextActionMetadata = payload.nextActionMetadata;
   if (!nextActionMetadata.stripe_pk || !nextActionMetadata.client_secret) {
@@ -163,14 +197,17 @@ export const confirmPaymentFlowForStripeLink = async (payload: PaymentFlowStarte
 };
 
 export const confirmPaymentFlowFor3DS = async (payload: PaymentFlowStartedEventPayload): Promise<void> => {
-  const nextActionMetadata = payload.nextActionMetadata;
+  const nextActionMetadata = Stripe3DSNextActionMetadata.parse(payload.nextActionMetadata);
+  await launchStripe3DSDialogFlow(nextActionMetadata);
+};
+
+export const launchStripe3DSDialogFlow = async (nextActionMetadata: Stripe3DSNextActionMetadata): Promise<void> => {
   const stripe = await getLoadedStripe(nextActionMetadata.stripe_pk);
   const confirmResult = await stripe.confirmCardSetup(nextActionMetadata.client_secret, {
     payment_method: nextActionMetadata.stripe_pm_id,
   });
   const resultStatus = confirmResult.setupIntent?.status;
   if (resultStatus === 'succeeded') {
-    // Nice
     console.log('[3DS] CONFIRMING PM:', nextActionMetadata.stripe_pm_id);
     console.log('[3DS] Setup intent created:', confirmResult.setupIntent);
   } else if (resultStatus === 'canceled') {
