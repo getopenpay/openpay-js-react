@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
         fileName: (format) => `index.${format}.js`,
       },
       rollupOptions: {
-        external: ['@stripe/stripe-js'],
+        external: ['@stripe/stripe-js', 'zod', 'penpal', 'uuid', 'react', 'react-dom'], // React is included in 'utils'
         output: {
           assetFileNames: 'assets/[name][extname]',
         },
@@ -30,6 +30,7 @@ export default defineConfig(({ mode }) => {
       dts({
         include: ['**/*', '../utils/**/*'], // Needs this to invalidate when utils change
         rollupTypes: true,
+        bundledPackages: ['@getopenpay/utils'],
         tsconfigPath: resolve(__dirname, 'tsconfig.build.json'),
       }),
       {

@@ -8,9 +8,6 @@ export default defineConfig({
   esbuild: {
     drop: process.env.NODE_ENV === 'development' ? [] : ['console', 'debugger'],
   },
-  optimizeDeps: {
-    include: ['@getopenpay/utils', 'penpal', 'use-async-effect', 'uuid', 'zod'],
-  },
   build: {
     emptyOutDir: false,
     copyPublicDir: false,
@@ -19,7 +16,7 @@ export default defineConfig({
       formats: ['es'],
     },
     rollupOptions: {
-      external: ['react', 'react-dom', 'react/jsx-runtime'],
+      external: ['react', 'react-dom', 'react/jsx-runtime', 'zod'],
       output: {
         globals: {
           react: 'React',
@@ -34,6 +31,7 @@ export default defineConfig({
     react(),
     dts({
       rollupTypes: true,
+      bundledPackages: ['@getopenpay/utils'],
       include: ['**/*', '../utils/**/*'], // Needs this to invalidate when utils change
       tsconfigPath: resolve(__dirname, 'tsconfig.build.json'),
     }),
