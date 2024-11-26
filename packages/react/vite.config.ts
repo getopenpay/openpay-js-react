@@ -9,7 +9,7 @@ export default defineConfig({
     drop: process.env.NODE_ENV === 'development' ? [] : ['console', 'debugger'],
   },
   optimizeDeps: {
-    include: ['@getopenpay/utils', 'penpal', 'use-async-effect', 'uuid', 'zod'],
+    include: ['penpal', 'use-async-effect', 'uuid', 'zod'],
   },
   build: {
     emptyOutDir: false,
@@ -28,6 +28,11 @@ export default defineConfig({
         assetFileNames: 'assets/[name][extname]',
         entryFileNames: '[name].js',
       },
+    },
+    minify: false,
+    terserOptions: {
+      compress: false,
+      mangle: false,
     },
   },
   plugins: [

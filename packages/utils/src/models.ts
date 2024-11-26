@@ -15,11 +15,11 @@ export type ElementsFormChildrenProps = {
   submit: () => void;
   applePay: PaymentRequestStatus;
   googlePay: PaymentRequestStatus;
-  stripeLink: {
-    // button: FC<StripeLinkButtonProps>;
-    // authElement: FC<LinkAuthElementProps>;
-    pr: PaymentRequestStatus;
-  };
+  // stripeLink: {
+  //   button: FC<StripeLinkButtonProps>;
+  //   authElement: FC<LinkAuthElementProps>;
+  //   pr: PaymentRequestStatus;
+  // };
   loaded: boolean;
   preview: DynamicPreview;
 };

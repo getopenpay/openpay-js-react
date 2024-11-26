@@ -16,6 +16,7 @@ import {
   PR_ERROR,
   PaymentRequestStartParams,
   LoadedEventPayload,
+  ElementTypeEnumValue,
 } from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
 import { ConnectionManager, createConnection } from './utils/connection';
@@ -125,10 +126,7 @@ export class OpenPayForm {
     if (this.connectionManager.getAllConnections().size === 0) {
       return;
     }
-    this.ojsFlowsInitialization = initializeOjsFlows(
-      this.createOjsFlowContext(),
-      this.cdeLoadedPayload.checkoutPaymentMethods
-    );
+    this.ojsFlowsInitialization = initializeOjsFlows(this.createOjsFlowContext());
     this.ojsFlowsInitialization.stripePR.subscribe((status) => this.onStripePRStatusChange(status));
   };
 
@@ -166,8 +164,9 @@ export class OpenPayForm {
     }
   };
 
-  createElement(type: ElementType, options: ElementProps = {}) {
+  createElement(elementValue: ElementTypeEnumValue, options: ElementProps = {}) {
     if (!this.config) throw new Error('OpenPay form not initialized');
+    const type = ElementType.parse(elementValue);
 
     const frame = document.createElement('iframe');
     const queryString = this.buildQueryString(options);

@@ -50,6 +50,7 @@ export enum ElementTypeEnum {
 }
 export const ElementType = z.nativeEnum(ElementTypeEnum);
 export type ElementType = z.infer<typeof ElementType>;
+export type ElementTypeEnumValue = ElementTypeEnum[keyof ElementTypeEnum];
 
 /**
  * Core models

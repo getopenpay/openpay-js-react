@@ -5,7 +5,6 @@ import FormWrapper from '@/components/form-wrapper';
 import InputField from '@/components/input-field';
 import BillingDetails from '@/components/billing-details';
 import classNames from 'classnames';
-import { loadStripe } from '@stripe/stripe-js';
 import { CurrencySymbolMap } from '@/utils/currency';
 import { atomToCurrency } from '@/utils/math';
 
@@ -84,7 +83,7 @@ const Form: FC<FormProps> = (props) => {
   };
 
   useEffect(() => {
-    console.log(`Stripe JS can be loaded as a <script> in head (recommended), or loaded through ${loadStripe.name}`);
+    console.log(`Stripe JS can be loaded as a <script> in head (recommended), or loaded through loadStripe`);
     if (!token) {
       return;
     }
@@ -105,7 +104,7 @@ const Form: FC<FormProps> = (props) => {
       onCheckoutError={onCheckoutError}
       baseUrl={props.baseUrl ?? process.env.NEXT_PUBLIC_BASE_URL}
     >
-      {({ submit, applePay, googlePay, loaded, stripeLink }) => (
+      {({ submit, applePay, googlePay, loaded }) => (
         <FormWrapper error={validationErrors}>
           {loading && (
             <div data-testid="loading" className="flex items-center">
@@ -185,7 +184,7 @@ const Form: FC<FormProps> = (props) => {
 
           {/* <stripeLink.button className='mt-2'/>
           <stripeLink.authElement className='mt-2'/> */}
-          <button
+          {/* <button
             onClick={() => stripeLink.pr.startFlow(prParams)}
             disabled={!stripeLink.pr.isAvailable}
             className={classNames(
@@ -196,7 +195,7 @@ const Form: FC<FormProps> = (props) => {
             )}
           >
             {stripeLink.pr.isLoading ? 'Loading' : 'Stripe Link'}
-          </button>
+          </button> */}
         </FormWrapper>
       )}
     </ElementsForm>

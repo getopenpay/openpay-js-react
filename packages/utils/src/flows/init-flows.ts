@@ -1,4 +1,3 @@
-import { CheckoutPaymentMethod } from '../cde_models';
 import { OjsFlows } from './all-flows';
 import { Loadable } from './common/common-flow-utils';
 import { createOjsFlowLoggers, InitOjsFlowResult, OjsContext } from './ojs-flow';
@@ -10,10 +9,10 @@ const { log__, err__ } = createOjsFlowLoggers('init-flows');
  * Initializes all OJS flows.
  * All init flows should be added to this function.
  */
-export const initializeOjsFlows = (context: OjsContext, allCPMs: CheckoutPaymentMethod[]) => {
+export const initializeOjsFlows = (context: OjsContext) => {
   return {
     // Stripe PR
-    stripePR: runInitFlowAsObservable('stripePR', OjsFlows.stripePR.init({ context, allCPMs })),
+    stripePR: runInitFlowAsObservable('stripePR', OjsFlows.stripePR.init({ context })),
 
     // 👉 Add initialization flows here
   };

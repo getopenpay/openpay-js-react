@@ -66,9 +66,9 @@ export type StripePrCpm = z.infer<typeof StripePrCpm>;
  * Initializes the Stripe PaymentRequest flow (apple pay, google pay)
  */
 export const initStripePrFlow: InitOjsFlow<InitStripePrFlowResult> = addErrorCatcherForInit(
-  async ({ context, allCPMs }): Promise<InitStripePrFlowResult> => {
+  async ({ context }): Promise<InitStripePrFlowResult> => {
     log__(`Checking if there are any CPMs for Stripe PR...`);
-    const checkoutPaymentMethod = findCpmMatchingType(allCPMs, StripePrCpm);
+    const checkoutPaymentMethod = findCpmMatchingType(context.checkoutPaymentMethods, StripePrCpm);
 
     log__(`Initializing Stripe PR flow...`);
     const anyCdeConnection = Array.from(context.cdeConnections.values())[0];

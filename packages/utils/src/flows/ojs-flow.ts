@@ -43,12 +43,6 @@ export type InitOjsFlowParams = {
    * Ideally this only contains "background" context (OJS-level objects), and not flow-level objects.
    */
   context: OjsContext;
-
-  /**
-   * List of all checkout payment methods available in the session.
-   * If no CPMs in the list are applicable to the flow, the initialization should return isAvailable: false.
-   */
-  allCPMs: CheckoutPaymentMethod[];
 };
 
 export type InitOjsFlowResult = {
