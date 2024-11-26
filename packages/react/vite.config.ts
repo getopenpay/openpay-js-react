@@ -8,9 +8,6 @@ export default defineConfig({
   esbuild: {
     drop: process.env.NODE_ENV === 'development' ? [] : ['console', 'debugger'],
   },
-  optimizeDeps: {
-    include: ['@getopenpay/utils', 'penpal', 'use-async-effect', 'uuid', 'zod'],
-  },
   build: {
     emptyOutDir: false,
     copyPublicDir: false,
@@ -19,7 +16,7 @@ export default defineConfig({
       formats: ['es'],
     },
     rollupOptions: {
-      external: ['react', 'react-dom', 'react/jsx-runtime', 'zod', 'penpal', 'uuid'],
+      external: ['react', 'react-dom', 'react/jsx-runtime', 'zod'],
       output: {
         globals: {
           react: 'React',
