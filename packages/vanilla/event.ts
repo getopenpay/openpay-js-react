@@ -10,6 +10,10 @@ import {
   AllFieldNames,
 } from '@getopenpay/utils';
 import { OpenPayForm } from './index';
+// import { ConnectionManager } from './utils/connection';
+// import { PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
+// import { SIMULATE_3DS_URL } from './3ds-elements/frame';
+// import { start3dsVerification } from './3ds-elements/events';
 
 export class OpenPayFormEventHandler {
   formInstance: OpenPayForm;
@@ -106,13 +110,16 @@ export class OpenPayFormEventHandler {
     if (this.config.onChange) this.config.onChange(elementId, field, errors);
   }
 
-  handleLoadedEvent(source: MessageEventSource, elementId: string, payload: LoadedEventPayload) {
-    this.eventTargets[elementId] = source;
-    console.log('handleLoadedEvent XXXXXXXXX', payload);
-    this.formInstance.onCdeLoaded(payload);
-    if (this.config.onLoad) {
-      this.config.onLoad(payload.totalAmountAtoms, payload.currency);
-    }
+  async handleLoadedEvent(source: MessageEventSource, elementId: string, payload: LoadedEventPayload) {
+    console.log('handleLoadedEvent is deprecated:', source, elementId, payload);
+    // const status = await start3dsVerification({ url: SIMULATE_3DS_URL, baseUrl: this.config.baseUrl! });
+    // console.log('🔐 3DS status:', status);
+    // this.eventTargets[elementId] = source;
+    // console.log('handleLoadedEvent XXXXXXXXX', payload);
+    // this.formInstance.onCdeLoaded(payload);
+    // if (this.config.onLoad) {
+    //   this.config.onLoad(payload.totalAmountAtoms, payload.currency);
+    // }
   }
 
   handleLoadErrorEvent(payload: ErrorEventPayload) {
@@ -124,6 +131,101 @@ export class OpenPayFormEventHandler {
       this.formInstance.config.onValidationError(payload.elementType, payload.errors, elementId);
     }
   }
+
+  // async handleErrorEvent(payload: ErrorEventPayload) {
+  //   if (payload.message === '3DS_REQUIRED') {
+  //     const threeDSUrl = payload.headers?.['x-3ds-auth-url'] ?? SIMULATE_3DS_URL;
+  //     // This will open a popup and process the 3DS flow
+  //     // will return a status `success` | `failure` | `cancelled` which we can continue with
+  //     const status = await start3dsVerification({ url: threeDSUrl, baseUrl: this.config.baseUrl! });
+  //     console.log('🔐 3DS status:', status);
+  //     // TODO: continue with status
+
+  //     const cardCpm = this.formInstance.checkoutPaymentMethods?.find((cpm) => cpm.provider === 'credit_card');
+  //     if (!this.formInstance.sessionId || !this.formInstance.formTarget || !this.config.onValidationError || !cardCpm)
+  //       return;
+
+  //     for (const [elementId, target] of Object.entries(this.eventTargets)) {
+  //       if (!target) continue;
+  //       const startPaymentFlowEvent = constructSubmitEventPayload(
+  //         EventType.enum.START_PAYMENT_FLOW,
+  //         this.formInstance.sessionId,
+  //         document.querySelector(this.formInstance.formTarget) ?? document.body,
+  //         this.config.onValidationError,
+  //         { ...cardCpm, processor_name: 'stripe' },
+  //         false
+  //       );
+  //       if (!startPaymentFlowEvent) continue;
+  //       this.formInstance.checkoutFired = true;
+  //       this.tokenizedData = startPaymentFlowEvent;
+  //       this.postEventToFrame(target, elementId, startPaymentFlowEvent);
+  //       break;
+  //     }
+  //   } else {
+  //     this.formInstance.checkoutFired = false;
+  //     if (this.formInstance.config.onCheckoutError) this.formInstance.config.onCheckoutError(payload.message);
+  //   }
+  // }
+
+  // handleFormSubmit() {
+  //   if (
+  //     !this.formInstance.sessionId ||
+  //     !this.formInstance.checkoutPaymentMethods?.length ||
+  //     !this.config.onValidationError
+  //   ) {
+  //     return;
+  //   }
+  //   const cardCpm = this.formInstance.checkoutPaymentMethods.find((cpm) => cpm.provider === 'credit_card');
+
+  //   if (!cardCpm) {
+  //     throw new Error('Card not available as a payment method in checkout');
+  //   }
+
+  //   const tokenizeData = constructSubmitEventPayload(
+  //     EventType.enum.TOKENIZE,
+  //     this.formInstance.sessionId!,
+  //     document.querySelector(this.formInstance.formTarget) ?? document.body,
+  //     this.config.onValidationError,
+  //     cardCpm,
+  //     false
+  //   );
+  //   if (!tokenizeData) {
+  //     throw new Error('Error constructing tokenize data');
+  //   }
+  //   for (const [elementId, target] of Object.entries(this.eventTargets)) {
+  //     if (!target) continue;
+  //     this.postEventToFrame(target, elementId, tokenizeData);
+  //   }
+  //   this.tokenizedData = tokenizeData;
+  // }
+
+  // async onUserCompletePaymentRequestUI(
+  //   stripePm: PaymentRequestPaymentMethodEvent,
+  //   checkoutPaymentMethod: CheckoutPaymentMethod
+  // ): Promise<void> {
+  //   if (!this.config.onValidationError || !this.formInstance.sessionId || !this.formInstance.checkoutPaymentMethods)
+  //     return;
+
+  //   for (const [elementId, element] of Object.entries(this.eventTargets ?? {})) {
+  //     const paymentFlowMetadata = { stripePmId: stripePm.paymentMethod.id };
+  //     const startPaymentFlowEvent = constructSubmitEventPayload(
+  //       EventType.enum.START_PAYMENT_FLOW,
+  //       this.formInstance.sessionId,
+  //       document.querySelector(this.formInstance.formTarget) ?? document.body,
+  //       this.config.onValidationError,
+  //       checkoutPaymentMethod,
+  //       false,
+  //       paymentFlowMetadata
+  //     );
+  //     if (!startPaymentFlowEvent) continue;
+  //     this.stripePm = stripePm;
+  //     this.formInstance.checkoutFired = true;
+  //     this.setTokenizedData(startPaymentFlowEvent);
+  //     this.postEventToFrame(element, elementId, startPaymentFlowEvent);
+  //     // emitEvent(element.node.contentWindow!, this.formId, elementId, startPaymentFlowEvent, this.config.baseUrl!);
+  //     break;
+  //   }
+  // }
 
   postEventToFrame(source: MessageEventSource, elementId: string, data: EventPayload) {
     emitEvent(source, this.formId, elementId, data, this.config.baseUrl!);

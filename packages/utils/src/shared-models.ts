@@ -172,6 +172,7 @@ type ErrorEventType = z.infer<typeof ErrorEventType>;
 export const ErrorEventPayload = z.object({
   type: ErrorEventType,
   message: RequiredString,
+  headers: z.record(z.string(), z.string()).optional(),
 });
 export type ErrorEventPayload = z.infer<typeof ErrorEventPayload>;
 
@@ -379,3 +380,15 @@ export const SetupCheckoutRequest = z.object({
   non_cde_form_fields: RequiredFormFields,
 });
 export type SetupCheckoutRequest = z.infer<typeof SetupCheckoutRequest>;
+export enum ThreeDSStatus {
+  SUCCESS = 'success',
+  FAILURE = 'failure',
+  CANCELLED = 'cancelled',
+}
+
+// Ping3DSStatusResponse
+export const Ping3DSStatusResponse = z.object({
+  status: z.enum([ThreeDSStatus.SUCCESS, ThreeDSStatus.FAILURE, ThreeDSStatus.CANCELLED]),
+});
+
+export type Ping3DSStatusResponse = z.infer<typeof Ping3DSStatusResponse>;
