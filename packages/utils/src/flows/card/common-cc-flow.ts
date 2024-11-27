@@ -61,7 +61,7 @@ export const runCommonCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
           const startPfResult = await startPaymentFlowForCC(anyCdeConnection, commonCheckoutParams);
 
           if (threeDSUrl) {
-            await commonCC3DSFlow(threeDSUrl, startPfResult);
+            await commonCC3DSFlow(threeDSUrl, startPfResult, context.baseUrl);
           } else {
             await stripeCC3DSFlow(startPfResult);
           }
@@ -82,7 +82,7 @@ export const runCommonCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
               ...commonCheckoutParams,
               // We use the existing payment method ID from start_payment_flow
               existing_cc_pm_id: startPfResult.cc_pm_id,
-              do_not_use_legacy_cc_flow: true,
+              do_not_use_legacy_cc_flow: !threeDSUrl,
             });
             return { mode: 'checkout', result };
           }
@@ -116,8 +116,8 @@ const parseCommon3DSNextActionMetadata = (response: StartPaymentFlowForCCRespons
   return Common3DSNextActionMetadata.parse(response.required_user_actions[0]);
 };
 
-const commonCC3DSFlow = async (threeDSUrl: string, startPfResult: StartPaymentFlowForCCResponse) => {
-  const status = await start3dsVerification({ url: threeDSUrl });
+const commonCC3DSFlow = async (threeDSUrl: string, startPfResult: StartPaymentFlowForCCResponse, baseUrl: string) => {
+  const status = await start3dsVerification({ url: threeDSUrl, baseUrl });
   log__(`3DS verification status: ${status}`);
   const nextActionMetadata = parseCommon3DSNextActionMetadata(startPfResult);
   log__('nextActionMetadata', nextActionMetadata);

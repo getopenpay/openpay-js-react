@@ -31,7 +31,6 @@ import { sleep } from './stripe';
 import { sum } from './math';
 import { CustomError } from 'ts-custom-error';
 import { connectToChild } from 'penpal';
-import { getCdeBaseUrl } from './base-url';
 
 /*
  * An actual custom Error object, created from a CDEResponseError object
@@ -228,12 +227,12 @@ export const CDE_POLLING_INTERVAL = 1000;
 /**
  * @throws if the response is not valid or connection failed
  */
-export const pingCdeFor3dsStatus = async (iframe: HTMLIFrameElement) => {
+export const pingCdeFor3dsStatus = async (iframe: HTMLIFrameElement, childOrigin: string) => {
   const connection = connectToChild({
     iframe,
     debug: true,
     timeout: CDE_POLLING_INTERVAL,
-    childOrigin: getCdeBaseUrl(),
+    childOrigin,
   });
   const connectionObj = (await connection.promise) as unknown as CdeConnection;
   const result = await queryCDE(connectionObj, { type: 'ping-3ds-status' }, Ping3DSStatusResponse);

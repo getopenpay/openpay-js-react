@@ -10,12 +10,13 @@ export interface PopupElements {
 
 export function startPolling(
   iframe: HTMLIFrameElement,
-  onSuccess: (status: Ping3DSStatusResponse['status']) => void
+  onSuccess: (status: Ping3DSStatusResponse['status']) => void,
+  childOrigin: string
 ): NodeJS.Timeout {
   const handlePolling = async () => {
     try {
       console.log('🔄 Polling CDE connection...');
-      const status = await pingCdeFor3dsStatus(iframe);
+      const status = await pingCdeFor3dsStatus(iframe, childOrigin);
       if (status) {
         console.log('🟢 CDE connection successful! Stopping polling...');
         console.log('➡️ Got status:', status);
@@ -58,7 +59,13 @@ export function handleEvents({
 /**
  * @returns `Promise<'success' | 'failure' | 'cancelled'>`
  */
-export async function start3dsVerification({ url }: { url: string }): Promise<Ping3DSStatusResponse['status']> {
+export async function start3dsVerification({
+  url,
+  baseUrl,
+}: {
+  url: string;
+  baseUrl: string;
+}): Promise<Ping3DSStatusResponse['status']> {
   const elements = createAndOpenFrame(url);
 
   return new Promise((resolve) => {
@@ -70,7 +77,7 @@ export async function start3dsVerification({ url }: { url: string }): Promise<Pi
       cleanupEventListeners?.();
     };
 
-    const pollingInterval = startPolling(elements.iframe, onSuccess);
+    const pollingInterval = startPolling(elements.iframe, onSuccess, new URL(baseUrl).origin);
 
     const cleanupEventListeners = handleEvents({
       elements,

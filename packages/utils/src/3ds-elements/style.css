@@ -22,8 +22,8 @@
   background-color: rgba(0, 0, 0, 0.5);
 }
 .container {
-  width: clamp(28rem, 35%, 30rem);
-  height: clamp(20rem, 80%, 46rem);
+  width: 600px;
+  height: 400px;
   background-color: white;
   position: relative;
   animation: fadeIn 0.3s ease-out;

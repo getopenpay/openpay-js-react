@@ -402,6 +402,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       elementsSessionId: sessionId,
       checkoutPaymentMethods,
       cdeConnections,
+      baseUrl: new URL(frameBaseUrl).origin,
     };
     return context;
   };

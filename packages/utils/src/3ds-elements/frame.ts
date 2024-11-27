@@ -11,7 +11,7 @@ export const createAndOpenFrame = (url: string) => {
     <div class="overlay">
       <div class="container">
         <button class="cancel-button">Cancel</button>
-        <iframe src="${url}" class="frame" id="three-ds-iframe" title="3D Secure verification" allow="payment"></iframe>
+        <iframe src="${url}" width="600" height="400" class="frame" id="three-ds-iframe" title="3D Secure verification" allow="payment"></iframe>
       </div>
     </div>
   `;
