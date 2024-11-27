@@ -104,6 +104,11 @@ export type OjsContext = {
    * All the CDE connection objects (one for each CDE iframe).
    */
   cdeConnections: Map<ElementType, CdeConnection>;
+
+  /**
+   * The base URL of the CDE iframe.
+   */
+  baseUrl: string;
 };
 
 /**

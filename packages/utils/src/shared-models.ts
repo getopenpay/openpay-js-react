@@ -392,3 +392,11 @@ export const Ping3DSStatusResponse = z.object({
 });
 
 export type Ping3DSStatusResponse = z.infer<typeof Ping3DSStatusResponse>;
+
+export const Common3DSNextActionMetadata = z.object({
+  type: z.string(),
+  redirect_url: z.string(),
+  initial_intent_id: z.string(),
+  consent_id: z.string(),
+});
+export type Common3DSNextActionMetadata = z.infer<typeof Common3DSNextActionMetadata>;

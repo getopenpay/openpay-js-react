@@ -402,6 +402,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       elementsSessionId: sessionId,
       checkoutPaymentMethods,
       cdeConnections,
+      baseUrl: new URL(frameBaseUrl).origin,
     };
     return context;
   };
@@ -458,7 +459,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   const submitCard = () => {
     const context = generateOjsFlowContext();
     if (!formRef.current || !sessionId || !anyCdeConn || !checkoutPaymentMethods || !context) return;
-    OjsFlows.stripeCC.run({
+    OjsFlows.commonCC.run({
       context,
       checkoutPaymentMethod: findCheckoutPaymentMethodStrict(checkoutPaymentMethods, 'credit_card'),
       nonCdeFormInputs: createInputsDictFromForm(formRef.current),
