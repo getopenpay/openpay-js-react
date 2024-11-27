@@ -57,11 +57,11 @@ export const runCommonCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
         if (error.originalErrorMessage === '3DS_REQUIRED') {
           log__(`Card requires 3DS, starting non-legacy payment flow`);
 
-          const threeDSUrl = error.response.headers?.['x-3ds-auth-url'];
+          const shouldUseNewFlow = error.response.headers?.['op-should-use-new-flow'] === 'true';
           const startPfResult = await startPaymentFlowForCC(anyCdeConnection, commonCheckoutParams);
 
-          if (threeDSUrl) {
-            await commonCC3DSFlow(threeDSUrl, startPfResult, context.baseUrl);
+          if (shouldUseNewFlow) {
+            await commonCC3DSFlow(startPfResult, context.baseUrl);
           } else {
             await stripeCC3DSFlow(startPfResult);
           }
@@ -82,7 +82,7 @@ export const runCommonCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
               ...commonCheckoutParams,
               // We use the existing payment method ID from start_payment_flow
               existing_cc_pm_id: startPfResult.cc_pm_id,
-              do_not_use_legacy_cc_flow: !threeDSUrl,
+              do_not_use_legacy_cc_flow: shouldUseNewFlow,
             });
             return { mode: 'checkout', result };
           }
@@ -116,11 +116,12 @@ const parseCommon3DSNextActionMetadata = (response: StartPaymentFlowForCCRespons
   return Common3DSNextActionMetadata.parse(response.required_user_actions[0]);
 };
 
-const commonCC3DSFlow = async (threeDSUrl: string, startPfResult: StartPaymentFlowForCCResponse, baseUrl: string) => {
-  const status = await start3dsVerification({ url: threeDSUrl, baseUrl });
-  log__(`3DS verification status: ${status}`);
+const commonCC3DSFlow = async (startPfResult: StartPaymentFlowForCCResponse, baseUrl: string) => {
   const nextActionMetadata = parseCommon3DSNextActionMetadata(startPfResult);
   log__('nextActionMetadata', nextActionMetadata);
+
+  const status = await start3dsVerification({ url: nextActionMetadata.redirect_url, baseUrl });
+  log__(`3DS verification status: ${status}`);
 };
 
 const stripeCC3DSFlow = async (startPfResult: StartPaymentFlowForCCResponse) => {
