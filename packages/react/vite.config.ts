@@ -16,7 +16,7 @@ export default defineConfig({
       formats: ['es'],
     },
     rollupOptions: {
-      external: ['react', 'react-dom', 'react/jsx-runtime', 'zod'],
+      external: ['react', 'react-dom', 'react/jsx-runtime', 'zod', 'chalk', 'penpal', 'uuid'],
       output: {
         globals: {
           react: 'React',
