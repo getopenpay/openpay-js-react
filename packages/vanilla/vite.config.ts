@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
         fileName: (format) => `index.${format}.js`,
       },
       rollupOptions: {
-        external: ['@stripe/stripe-js', 'zod', 'penpal', 'uuid', 'react', 'react-dom'], // React is included in 'utils'
+        external: ['react', 'react-dom', 'zod', 'penpal', 'uuid', 'chalk'], // React is included in 'utils'
         output: {
           assetFileNames: 'assets/[name][extname]',
         },

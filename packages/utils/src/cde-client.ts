@@ -228,11 +228,12 @@ export const CDE_POLLING_INTERVAL = 1000;
  * @throws if the response is not valid or connection failed
  */
 export const pingCdeFor3dsStatus = async (iframe: HTMLIFrameElement, childOrigin: string) => {
+  console.log(childOrigin);
   const connection = connectToChild({
     iframe,
     debug: true,
     timeout: CDE_POLLING_INTERVAL,
-    childOrigin,
+    childOrigin: '*', // TODO: use with proper childOrigin
   });
   const connectionObj = (await connection.promise) as unknown as CdeConnection;
   const result = await queryCDE(connectionObj, { type: 'ping-3ds-status' }, Ping3DSStatusResponse);
