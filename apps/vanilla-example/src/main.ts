@@ -136,10 +136,6 @@ function initializeForm(token: string) {
       .createElement('card-number', {
         styles: {
           color: 'lightblue',
-          placeholderStyle: {
-            color: '#4169E1',
-            fontFamily: 'monospace',
-          },
         },
       })
       .mount('#card-number-element');
@@ -147,10 +143,6 @@ function initializeForm(token: string) {
       .createElement('card-expiry', {
         styles: {
           color: 'lightblue',
-          placeholderStyle: {
-            color: '#4169E1',
-            fontFamily: 'monospace',
-          },
         },
       })
       .mount('#card-expiry-element');
@@ -158,10 +150,6 @@ function initializeForm(token: string) {
       .createElement('card-cvc', {
         styles: {
           color: 'lightblue',
-          placeholderStyle: {
-            color: '#4169E1',
-            fontFamily: 'monospace',
-          },
         },
       })
       .mount('#card-cvc-element');
@@ -174,10 +162,6 @@ function initializeForm(token: string) {
       .createElement('card', {
         styles: {
           color: 'lightblue',
-          placeholderStyle: {
-            color: '#4169E1',
-            fontFamily: 'monospace',
-          },
         },
       })
       .mount('#card-element');

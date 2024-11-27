@@ -23,7 +23,7 @@ const { log__: stripeLog__ } = createOjsFlowLoggers('stripe-cc');
  */
 export const runCommonCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
   async ({ context, checkoutPaymentMethod, nonCdeFormInputs, flowCallbacks }): Promise<SimpleOjsFlowResult> => {
-    log__(`├ Running common CC flow... [Payment Method: ${checkoutPaymentMethod}]`);
+    log__(`├ Running common CC flow...`, { checkoutPaymentMethod });
     const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
     const prefill = await getPrefill(anyCdeConnection);
 
@@ -64,7 +64,7 @@ export const runCommonCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
 
           const shouldUseNewFlow = error.response.headers?.['op-should-use-new-flow'] === 'true';
           const startPfResult = await startPaymentFlowForCC(anyCdeConnection, commonCheckoutParams);
-
+          log__(`├ op-should-use-new-flow: ${shouldUseNewFlow}`);
           log__(`├ Payment flow result:`, startPfResult);
 
           if (shouldUseNewFlow) {
