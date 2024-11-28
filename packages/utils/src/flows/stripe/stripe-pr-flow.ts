@@ -7,7 +7,7 @@ import {
   RunOjsFlow,
   SimpleOjsFlowResult,
 } from '../ojs-flow';
-import { PaymentRequest } from '@stripe/stripe-js';
+import { PaymentRequest, PaymentRequestPaymentMethodEvent } from '@stripe/stripe-js';
 import {
   confirmStripePrPM,
   createStripePaymentRequest,
@@ -22,9 +22,9 @@ import {
   startPaymentFlowForPR,
 } from '../../cde-client';
 import { Amount, FieldName } from '../../shared-models';
-import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
 import { CheckoutRequest, StartPaymentFlowResponse } from '../../cde_models';
 import { findCpmMatchingType, parseConfirmPaymentFlowResponse } from '../common/common-flow-utils';
+import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
 
 const { log__, err__ } = createOjsFlowLoggers('stripe-pr');
 
@@ -124,10 +124,6 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
       const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
       const pr = initResult.pr;
 
-      log__(`Validating non-CDE form fields`);
-      const cleanedFormInputs = overrideEmptyZipCode(nonCdeFormInputs);
-      const nonCdeFormFields = validateNonCdeFormFieldsForCC(cleanedFormInputs, flowCallbacks.onValidationError);
-
       // TODO: adjust PR amounts as coupons are applied
       if (customParams?.overridePaymentRequest) {
         const override = customParams.overridePaymentRequest;
@@ -140,6 +136,11 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
       log__(`Showing PR dialog...`);
       pr.show();
       const stripePmAddedEvent = await waitForUserToAddPaymentMethod(pr);
+      log__(`Stripe PM added event:`, stripePmAddedEvent);
+
+      log__(`Merging PM fields with form fields...`);
+      const mergedInputs = fillEmptyFormInputsWithStripePm(nonCdeFormInputs, stripePmAddedEvent);
+      const nonCdeFormFields = validateNonCdeFormFieldsForCC(mergedInputs, flowCallbacks.onValidationError);
 
       log__(`PR dialog finished. Starting payment flow...`);
       const startPaymentFlowResponse = await startPaymentFlowForPR(anyCdeConnection, {
@@ -183,13 +184,25 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
     }
   );
 
-const overrideEmptyZipCode = (formInputs: Record<string, unknown>): Record<string, unknown> => {
-  const newFormInputs = { ...formInputs };
-  if (!newFormInputs[FieldName.ZIP_CODE]) {
-    log__(`Overriding empty zip code (only for google pay and apple pay)`);
-    newFormInputs[FieldName.ZIP_CODE] = '00000';
-  }
-  return newFormInputs;
+const fillEmptyFormInputsWithStripePm = (
+  formInputs: Record<string, unknown>,
+  stripePmEvt: PaymentRequestPaymentMethodEvent
+): Record<string, unknown> => {
+  const inputs = { ...formInputs };
+
+  // Try splitting full name into first and last
+  const [payerFirstName, ...payerLastNameParts] = stripePmEvt.payerName?.trim()?.split(/\s+/) ?? []; // Note that payerFirstName can also be undefined
+  const payerLastName = payerLastNameParts.join(' ') || undefined; // Force blank strings to be undefined
+
+  // Note: we use ||, not ?? to ensure that blanks are falsish
+  inputs[FieldName.FIRST_NAME] = inputs[FieldName.FIRST_NAME] || payerFirstName || '_OP_UNKNOWN';
+  inputs[FieldName.LAST_NAME] = inputs[FieldName.LAST_NAME] || payerLastName || '_OP_UNKNOWN';
+  inputs[FieldName.EMAIL] = inputs[FieldName.EMAIL] || stripePmEvt.payerEmail || 'op_unfilled@getopenpay.com';
+  inputs[FieldName.ZIP_CODE] = inputs[FieldName.ZIP_CODE] || stripePmEvt.shippingAddress?.postalCode || '00000';
+  inputs[FieldName.COUNTRY] = inputs[FieldName.COUNTRY] || stripePmEvt.shippingAddress?.country || 'US';
+
+  log__(`Final form inputs:`, inputs);
+  return inputs;
 };
 
 const updatePrWithAmount = (pr: PaymentRequest, amount: Amount, isPending: boolean): void => {

@@ -4,6 +4,7 @@ import {
   StripeElements,
   StripeElementsOptionsClientSecret,
   Stripe as StripeType,
+  SetupIntentResult,
 } from '@stripe/stripe-js';
 import { Amount, CheckoutPaymentMethod, PaymentFlowStartedEventPayload } from './shared-models';
 import { z } from 'zod';
@@ -166,7 +167,7 @@ export const confirmPaymentFlowForStripePRLegacy = async (
 export const confirmStripePrPM = async (
   nextActionMetadata: PaymentRequestNextActionMetadata,
   stripePm: PaymentRequestPaymentMethodEvent
-): Promise<void> => {
+): Promise<SetupIntentResult> => {
   if (!nextActionMetadata.stripe_pk || !nextActionMetadata.client_secret) {
     throw new Error(`Invalid next action metadata format: ${JSON.stringify(nextActionMetadata)}`);
   }
@@ -180,6 +181,7 @@ export const confirmStripePrPM = async (
   } else {
     stripePm.complete('success');
   }
+  return confirmResult;
 };
 
 export const confirmPaymentFlowForStripeLink = async (payload: PaymentFlowStartedEventPayload): Promise<void> => {
