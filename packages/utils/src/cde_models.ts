@@ -149,7 +149,7 @@ export const PaymentFormPrefill = z.discriminatedUnion('mode', [
   z
     .object({
       mode: z.enum(['payment', 'subscription']),
-      currency: CurrencyEnum,
+      currency: z.string(),
     })
     .extend(_PaymentFormPrefillCommon.shape),
 ]);
