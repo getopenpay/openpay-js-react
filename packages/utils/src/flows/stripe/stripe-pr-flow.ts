@@ -24,7 +24,11 @@ import {
 import { Amount, FieldName } from '../../shared-models';
 import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
 import { CheckoutRequest, StartPaymentFlowResponse } from '../../cde_models';
-import { findCpmMatchingType, parseConfirmPaymentFlowResponse } from '../common/common-flow-utils';
+import {
+  findCpmMatchingType,
+  overrideEmptyZipCode,
+  parseConfirmPaymentFlowResponse,
+} from '../common/common-flow-utils';
 
 const { log__, err__ } = createOjsFlowLoggers('stripe-pr');
 
@@ -182,15 +186,6 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
       }
     }
   );
-
-const overrideEmptyZipCode = (formInputs: Record<string, unknown>): Record<string, unknown> => {
-  const newFormInputs = { ...formInputs };
-  if (!newFormInputs[FieldName.ZIP_CODE]) {
-    log__(`Overriding empty zip code (only for google pay and apple pay)`);
-    newFormInputs[FieldName.ZIP_CODE] = '00000';
-  }
-  return newFormInputs;
-};
 
 const updatePrWithAmount = (pr: PaymentRequest, amount: Amount, isPending: boolean): void => {
   pr.update({

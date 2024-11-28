@@ -402,6 +402,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       elementsSessionId: sessionId,
       checkoutPaymentMethods,
       cdeConnections,
+      customInitParams: {},
     };
     return context;
   };
@@ -427,7 +428,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     if (ojsFlowsInitialization !== null) return; // Initialize only once
     const context = generateOjsFlowContext();
     if (!context) return;
-    const initialization = initializeOjsFlows(context);
+    const initialization = initializeOjsFlows(context, ojsFlowCallbacks);
     setOjsFlowsInitialization(initialization);
     initialization.stripePR.subscribe((status) => {
       if (status.status === 'loading') {

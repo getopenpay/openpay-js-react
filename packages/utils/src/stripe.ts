@@ -2,7 +2,7 @@ import {
   PaymentRequest,
   PaymentRequestPaymentMethodEvent,
   StripeElements,
-  StripeElementsOptionsClientSecret,
+  StripeElementsOptionsMode,
   Stripe as StripeType,
 } from '@stripe/stripe-js';
 import { Amount, CheckoutPaymentMethod, PaymentFlowStartedEventPayload } from './shared-models';
@@ -54,7 +54,7 @@ const getLoadedStripe = async (publishableKey: string): Promise<StripeType> => {
 
 export const createStripeElements = async (
   stripePubKey: string,
-  elementsOptions: StripeElementsOptionsClientSecret
+  elementsOptions: StripeElementsOptionsMode
 ): Promise<{ elements: StripeElements; stripe: StripeType }> => {
   const stripe = await getLoadedStripe(stripePubKey);
   return {
@@ -63,15 +63,17 @@ export const createStripeElements = async (
   };
 };
 
-export const createElementsOptions = (amount: Amount): StripeElementsOptionsClientSecret => {
-  console.log(amount);
+// StripeElementsOptionsClientSecret
+export const createElementsOptions = (amount: Amount): StripeElementsOptionsMode => {
   return {
     // TODO: uncomment these later if we decide to use elements
+    // TODO ASAP: replace this
     // clientSecret: 'seti_1QCcXVKKXdhjXGwFhd0btSQD_secret_R4m53UhbceUDHVoxq07r2zoEgqJg7wd',
-    // mode: 'payment',
+    mode: 'setup',
     // amount: amount.amountAtom,
-    // currency: amount.currency,
-    // setup_future_usage: 'off_session',
+    currency: amount.currency,
+    setup_future_usage: 'off_session',
+    paymentMethodCreation: 'manual',
   };
 };
 

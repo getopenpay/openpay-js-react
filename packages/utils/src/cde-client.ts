@@ -8,9 +8,7 @@ import {
   ConfirmPaymentFlowResponse,
   ElementType,
   FieldName,
-  PaymentFlowStartedEventPayload,
   SetupCheckoutRequest,
-  SubmitEventPayload,
   TokenizeCardRequest,
   TokenizeCardResponse,
 } from './shared-models';
@@ -24,6 +22,7 @@ import {
   StartPaymentFlowForCCRequest,
   StartPaymentFlowForCCResponse,
   StartPaymentFlowForPRRequest,
+  StartPaymentFlowRequest,
   StartPaymentFlowResponse,
 } from './cde_models';
 import { sleep } from './stripe';
@@ -31,9 +30,11 @@ import { sum } from './math';
 import { CustomError } from 'ts-custom-error';
 
 /*
- * An actual custom Error object, created from a CDEResponseError object
- * Note that CDEResponseError is a normal JSON (zod) object returned by CDE endpoints,
- * while this class is a real subclass of Error.
+ * An actual custom Error object, for easier try-catch handling of CDE errors.
+ * This class is NOT meant to be extended or subclassed.
+ *
+ * Note also the difference vs CDEResponseError:
+ * - CDEResponseError is a normal JSON (zod) object returned by CDE endpoints, while this class is a real subclass of Error.
  */
 export class CdeError extends CustomError {
   response: CDEResponseError;
@@ -93,9 +94,9 @@ export const getPrefill = async (cdeConn: CdeConnection): Promise<PaymentFormPre
 
 export const startPaymentFlow = async (
   cdeConn: CdeConnection,
-  payload: SubmitEventPayload
-): Promise<PaymentFlowStartedEventPayload> => {
-  return await queryCDE(cdeConn, { type: 'start_payment_flow', payload }, PaymentFlowStartedEventPayload);
+  payload: StartPaymentFlowRequest
+): Promise<StartPaymentFlowResponse> => {
+  return await queryCDE(cdeConn, { type: 'v2_start_payment_flow', payload }, StartPaymentFlowResponse);
 };
 
 export const startPaymentFlowForCC = async (

@@ -126,7 +126,7 @@ export class OpenPayForm {
     if (this.connectionManager.getAllConnections().size === 0) {
       return;
     }
-    this.ojsFlowsInitialization = initializeOjsFlows(this.createOjsFlowContext());
+    this.ojsFlowsInitialization = initializeOjsFlows(this.createOjsFlowContext(), this.createOjsFlowCallbacks());
     this.ojsFlowsInitialization.stripePR.subscribe((status) => this.onStripePRStatusChange(status));
   };
 
@@ -232,11 +232,8 @@ export class OpenPayForm {
       elementsSessionId: this.cdeLoadedPayload.sessionId,
       checkoutPaymentMethods: this.cdeLoadedPayload.checkoutPaymentMethods,
       cdeConnections,
+      customInitParams: {},
     };
-  }
-
-  private getNonCdeFormInputs(): Record<string, unknown> {
-    return createInputsDictFromForm(this.getFormDiv());
   }
 
   private createOjsFlowCallbacks() {
@@ -258,7 +255,7 @@ export class OpenPayForm {
     OjsFlows.stripeCC.run({
       context,
       checkoutPaymentMethod: findCheckoutPaymentMethodStrict(context.checkoutPaymentMethods, 'credit_card'),
-      nonCdeFormInputs: this.getNonCdeFormInputs(),
+      nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
       flowCallbacks: this.createOjsFlowCallbacks(),
       customParams: undefined, // This flow requires no custom params
       initResult: undefined, // This flow requires no initialization
@@ -274,7 +271,7 @@ export class OpenPayForm {
     return OjsFlows.stripePR.run({
       context,
       checkoutPaymentMethod: findCheckoutPaymentMethodStrict(context.checkoutPaymentMethods, provider),
-      nonCdeFormInputs: this.getNonCdeFormInputs(),
+      nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
       flowCallbacks: this.createOjsFlowCallbacks(),
       customParams: { provider, overridePaymentRequest: params?.overridePaymentRequest },
       initResult,

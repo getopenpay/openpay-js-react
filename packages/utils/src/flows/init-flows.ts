@@ -1,6 +1,6 @@
 import { OjsFlows } from './all-flows';
 import { Loadable } from './common/common-flow-utils';
-import { createOjsFlowLoggers, InitOjsFlowResult, OjsContext } from './ojs-flow';
+import { createOjsFlowLoggers, InitOjsFlowParams, InitOjsFlowResult, OjsContext, OjsFlowCallbacks } from './ojs-flow';
 import Observable from 'zen-observable';
 
 const { log__, err__ } = createOjsFlowLoggers('init-flows');
@@ -9,10 +9,14 @@ const { log__, err__ } = createOjsFlowLoggers('init-flows');
  * Initializes all OJS flows.
  * All init flows should be added to this function.
  */
-export const initializeOjsFlows = (context: OjsContext) => {
+export const initializeOjsFlows = (context: OjsContext, flowCallbacks: OjsFlowCallbacks) => {
+  const initParams: InitOjsFlowParams = { context, flowCallbacks };
   return {
     // Stripe PR
-    stripePR: runInitFlowAsObservable('stripePR', OjsFlows.stripePR.init({ context })),
+    stripePR: runInitFlowAsObservable('stripePR', OjsFlows.stripePR.init(initParams)),
+
+    // Stripe Link
+    stripeLink: runInitFlowAsObservable('stripeLink', OjsFlows.stripeLink.init(initParams)),
 
     // 👉 Add initialization flows here
   };

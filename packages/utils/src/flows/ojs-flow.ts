@@ -43,6 +43,11 @@ export type InitOjsFlowParams = {
    * Ideally this only contains "background" context (OJS-level objects), and not flow-level objects.
    */
   context: OjsContext;
+
+  /**
+   * Lifecycle callbacks for OJS flows.
+   */
+  flowCallbacks: OjsFlowCallbacks;
 };
 
 export type InitOjsFlowResult = {
@@ -104,6 +109,15 @@ export type OjsContext = {
    * All the CDE connection objects (one for each CDE iframe).
    */
   cdeConnections: Map<ElementType, CdeConnection>;
+
+  /*
+   * Custom init params
+   */
+  customInitParams: {
+    stripeLink?: {
+      buttonHeight?: number;
+    };
+  };
 };
 
 /**

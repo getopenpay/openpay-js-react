@@ -1,6 +1,7 @@
 import { CheckoutPaymentMethod } from '../shared-models';
 import { OjsContext, OjsFlow } from './ojs-flow';
 import { runStripeCcFlow } from './stripe/stripe-cc-flow';
+import { initStripeLinkFlow, runStripeLinkFlow } from './stripe/stripe-link-flow';
 import { initStripePrFlow, runStripePrFlow } from './stripe/stripe-pr-flow';
 
 export const findCheckoutPaymentMethodStrict = (
@@ -34,6 +35,10 @@ export const OjsFlows = {
   stripePR: {
     init: initStripePrFlow,
     run: runStripePrFlow,
+  },
+  stripeLink: {
+    init: initStripeLinkFlow,
+    run: runStripeLinkFlow,
   },
 
   // 👉 Add more flows here

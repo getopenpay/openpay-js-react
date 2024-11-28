@@ -13,7 +13,8 @@ import { findCpmMatchingType } from './common/common-flow-utils';
 // 👉 Special loggers, edit this to reflect the flow name
 const { log__, err__ } = createOjsFlowLoggers('foobar');
 
-// 👉 CustomParams are passed when the flow is run. It is optional, and can be undefined
+// 👉 CustomParams are passed when the flow is run. It is optional, and can be undefined.
+// - Most of the time, you can remove this type.
 // - Params can be from anywhere, can even be passed from the user
 // - Can also be used to differentiate different instances of runFlow
 //   - E.g. 'apple_pay' or 'google_pay' for running stripe PR flow
@@ -35,12 +36,17 @@ export const FoobarCpm = z.object({
 export type FoobarCpm = z.infer<typeof FoobarCpm>;
 
 // 👉 initFlow -- this is optional, use this only when you need to initialize something at load time, before runFlow()
-// - We use the decorator addErrorCatcherForInit to automatically catch errors. It returns isAvailable: false
+// - We use the decorator addErrorCatcherForInit to automatically catch errors (on error, it returns isAvailable: false)
+// - 👉 Note! if you need to pass custom params to initFlow, please pass it through OjsContext.customInitParams
 /*
  * Initializes the Foobar flow (put more details here)
  */
 export const initFoobarFlow: InitOjsFlow<InitFoobarFlowSuccess> = addErrorCatcherForInit(
   async ({ context }): Promise<InitFoobarFlowSuccess> => {
+    // 👉 If you're planning to have an init flow, please make sure to add it to:
+    //   - 👉 all-flows.ts
+    //   - 👉 init-flows.ts
+
     log__(`Checking if there are any CPMs for Stripe PR...`);
     const checkoutPaymentMethod = findCpmMatchingType(context.checkoutPaymentMethods, FoobarCpm);
     log__(`checkoutPaymentMethod: ${checkoutPaymentMethod}`);
@@ -79,6 +85,10 @@ export const runFoobarFlow: RunOjsFlow<FoobarFlowCustomParams, InitFoobarFlowSuc
       customParams,
       initResult,
     }): Promise<SimpleOjsFlowResult> => {
+      log__(`Running Foobar flow...`);
+      const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
+      log__('anyCdeConnection is convenient if you just need to do a simple CDE query', anyCdeConnection);
+
       // 👉 There are multiple params passed to runFlow
       // - See the definitions in OjsFlowParams for more details
       log__('context', context);
