@@ -4,7 +4,7 @@ import { connectToChild } from 'penpal';
 export async function createConnection(iframe: HTMLIFrameElement, childOrigin?: string): Promise<CdeConnection> {
   const connection = connectToChild({
     iframe,
-    debug: true,
+    debug: false,
     childOrigin,
   });
   const connectionObj = await connection.promise;
