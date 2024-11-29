@@ -1,5 +1,5 @@
 import { Ping3DSStatusResponse, ThreeDSStatus } from '@getopenpay/utils';
-import { pingCdeFor3dsStatus } from '../utils/connection';
+import { CDE_POLLING_INTERVAL, pingCdeFor3dsStatus } from '../cde-client';
 import { createAndOpenFrame } from './frame';
 
 export interface PopupElements {
@@ -28,7 +28,7 @@ export function startPolling(
     }
   };
   handlePolling();
-  const pollingInterval = setInterval(handlePolling, 1000); // Poll every second
+  const pollingInterval = setInterval(handlePolling, CDE_POLLING_INTERVAL);
   return pollingInterval;
 }
 

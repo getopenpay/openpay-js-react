@@ -118,6 +118,11 @@ export type OjsContext = {
       buttonHeight?: number;
     };
   };
+
+  /**
+   * The base URL of the CDE iframe.
+   */
+  baseUrl: string;
 };
 
 /**

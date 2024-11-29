@@ -17,6 +17,7 @@ import {
   PaymentRequestStartParams,
   LoadedEventPayload,
   ElementTypeEnumValue,
+  FRAME_BASE_URL,
 } from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
 import { ConnectionManager, createConnection } from './utils/connection';
@@ -228,6 +229,7 @@ export class OpenPayForm {
       throw new Error('No CDE connections found');
     }
     return {
+      baseUrl: new URL(this.config.baseUrl ?? FRAME_BASE_URL).origin,
       formDiv: this.getFormDiv(),
       elementsSessionId: this.cdeLoadedPayload.sessionId,
       checkoutPaymentMethods: this.cdeLoadedPayload.checkoutPaymentMethods,
@@ -252,7 +254,7 @@ export class OpenPayForm {
 
   submit() {
     const context = this.createOjsFlowContext();
-    OjsFlows.stripeCC.run({
+    OjsFlows.commonCC.run({
       context,
       checkoutPaymentMethod: findCheckoutPaymentMethodStrict(context.checkoutPaymentMethods, 'credit_card'),
       nonCdeFormInputs: createInputsDictFromForm(context.formDiv),

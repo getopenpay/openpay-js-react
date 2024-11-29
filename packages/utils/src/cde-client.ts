@@ -8,6 +8,7 @@ import {
   ConfirmPaymentFlowResponse,
   ElementType,
   FieldName,
+  Ping3DSStatusResponse,
   SetupCheckoutRequest,
   TokenizeCardRequest,
   TokenizeCardResponse,
@@ -28,6 +29,7 @@ import {
 import { sleep } from './stripe';
 import { sum } from './math';
 import { CustomError } from 'ts-custom-error';
+import { connectToChild } from 'penpal';
 
 /*
  * An actual custom Error object, for easier try-catch handling of CDE errors.
@@ -58,9 +60,11 @@ export const queryCDE = async <T extends z.ZodType>(
   // Leaving these as commented out for easier debugging later
   console.log('[cde-client] Querying CDE with path and connection:', data.type, cdeConn);
   const response = await cdeConn.send(data);
+
   if (isCDEResponseError(response)) {
     throw new CdeError(response);
   }
+
   console.log('[cde-client] Got response from CDE:', response);
   if (!checkIfConformsToSchema(response, responseSchema)) {
     const result = responseSchema.safeParse(response);
@@ -198,7 +202,12 @@ export const checkoutCardElements = async (
   cdeConn: CdeConnection,
   payload: CardElementsCheckoutRequest
 ): Promise<CheckoutSuccessResponse> => {
-  return await queryCDE(cdeConn, { type: 'checkout_card_elements', payload }, CheckoutSuccessResponse);
+  try {
+    return await queryCDE(cdeConn, { type: 'checkout_card_elements', payload }, CheckoutSuccessResponse);
+  } catch (error) {
+    console.error('[cde-client] Error during checkoutCardElements:', error, JSON.stringify(error));
+    throw error;
+  }
 };
 
 export const setupCheckout = async (
@@ -213,4 +222,21 @@ export const performCheckout = async (
   payload: CheckoutRequest
 ): Promise<CheckoutSuccessResponse> => {
   return await queryCDE(cdeConn, { type: 'checkout', payload }, CheckoutSuccessResponse);
+};
+
+export const CDE_POLLING_INTERVAL = 1000;
+/**
+ * @throws if the response is not valid or connection failed
+ */
+export const pingCdeFor3dsStatus = async (iframe: HTMLIFrameElement, childOrigin: string) => {
+  console.log(childOrigin);
+  const connection = connectToChild({
+    iframe,
+    debug: true,
+    timeout: CDE_POLLING_INTERVAL,
+    childOrigin: '*', // TODO: use with proper childOrigin
+  });
+  const connectionObj = (await connection.promise) as unknown as CdeConnection;
+  const result = await queryCDE(connectionObj, { type: 'ping-3ds-status' }, Ping3DSStatusResponse);
+  return result.status;
 };

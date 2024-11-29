@@ -7,12 +7,13 @@ export default defineConfig(({ mode }) => {
   return {
     esbuild: {
       drop: mode === 'development' ? [] : ['console', 'debugger'],
+      sourcemap: 'inline',
     },
     optimizeDeps: {
       include: ['penpal', 'uuid', 'zod'],
     },
     build: {
-      emptyOutDir: false,
+      emptyOutDir: mode === 'production',
       copyPublicDir: false,
       lib: {
         name: 'OpenPay',
@@ -20,7 +21,7 @@ export default defineConfig(({ mode }) => {
         fileName: (format) => `index.${format}.js`,
       },
       rollupOptions: {
-        external: ['@stripe/stripe-js', 'zod', 'penpal', 'uuid', 'react', 'react-dom'], // React is included in 'utils'
+        external: ['react', 'react-dom', 'zod', 'penpal', 'uuid', 'chalk'], // React is included in 'utils'
         output: {
           assetFileNames: 'assets/[name][extname]',
         },
@@ -33,17 +34,6 @@ export default defineConfig(({ mode }) => {
         bundledPackages: ['@getopenpay/utils'],
         tsconfigPath: resolve(__dirname, 'tsconfig.build.json'),
       }),
-      {
-        name: 'css-inline',
-        transform(code, id) {
-          if (id.endsWith('.css?inline')) {
-            return {
-              code: `export default ${JSON.stringify(code)}`,
-              map: null,
-            };
-          }
-        },
-      }, // To inline CSS into the bundle
     ],
     define: {
       __APP_VERSION__: JSON.stringify(process.env.npm_package_version),

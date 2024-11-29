@@ -1,7 +1,7 @@
 import { CheckoutPaymentMethod } from '../shared-models';
 import { OjsContext, OjsFlow } from './ojs-flow';
-import { runStripeCcFlow } from './stripe/stripe-cc-flow';
 import { initStripeLinkFlow, runStripeLinkFlow } from './stripe/stripe-link-flow';
+import { runCommonCcFlow } from './card/common-cc-flow';
 import { initStripePrFlow, runStripePrFlow } from './stripe/stripe-pr-flow';
 
 export const findCheckoutPaymentMethodStrict = (
@@ -28,10 +28,12 @@ export const findCheckoutPaymentMethodStrict = (
 export const OjsFlows = {
   // ✋ Note: For flows that require initialization, please add them to `init-flows.ts`
 
-  // Stripe
-  stripeCC: {
-    run: runStripeCcFlow,
+  // Common
+  commonCC: {
+    run: runCommonCcFlow,
   },
+
+  // Stripe
   stripePR: {
     init: initStripePrFlow,
     run: runStripePrFlow,

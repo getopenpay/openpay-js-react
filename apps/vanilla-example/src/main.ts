@@ -97,13 +97,11 @@ function initializeForm(token: string) {
     },
     onPaymentRequestLoad(paymentRequests) {
       if (paymentRequests.apple_pay.isAvailable) {
-        console.log('Apple Pay is available');
         const applePayButton = document.querySelector('#apple-pay-button') as HTMLButtonElement;
         if (applePayButton) {
           applePayButton.style.display = 'flex';
 
           applePayButton.addEventListener('click', () => {
-            console.log('Apple Pay button clicked');
             paymentRequests.apple_pay.startFlow({
               overridePaymentRequest: { amount: { amountAtom: 420, currency: 'usd' }, pending: false },
             });
@@ -111,18 +109,20 @@ function initializeForm(token: string) {
         }
       }
       if (paymentRequests.google_pay.isAvailable) {
-        console.log('Google Pay is available');
         const googlePayButton = document.querySelector('#google-pay-button') as HTMLButtonElement;
         if (googlePayButton) {
           googlePayButton.style.display = 'flex';
 
           googlePayButton.addEventListener('click', () => {
-            console.log('Google Pay button clicked');
             paymentRequests.google_pay.startFlow({
               overridePaymentRequest: { amount: { amountAtom: 420, currency: 'usd' }, pending: false },
             });
           });
         }
+      } else if (!paymentRequests.google_pay.isAvailable && !paymentRequests.google_pay.isLoading) {
+        const googlePayButton = document.querySelector('#google-pay-button') as HTMLButtonElement;
+        googlePayButton.style.display = 'flex';
+        googlePayButton.disabled = true;
       }
     },
   });
@@ -136,10 +136,6 @@ function initializeForm(token: string) {
       .createElement('card-number', {
         styles: {
           color: 'lightblue',
-          placeholderStyle: {
-            color: '#4169E1',
-            fontFamily: 'monospace',
-          },
         },
       })
       .mount('#card-number-element');
@@ -147,10 +143,6 @@ function initializeForm(token: string) {
       .createElement('card-expiry', {
         styles: {
           color: 'lightblue',
-          placeholderStyle: {
-            color: '#4169E1',
-            fontFamily: 'monospace',
-          },
         },
       })
       .mount('#card-expiry-element');
@@ -158,10 +150,6 @@ function initializeForm(token: string) {
       .createElement('card-cvc', {
         styles: {
           color: 'lightblue',
-          placeholderStyle: {
-            color: '#4169E1',
-            fontFamily: 'monospace',
-          },
         },
       })
       .mount('#card-cvc-element');
@@ -174,10 +162,6 @@ function initializeForm(token: string) {
       .createElement('card', {
         styles: {
           color: 'lightblue',
-          placeholderStyle: {
-            color: '#4169E1',
-            fontFamily: 'monospace',
-          },
         },
       })
       .mount('#card-element');

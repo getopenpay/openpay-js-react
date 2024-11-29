@@ -1,6 +1,6 @@
 {
   "name": "@getopenpay/openpay-js-react",
-  "version": "0.1.5",
+  "version": "0.1.7",
   "description": "Accept payments through OpenPay, right on your site",
   "author": "OpenPay <info@getopenpay.com> (https://getopenpay.com)",
   "private": false,
@@ -25,7 +25,9 @@
   "dependencies": {
     "use-async-effect": "^2.2.7",
     "uuid": "^10.0.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "chalk": "^5.3.0",
+    "penpal": "^6.2.2"
   },
   "peerDependencies": {
     "react": "^16.x || ^17.x || ^18.x",
