@@ -11,7 +11,7 @@ import {
 } from '../ojs-flow';
 import { findCpmMatchingType } from '../common/common-flow-utils';
 import { PaymentMethod } from '@stripe/stripe-js';
-import { createElementsOptions, createStripeElements } from '../../stripe';
+import { createStripeElements } from '../../stripe';
 import { OjsFlows } from '../all-flows';
 import { createInputsDictFromForm, FieldName } from '../../..';
 import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
@@ -49,10 +49,12 @@ export const initStripeLinkFlow: InitOjsFlow<InitOjsFlowResult> = addErrorCatche
 
     log__(`Creating stripe elements...`);
     const initialPreview = await getCheckoutPreviewAmount(anyCdeConnection, prefill.token, isSetupMode, undefined);
-    const { elements, stripe } = await createStripeElements(
-      stripeLinkCpm.metadata.stripe_pk,
-      createElementsOptions(initialPreview)
-    );
+    const { elements, stripe } = await createStripeElements(stripeLinkCpm.metadata.stripe_pk, {
+      mode: 'setup',
+      currency: initialPreview.currency,
+      setup_future_usage: 'off_session',
+      paymentMethodCreation: 'manual',
+    });
 
     log__(`Mounting payment element...`);
     const expressCheckoutElement = elements.create('expressCheckout', {

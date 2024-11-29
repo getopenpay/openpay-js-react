@@ -6,7 +6,7 @@ import {
   Stripe as StripeType,
   SetupIntentResult,
 } from '@stripe/stripe-js';
-import { Amount, CheckoutPaymentMethod, PaymentFlowStartedEventPayload } from './shared-models';
+import { CheckoutPaymentMethod, PaymentFlowStartedEventPayload } from './shared-models';
 import { z } from 'zod';
 
 export type StripeContext =
@@ -61,20 +61,6 @@ export const createStripeElements = async (
   return {
     elements: stripe.elements(elementsOptions),
     stripe,
-  };
-};
-
-// StripeElementsOptionsClientSecret
-export const createElementsOptions = (amount: Amount): StripeElementsOptionsMode => {
-  return {
-    // TODO: uncomment these later if we decide to use elements
-    // TODO ASAP: replace this
-    // clientSecret: 'seti_1QCcXVKKXdhjXGwFhd0btSQD_secret_R4m53UhbceUDHVoxq07r2zoEgqJg7wd',
-    mode: 'setup',
-    // amount: amount.amountAtom,
-    currency: amount.currency,
-    setup_future_usage: 'off_session',
-    paymentMethodCreation: 'manual',
   };
 };
 
