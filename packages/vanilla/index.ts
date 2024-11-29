@@ -52,6 +52,7 @@ export class OpenPayForm {
   formTarget: string;
   checkoutFired: boolean;
   ojsVersion: string;
+  ojsReleaseVersion: string;
   private referer: string;
   private eventHandler: OpenPayFormEventHandler;
   private formProperties: { height: string };
@@ -79,6 +80,7 @@ export class OpenPayForm {
     this.connectionManager = new ConnectionManager();
     this.eventHandler = new OpenPayFormEventHandler(this);
     this.ojsVersion = __APP_VERSION__;
+    this.ojsReleaseVersion = __RELEASE_VERSION__;
 
     window.addEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));
   }

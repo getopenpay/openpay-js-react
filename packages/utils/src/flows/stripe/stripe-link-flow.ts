@@ -9,13 +9,13 @@ import {
   RunOjsFlow,
   SimpleOjsFlowResult,
 } from '../ojs-flow';
-import { findCpmMatchingType, overrideEmptyZipCode } from '../common/common-flow-utils';
+import { findCpmMatchingType } from '../common/common-flow-utils';
 import { PaymentMethod } from '@stripe/stripe-js';
-import { createElementsOptions, createStripeElements, PaymentRequestNextActionMetadata } from '../../stripe';
+import { createElementsOptions, createStripeElements } from '../../stripe';
 import { OjsFlows } from '../all-flows';
 import { createInputsDictFromForm, FieldName } from '../../..';
 import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
-import { CheckoutRequest, StartPaymentFlowResponse } from '../../cde_models';
+import { CheckoutRequest } from '../../cde_models';
 
 const OJS_STRIPE_LINK_BTN_ID = 'ojs-stripe-link-btn';
 
@@ -66,12 +66,7 @@ export const initStripeLinkFlow: InitOjsFlow<InitOjsFlowResult> = addErrorCatche
     });
     expressCheckoutElement.mount(`#${OJS_STRIPE_LINK_BTN_ID}`);
     expressCheckoutElement.on('click', async (event) => {
-      log__('Stripe Link button clicked. Validating form...');
-      const nonCdeFormInputs = createInputsDictFromForm(context.formDiv);
-      const cleanedFormInputs = overrideEmptyZipCode(nonCdeFormInputs);
-      // TODO ASAP: maybe use stripe link billing details instead
-      // If not filled properly, this calls onValidationError callbacks and then throws an error
-      validateNonCdeFormFieldsForCC(cleanedFormInputs, flowCallbacks.onValidationError);
+      log__('Stripe Link button clicked');
       event.resolve();
     });
     expressCheckoutElement.on('confirm', async (event) => {
@@ -113,27 +108,21 @@ export const runStripeLinkFlow: RunOjsFlow<RunStripeLinkFlowParams, InitOjsFlowR
       nonCdeFormInputs,
       flowCallbacks,
       customParams,
-      initResult,
     }): Promise<SimpleOjsFlowResult> => {
       log__(`Running Stripe PR flow...`);
       const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
 
-      console.log('TODO ASAP use these', customParams, initResult);
-
-      log__(`Validating non-CDE form fields`);
-      const cleanedFormInputs = overrideEmptyZipCode(nonCdeFormInputs);
-      // TODO ASAP: maybe use stripe link billing details instead
-      // If not filled properly, this calls onValidationError callbacks and then throws an error
-      const nonCdeFormFields = validateNonCdeFormFieldsForCC(cleanedFormInputs, flowCallbacks.onValidationError);
+      log__(`Merging PM fields with form fields...`);
+      const mergedInputs = fillEmptyFormInputsWithStripePM(nonCdeFormInputs, customParams.stripePM);
+      const nonCdeFormFields = validateNonCdeFormFieldsForCC(mergedInputs, flowCallbacks.onValidationError);
 
       log__(`Starting payment flow...`);
       const startPaymentFlowResponse = await startPaymentFlow(anyCdeConnection, {
         payment_provider: checkoutPaymentMethod.provider,
         checkout_payment_method: checkoutPaymentMethod,
-        existing_cc_pm_id: 'TODO ASAP',
+        their_existing_pm_id: customParams.stripePM.id,
       });
-      const nextActionMetadata = parseStripeLinkNextActionMetadata(startPaymentFlowResponse);
-      log__('nextActionMetadata', nextActionMetadata);
+      log__('Start payment flow response', startPaymentFlowResponse);
 
       log__(`Doing checkout...`);
       const prefill = await getPrefill(anyCdeConnection);
@@ -156,10 +145,28 @@ export const runStripeLinkFlow: RunOjsFlow<RunStripeLinkFlowParams, InitOjsFlowR
     }
   );
 
-// TODO ASAP: change the return type
-const parseStripeLinkNextActionMetadata = (response: StartPaymentFlowResponse): PaymentRequestNextActionMetadata => {
-  if (response.required_user_actions.length !== 1) {
-    throw new Error(`Error occurred.\nDetails: got ${response.required_user_actions.length} required user actions`);
-  }
-  return PaymentRequestNextActionMetadata.parse(response.required_user_actions[0]);
+const fillEmptyFormInputsWithStripePM = (
+  formInputs: Record<string, unknown>,
+  stripePm: PaymentMethod
+): Record<string, unknown> => {
+  const inputs = { ...formInputs };
+
+  // Try splitting full name into first and last
+  const [payerFirstName, ...payerLastNameParts] = stripePm.billing_details.name?.trim()?.split(/\s+/) ?? []; // Note that first name can also be undefined
+  const payerLastName = payerLastNameParts.join(' ') || undefined; // Force blank strings to be undefined
+
+  // Note: we use ||, not ?? to ensure that blanks are falsish
+  inputs[FieldName.FIRST_NAME] = inputs[FieldName.FIRST_NAME] || payerFirstName || '_OP_UNKNOWN';
+  inputs[FieldName.LAST_NAME] = inputs[FieldName.LAST_NAME] || payerLastName || '_OP_UNKNOWN';
+  inputs[FieldName.EMAIL] =
+    inputs[FieldName.EMAIL] ||
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (stripePm as any)['link']?.email ||
+    stripePm.billing_details.email ||
+    'op_unfilled@getopenpay.com';
+  inputs[FieldName.ZIP_CODE] = inputs[FieldName.ZIP_CODE] || stripePm.billing_details.address?.postal_code || '00000';
+  inputs[FieldName.COUNTRY] = inputs[FieldName.COUNTRY] || stripePm.billing_details.address?.country || 'US';
+
+  log__(`Final form inputs:`, inputs);
+  return inputs;
 };

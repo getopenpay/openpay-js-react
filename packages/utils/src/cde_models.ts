@@ -236,6 +236,7 @@ export const StartPaymentFlowRequest = z.object({
   payment_provider: z.string(),
   checkout_payment_method: CheckoutPaymentMethod,
   existing_cc_pm_id: z.string().optional(),
+  their_existing_pm_id: z.string().optional(),
 });
 export type StartPaymentFlowRequest = z.infer<typeof StartPaymentFlowRequest>;
 
