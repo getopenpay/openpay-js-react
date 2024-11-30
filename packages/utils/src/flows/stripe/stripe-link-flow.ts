@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { getCheckoutPreviewAmount, getPrefill, performCheckout, startPaymentFlow } from '../../cde-client';
+import {
+  confirmPaymentFlow,
+  getCheckoutPreviewAmount,
+  getPrefill,
+  performCheckout,
+  startPaymentFlow,
+} from '../../cde-client';
 import {
   addBasicCheckoutCallbackHandlers,
   addErrorCatcherForInit,
@@ -9,7 +15,7 @@ import {
   RunOjsFlow,
   SimpleOjsFlowResult,
 } from '../ojs-flow';
-import { findCpmMatchingType } from '../common/common-flow-utils';
+import { findCpmMatchingType, parseConfirmPaymentFlowResponse } from '../common/common-flow-utils';
 import { PaymentMethod } from '@stripe/stripe-js';
 import { createStripeElements } from '../../stripe';
 import { OjsFlows } from '../all-flows';
@@ -33,6 +39,16 @@ export const StripeLinkCpm = z.object({
   }),
 });
 export type StripeLinkCpm = z.infer<typeof StripeLinkCpm>;
+
+// Checkout next_action_metadata in create_their_setup_intent
+export const StripeLinkRequiredUserActions = z
+  .array(
+    z.object({
+      our_existing_pm_id: z.string(),
+    })
+  )
+  .length(1);
+export type StripeLinkRequiredUserActions = z.infer<typeof StripeLinkRequiredUserActions>;
 
 /*
  * Initializes the Stripe link flow (put more details here)
@@ -71,6 +87,7 @@ export const initStripeLinkFlow: InitOjsFlow<InitOjsFlowResult> = addErrorCatche
       log__('Stripe Link button clicked');
       event.resolve();
     });
+    // TODO ASAP: add on click handler so oddsjam can either block or override the click
     expressCheckoutElement.on('confirm', async (event) => {
       log__('Stripe Link window confirmed', event);
       const result = await stripe.createPaymentMethod({
@@ -125,25 +142,40 @@ export const runStripeLinkFlow: RunOjsFlow<RunStripeLinkFlowParams, InitOjsFlowR
         their_existing_pm_id: customParams.stripePM.id,
       });
       log__('Start payment flow response', startPaymentFlowResponse);
+      const nextActionMetadata = StripeLinkRequiredUserActions.parse(startPaymentFlowResponse.required_user_actions);
+      // Start payment flow for stripe link creates a new OpenPay PM from the Stripe PM
+      const ourExistingPmId = nextActionMetadata[0].our_existing_pm_id;
 
-      log__(`Doing checkout...`);
       const prefill = await getPrefill(anyCdeConnection);
-      const checkoutRequest: CheckoutRequest = {
-        secure_token: prefill.token,
-        payment_input: {
-          provider_type: checkoutPaymentMethod.provider,
-        },
-        customer_email: nonCdeFormFields[FieldName.EMAIL],
-        customer_zip_code: nonCdeFormFields[FieldName.ZIP_CODE],
-        customer_country: nonCdeFormFields[FieldName.COUNTRY],
-        promotion_code: nonCdeFormFields[FieldName.PROMOTION_CODE],
-        line_items: prefill.line_items,
-        total_amount_atom: prefill.amount_total_atom,
-        cancel_at_end: false,
-        checkout_payment_method: checkoutPaymentMethod,
-      };
-      const result = await performCheckout(anyCdeConnection, checkoutRequest);
-      return { mode: 'checkout', result };
+
+      if (prefill.mode === 'setup') {
+        log__(`Doing payment setup...`);
+        const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
+          secure_token: prefill.token,
+          existing_cc_pm_id: ourExistingPmId,
+        });
+        const createdPaymentMethod = parseConfirmPaymentFlowResponse(confirmResult);
+        // TODO ASAP: check if this works
+        return { mode: 'setup', result: createdPaymentMethod };
+      } else {
+        log__(`Doing checkout...`);
+        const checkoutRequest: CheckoutRequest = {
+          secure_token: prefill.token,
+          payment_input: {
+            provider_type: checkoutPaymentMethod.provider,
+          },
+          customer_email: nonCdeFormFields[FieldName.EMAIL],
+          customer_zip_code: nonCdeFormFields[FieldName.ZIP_CODE],
+          customer_country: nonCdeFormFields[FieldName.COUNTRY],
+          promotion_code: nonCdeFormFields[FieldName.PROMOTION_CODE],
+          line_items: prefill.line_items,
+          total_amount_atom: prefill.amount_total_atom,
+          cancel_at_end: false,
+          checkout_payment_method: checkoutPaymentMethod,
+        };
+        const result = await performCheckout(anyCdeConnection, checkoutRequest);
+        return { mode: 'checkout', result };
+      }
     }
   );
 
