@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { AllFieldNames, Amount, type ElementsStyle, PaymentRequestStatus } from './shared-models';
+import { CustomInitParams } from './flows/ojs-flow';
 
 export type DynamicPreview = {
   amount: Amount | null;
@@ -40,4 +41,5 @@ export type ElementsFormProps = {
   onCheckoutError?: (message: string) => void;
   baseUrl?: string;
   enableDynamicPreviews?: boolean;
+  customInitParams?: CustomInitParams;
 };

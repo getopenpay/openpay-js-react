@@ -49,6 +49,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     onSetupPaymentMethodSuccess,
     baseUrl,
     enableDynamicPreviews,
+    customInitParams,
   } = props;
 
   const frameBaseUrl: string = baseUrl ?? FRAME_BASE_URL;
@@ -402,7 +403,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       elementsSessionId: sessionId,
       checkoutPaymentMethods,
       cdeConnections,
-      customInitParams: {},
+      customInitParams: customInitParams ?? {},
       baseUrl: new URL(frameBaseUrl).origin,
     };
     return context;

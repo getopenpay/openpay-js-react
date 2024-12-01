@@ -103,6 +103,11 @@ const Form: FC<FormProps> = (props) => {
       onSetupPaymentMethodSuccess={onSetupPaymentMethodSuccess}
       onCheckoutError={onCheckoutError}
       baseUrl={props.baseUrl ?? process.env.NEXT_PUBLIC_BASE_URL}
+      customInitParams={{
+        stripeLink: {
+          overrideLinkSubmit: async () => true,
+        },
+      }}
     >
       {({ submit, applePay, googlePay, loaded }) => (
         <FormWrapper error={validationErrors}>

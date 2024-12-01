@@ -85,9 +85,15 @@ export const initStripeLinkFlow: InitOjsFlow<InitOjsFlowResult> = addErrorCatche
     expressCheckoutElement.mount(`#${OJS_STRIPE_LINK_BTN_ID}`);
     expressCheckoutElement.on('click', async (event) => {
       log__('Stripe Link button clicked');
+      if (context.customInitParams.stripeLink?.overrideLinkSubmit) {
+        const shouldSubmit = await context.customInitParams.stripeLink.overrideLinkSubmit();
+        if (!shouldSubmit) {
+          log__('Stripe Link submit aborted by overrideLinkSubmit');
+          return;
+        }
+      }
       event.resolve();
     });
-    // TODO ASAP: add on click handler so oddsjam can either block or override the click
     expressCheckoutElement.on('confirm', async (event) => {
       log__('Stripe Link window confirmed', event);
       const result = await stripe.createPaymentMethod({
@@ -155,7 +161,6 @@ export const runStripeLinkFlow: RunOjsFlow<RunStripeLinkFlowParams, InitOjsFlowR
           existing_cc_pm_id: ourExistingPmId,
         });
         const createdPaymentMethod = parseConfirmPaymentFlowResponse(confirmResult);
-        // TODO ASAP: check if this works
         return { mode: 'setup', result: createdPaymentMethod };
       } else {
         log__(`Doing checkout...`);

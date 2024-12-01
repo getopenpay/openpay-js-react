@@ -24,6 +24,7 @@ import { ConnectionManager, createConnection } from './utils/connection';
 import { PaymentRequestProvider } from './utils/payment-request';
 import { InitStripePrFlowResult, InitStripePrFlowSuccess } from '@getopenpay/utils/src/flows/stripe/stripe-pr-flow';
 import { Loadable } from '@getopenpay/utils/src/flows/common/common-flow-utils';
+import { CustomInitParams } from '@getopenpay/utils/src/flows/ojs-flow';
 export { FieldName };
 
 export type ElementsFormProps = {
@@ -42,6 +43,7 @@ export type ElementsFormProps = {
   baseUrl?: string;
   formTarget?: string;
   onPaymentRequestLoad?: (paymentRequests: Record<PaymentRequestProvider, PaymentRequestStatus>) => void;
+  customInitParams?: CustomInitParams;
 };
 
 export type Config = ElementsFormProps & { _frameUrl?: URL };
@@ -236,7 +238,7 @@ export class OpenPayForm {
       elementsSessionId: this.cdeLoadedPayload.sessionId,
       checkoutPaymentMethods: this.cdeLoadedPayload.checkoutPaymentMethods,
       cdeConnections,
-      customInitParams: {},
+      customInitParams: this.config.customInitParams ?? {},
     };
   }
 
