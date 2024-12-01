@@ -6,6 +6,19 @@ import Observable from 'zen-observable';
 const { log__, err__ } = createOjsFlowLoggers('init-flows');
 
 /**
+ * This object should only be used for debugging purposes.
+ * If you need to use OJS initialization results for RunFlows, please pass it properly from the corresponding InitFlows.
+ */
+const getOjsInitResultsDebugObject = () => {
+  if (!('ojs_init_results' in window)) {
+    // @ts-expect-error window typing
+    window['ojs_init_results'] = {};
+  }
+  // @ts-expect-error window typing
+  return window['ojs_init_results'];
+};
+
+/**
  * Initializes all OJS flows.
  * All init flows should be added to this function.
  */
@@ -40,9 +53,11 @@ const runInitFlowAsObservable = <T extends InitOjsFlowResult>(
       });
   });
 
+  // We subscribe right away so that Observables are not lazy and are immediately executed
   observable.subscribe({
     next: (result) => {
       log__(`${flowName} flow result`, result);
+      getOjsInitResultsDebugObject()[flowName] = result;
     },
     error: (error) => {
       err__(`${flowName} flow initialization error:\n${JSON.stringify(error)}`);
