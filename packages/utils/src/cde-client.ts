@@ -60,12 +60,12 @@ export const queryCDE = async <T extends z.ZodType>(
   // Leaving these as commented out for easier debugging later
   console.log('[cde-client] Querying CDE with path and connection:', data.type, cdeConn);
   const response = await cdeConn.send(data);
+  console.log('[cde-client] Got response from CDE:', response);
 
   if (isCDEResponseError(response)) {
     throw new CdeError(response);
   }
 
-  console.log('[cde-client] Got response from CDE:', response);
   if (!checkIfConformsToSchema(response, responseSchema)) {
     const result = responseSchema.safeParse(response);
     if (result.success) throw new Error('Invalid state');
