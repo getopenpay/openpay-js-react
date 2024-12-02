@@ -62,6 +62,7 @@ export const runCommonCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
           // TODO: now we rely on choosing Airwallex vs Stripe by this header
           // handle multiple processor 3ds
 
+          log__('error.response.headers', error.response.headers);
           const shouldUseNewFlow = error.response.headers?.['op-should-use-new-flow'] === 'true';
           const startPfResult = await startPaymentFlowForCC(anyCdeConnection, commonCheckoutParams);
           log__(`├ op-should-use-new-flow: ${shouldUseNewFlow}`);

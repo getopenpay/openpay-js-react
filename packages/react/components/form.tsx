@@ -49,6 +49,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     onSetupPaymentMethodSuccess,
     baseUrl,
     enableDynamicPreviews,
+    customInitParams,
   } = props;
 
   const frameBaseUrl: string = baseUrl ?? FRAME_BASE_URL;
@@ -402,6 +403,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       elementsSessionId: sessionId,
       checkoutPaymentMethods,
       cdeConnections,
+      customInitParams: customInitParams ?? {},
       baseUrl: new URL(frameBaseUrl).origin,
     };
     return context;
@@ -428,7 +430,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     if (ojsFlowsInitialization !== null) return; // Initialize only once
     const context = generateOjsFlowContext();
     if (!context) return;
-    const initialization = initializeOjsFlows(context);
+    const initialization = initializeOjsFlows(context, ojsFlowCallbacks);
     setOjsFlowsInitialization(initialization);
     initialization.stripePR.subscribe((status) => {
       if (status.status === 'loading') {

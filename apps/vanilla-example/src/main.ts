@@ -125,6 +125,11 @@ function initializeForm(token: string) {
         googlePayButton.disabled = true;
       }
     },
+    customInitParams: {
+      stripeLink: {
+        overrideLinkSubmit: async () => true,
+      },
+    },
   });
   previousFormInstance = formInstance;
   if (separateFrames) {

@@ -43,6 +43,11 @@ export type InitOjsFlowParams = {
    * Ideally this only contains "background" context (OJS-level objects), and not flow-level objects.
    */
   context: OjsContext;
+
+  /**
+   * Lifecycle callbacks for OJS flows.
+   */
+  flowCallbacks: OjsFlowCallbacks;
 };
 
 export type InitOjsFlowResult = {
@@ -106,9 +111,33 @@ export type OjsContext = {
   cdeConnections: Map<ElementType, CdeConnection>;
 
   /**
+   * Custom init params for init flows.
+   */
+  customInitParams: CustomInitParams;
+
+  /**
    * The base URL of the CDE iframe.
    */
   baseUrl: string;
+};
+
+export type CustomInitParams = {
+  stripeLink?: {
+    /**
+     * The height of the Stripe Link button. By default, the height of the buttons are 44px.
+     * You can override this to specify a custom button height in the range of 40px-55px.
+     *
+     * See more: https://docs.stripe.com/js/elements_object/create_express_checkout_element#express_checkout_element_create-options-buttonHeight
+     */
+    buttonHeight?: number;
+
+    /**
+     * If this function returns false, the stripe link submit process is aborted.
+     * This can be used for additional pre-submit checks (e.g. additional form validation).
+     * Note that this function must complete within 1 second, or the submission will fail.
+     */
+    overrideLinkSubmit?: () => Promise<boolean>;
+  };
 };
 
 /**
