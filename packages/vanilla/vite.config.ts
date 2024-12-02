@@ -6,7 +6,8 @@ import dts from 'vite-plugin-dts';
 export default defineConfig(({ mode }) => {
   return {
     esbuild: {
-      drop: mode === 'development' ? [] : ['console', 'debugger'],
+      // TODO: Uncomment this when we're stable
+      // drop: mode === 'development' ? [] : ['console', 'debugger'],
       sourcemap: 'inline',
     },
     optimizeDeps: {
