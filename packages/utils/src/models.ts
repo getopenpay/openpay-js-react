@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { AllFieldNames, Amount, type ElementsStyle, PaymentRequestStatus } from './shared-models';
 import { CustomInitParams } from './flows/ojs-flow';
+import { StripeLinkController } from '../dist';
 
 export type DynamicPreview = {
   amount: Amount | null;
@@ -16,11 +17,7 @@ export type ElementsFormChildrenProps = {
   submit: () => void;
   applePay: PaymentRequestStatus;
   googlePay: PaymentRequestStatus;
-  // stripeLink: {
-  //   button: FC<StripeLinkButtonProps>;
-  //   authElement: FC<LinkAuthElementProps>;
-  //   pr: PaymentRequestStatus;
-  // };
+  stripeLink: StripeLinkController | null;
   loaded: boolean;
   preview: DynamicPreview;
 };

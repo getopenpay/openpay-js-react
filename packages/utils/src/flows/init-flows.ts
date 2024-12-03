@@ -2,6 +2,7 @@ import { OjsFlows } from './all-flows';
 import { Loadable } from './common/common-flow-utils';
 import { createOjsFlowLoggers, InitOjsFlowParams, InitOjsFlowResult, OjsContext, OjsFlowCallbacks } from './ojs-flow';
 import Observable from 'zen-observable';
+import { StripeLinkController } from './stripe/stripe-link-flow';
 
 const { log__, err__ } = createOjsFlowLoggers('init-flows');
 
@@ -71,3 +72,4 @@ const runInitFlowAsObservable = <T extends InitOjsFlowResult>(
 };
 
 export type OjsFlowsInitialization = ReturnType<typeof initializeOjsFlows>;
+export type { StripeLinkController };

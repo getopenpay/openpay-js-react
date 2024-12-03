@@ -16,6 +16,7 @@ import {
   PaymentRequestStatus,
   PR_ERROR,
   PR_LOADING,
+  StripeLinkController,
 } from '@getopenpay/utils';
 import { ElementsFormChildrenProps, ElementsFormProps } from '@getopenpay/utils';
 import { CheckoutPaymentMethod, EventType, SubmitEventPayload } from '@getopenpay/utils';
@@ -80,6 +81,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     apple_pay: PR_LOADING,
     google_pay: PR_LOADING,
   });
+  const [stripeLinkCtrl, setStripeLinkCtrl] = useState<StripeLinkController | null>(null);
 
   useEffect(() => {
     const ojs_version = { version: __APP_VERSION__, release_version: __RELEASE_VERSION__ };
@@ -462,6 +464,11 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
           startFlow: async (userParams) => (canGooglePay ? submitPR('google_pay', initResult, userParams) : undefined),
         });
       }
+      initialization.stripeLink.subscribe((init) => {
+        if (init.status === 'loaded' && init.result.isAvailable) {
+          setStripeLinkCtrl(init.result.controller);
+        }
+      });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formRef.current, sessionId, checkoutPaymentMethods, numCdeConns === 0]);
@@ -617,6 +624,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     // },
     loaded,
     preview: dynamicPreview,
+    stripeLink: stripeLinkCtrl,
   };
 
   return (

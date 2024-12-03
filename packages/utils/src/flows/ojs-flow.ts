@@ -137,6 +137,12 @@ export type CustomInitParams = {
      * Note that this function must complete within 1 second, or the submission will fail.
      */
     overrideLinkSubmit?: () => Promise<boolean>;
+
+    /**
+     * By default, the stripe link button is mounted on OJS initialization.
+     * If this value is true, the stripe link is not mounted on init, and should instead be manually mounted.
+     */
+    doNotMountOnInit?: boolean;
   };
 };
 
