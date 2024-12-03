@@ -24,6 +24,7 @@ const getOjsInitResultsDebugObject = () => {
  */
 export const initializeOjsFlows = (context: OjsContext, flowCallbacks: OjsFlowCallbacks) => {
   const initParams: InitOjsFlowParams = { context, flowCallbacks };
+  console.log('[OJS] initializing OJS flows...');
   return {
     // Stripe PR
     stripePR: runInitFlowAsObservable('stripePR', OjsFlows.stripePR.init(initParams)),

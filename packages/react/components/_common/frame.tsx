@@ -44,6 +44,7 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
 
   useEffect(() => setHasLoaded(true), []);
   useEffect(() => {
+    console.log('[OJS] element frame register attempt', !!iframeRef.current, !!hasLoaded);
     if (!iframeRef.current || !hasLoaded) return;
     registerIframe(iframeRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps

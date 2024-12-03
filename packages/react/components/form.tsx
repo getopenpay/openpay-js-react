@@ -74,7 +74,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
   const formId = useMemo(() => `opjs-form-${uuidv4()}`, []);
   const formRef = useRef<HTMLDivElement | null>(null);
-  const { cdeConns, anyCdeConn, connectToCdeIframe } = useCdeConnection();
+  const { cdeConns, anyCdeConn, connectToCdeIframe, numCdeConns } = useCdeConnection();
   const [ojsFlowsInitialization, setOjsFlowsInitialization] = useState<OjsFlowsInitialization | null>(null);
   const [paymentRequests, setPaymentRequests] = useMap<Record<'apple_pay' | 'google_pay', PaymentRequestStatus>>({
     apple_pay: PR_LOADING,
@@ -383,6 +383,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
   }, [onCheckoutError, onCheckoutStarted, onCheckoutSuccess, onSetupPaymentMethodSuccess, onValidationError]);
 
   const generateOjsFlowContext = (): OjsContext | null => {
+    console.log(formRef.current, sessionId, checkoutPaymentMethods);
     if (!formRef.current || !sessionId || !checkoutPaymentMethods) return null;
 
     // Convert cdeConns (Record) to a Map
@@ -395,6 +396,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     });
 
     if (cdeConnections.size === 0) {
+      console.log('[OJS] no CDE connections!');
       return null;
     }
 
@@ -428,11 +430,17 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
 
   useEffect(() => {
     if (ojsFlowsInitialization !== null) return; // Initialize only once
+    console.log('[OJS] numCdeConns', numCdeConns, cdeConns);
+    if (numCdeConns === 0) return;
+    console.log('[OJS] Initializing');
     const context = generateOjsFlowContext();
     if (!context) return;
+    console.log('[OJS] Starting init');
     const initialization = initializeOjsFlows(context, ojsFlowCallbacks);
     setOjsFlowsInitialization(initialization);
+    console.log('[OJS] Subscribe');
     initialization.stripePR.subscribe((status) => {
+      console.log('[OJS] setPaymentRequests', status);
       if (status.status === 'loading') {
         setPaymentRequests.set('apple_pay', PR_LOADING);
         setPaymentRequests.set('google_pay', PR_LOADING);
@@ -456,7 +464,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formRef.current, sessionId, checkoutPaymentMethods, Object.keys(cdeConns).length]);
+  }, [formRef.current, sessionId, checkoutPaymentMethods, numCdeConns === 0]);
 
   const submitCard = () => {
     const context = generateOjsFlowContext();
@@ -510,10 +518,11 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     async (iframe: HTMLIFrameElement) => {
       // If the iframe is already registered, do nothing
       const existingIframe = iframes.find((existingIframe) => existingIframe.contentWindow === iframe.contentWindow);
+      console.log('[OJS] Calling register iframe. Existing?', existingIframe);
       if (existingIframe) return;
       setIframes((prevIframes) => [...prevIframes, iframe]);
 
-      console.log('[form] Registering iframe:', iframe);
+      console.log('[OJS][form] Registering iframe:', iframe);
       const elementType = getElementTypeFromIframeId(iframe.id);
       await connectToCdeIframe(elementType, iframe);
     },
