@@ -16,6 +16,7 @@ import {
   PaymentRequestStatus,
   PR_ERROR,
   PR_LOADING,
+  StripeLinkController,
 } from '@getopenpay/utils';
 import { ElementsFormChildrenProps, ElementsFormProps } from '@getopenpay/utils';
 import { CheckoutPaymentMethod, EventType, SubmitEventPayload } from '@getopenpay/utils';
@@ -80,6 +81,7 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     apple_pay: PR_LOADING,
     google_pay: PR_LOADING,
   });
+  const [stripeLinkCtrl, setStripeLinkCtrl] = useState<StripeLinkController | null>(null);
 
   useEffect(() => {
     const ojs_version = { version: __APP_VERSION__, release_version: __RELEASE_VERSION__ };
@@ -462,6 +464,11 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
           startFlow: async (userParams) => (canGooglePay ? submitPR('google_pay', initResult, userParams) : undefined),
         });
       }
+      initialization.stripeLink.subscribe((init) => {
+        if (init.status === 'loaded' && init.result.isAvailable) {
+          setStripeLinkCtrl(init.result.controller);
+        }
+      });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formRef.current, sessionId, checkoutPaymentMethods, numCdeConns === 0]);
@@ -530,49 +537,6 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     [iframes]
   );
 
-  // const onUserCompletePaymentRequestUI = async (
-  //   stripePm: PaymentRequestPaymentMethodEvent | null,
-  //   checkoutPaymentMethod: CheckoutPaymentMethod
-  // ): Promise<void> => {
-  //   if (!formRef.current || !onValidationError || !sessionId || !checkoutPaymentMethods) return;
-  //   // Try all iframe targets, note that this loop will break as soon as one succeeds
-  //   for (const [elementId, target] of Object.entries(eventTargets)) {
-  //     if (!target) continue;
-  //     const paymentFlowMetadata = stripePm
-  //       ? {
-  //           stripePmId: stripePm.paymentMethod.id,
-  //           checkoutPaymentMethod,
-  //         }
-  //       : {
-  //           checkoutPaymentMethod,
-  //         };
-  //     const startPaymentFlowEvent = constructSubmitEventPayload(
-  //       EventType.enum.START_PAYMENT_FLOW,
-  //       sessionId,
-  //       formRef.current,
-  //       onValidationError,
-  //       checkoutPaymentMethod,
-  //       false,
-  //       paymentFlowMetadata
-  //     );
-  //     if (!startPaymentFlowEvent) continue;
-  //     if (stripePm) {
-  //       setStripePm(stripePm);
-  //     }
-  //     setCheckoutFired(true);
-  //     setExtraData(startPaymentFlowEvent);
-  //     emitEvent(target, formId, elementId, startPaymentFlowEvent, frameBaseUrl);
-  //     // If first one succeeds, break
-  //     break;
-  //   }
-  // };
-
-  // const onPaymentRequestError = (errMsg: string): void => {
-  //   console.error('[form] Error from payment request:', errMsg);
-  //   setCheckoutFired(false);
-  //   if (onCheckoutError) onCheckoutError(errMsg);
-  // };
-
   const value: ElementsContextValue = {
     formId,
     formHeight,
@@ -582,41 +546,13 @@ const ElementsForm: FC<ElementsFormProps> = (props) => {
     baseUrl: frameBaseUrl,
   };
 
-  // const paymentRequests = usePaymentRequests(
-  //   anyCdeConn,
-  //   checkoutSecureToken,
-  //   checkoutPaymentMethods,
-  //   formRef.current,
-  //   onUserCompletePaymentRequestUI,
-  //   onValidationError,
-  //   onPaymentRequestError,
-  //   dynamicPreview
-  // );
-
-  // TODO: uncomment if we need stripe elements later.
-  // Better if we can make stripe link work in prod without elements.
-  // const stripeElements = useStripeElements(
-  //   cdeConn,
-  //   checkoutSecureToken,
-  //   checkoutPaymentMethods,
-  //   formRef.current,
-  //   (cpm: CheckoutPaymentMethod) => onUserCompletePaymentRequestUI(null, cpm),
-  //   dynamicPreview
-  // );
-
   const childrenProps: ElementsFormChildrenProps = {
     submit: submitCard,
     applePay: paymentRequests.apple_pay,
     googlePay: paymentRequests.google_pay,
-    // stripeLink: {
-    // TODO: uncomment if we need stripe elements later.
-    // Better if we can make stripe link work in prod without elements.
-    // button: stripeElements.isReady ? StripeLinkButton : NoOpElement,
-    // authElement: stripeElements.isReady ? StripeLinkAuthElement : NoOpElement,
-    // pr: paymentRequests.stripe_link,
-    // },
     loaded,
     preview: dynamicPreview,
+    stripeLink: stripeLinkCtrl,
   };
 
   return (

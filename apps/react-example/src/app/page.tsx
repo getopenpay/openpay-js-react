@@ -28,6 +28,7 @@ const Form: FC<FormProps> = (props) => {
   } | null>(null);
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
+  const [stripeLinkShown, setStripeLinkShown] = useState<boolean>(true);
 
   const prParams = {
     overridePaymentRequest: {
@@ -106,10 +107,11 @@ const Form: FC<FormProps> = (props) => {
       customInitParams={{
         stripeLink: {
           overrideLinkSubmit: async () => true,
+          doNotMountOnInit: false,
         },
       }}
     >
-      {({ submit, applePay, googlePay, loaded }) => (
+      {({ submit, applePay, googlePay, loaded, stripeLink }) => (
         <FormWrapper error={validationErrors}>
           {loading && (
             <div data-testid="loading" className="flex items-center">
@@ -186,8 +188,35 @@ const Form: FC<FormProps> = (props) => {
           >
             {googlePay.isLoading ? 'Loading' : 'Google Pay'}
           </button>
-
-          <div id="ojs-stripe-link-btn" className="stripe-link-button mt-2"></div>
+          {
+            stripeLinkShown ?
+              <div id="ojs-stripe-link-btn" className="stripe-link-button mt-2">Loading...</div> 
+            : 
+              <></>
+          }
+          <div
+            className="grid grid-cols-2 mt-8 bg-gray-100 p-4 rounded-lg drop-shadow"
+          >
+            {
+              stripeLink &&
+                <button
+                  onClick={async () => {
+                    if (stripeLinkShown) {
+                      setStripeLinkShown(false);
+                      stripeLink.dismountButton();
+                    }
+                    else {
+                      setStripeLinkShown(true);
+                      await stripeLink.waitForButtonToMount();
+                      stripeLink.mountButton()
+                    }
+                  }}
+                  className='text-white text-sm px-2 py-1 w-full rounded-md bg-gray-600 hover:bg-gray-700 active:bg-gray-800'
+                >
+                  {stripeLinkShown ? 'Hide' : 'Show'} stripe link
+                </button>
+            }
+          </div>
         </FormWrapper>
       )}
     </ElementsForm>

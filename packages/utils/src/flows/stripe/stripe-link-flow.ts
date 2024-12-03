@@ -31,6 +31,21 @@ type RunStripeLinkFlowParams = {
   stripePM: PaymentMethod;
 };
 
+export type StripeLinkController = {
+  mountButton: () => void;
+  dismountButton: () => void;
+  waitForButtonToMount: () => Promise<HTMLElement>;
+};
+
+export type InitStripeLinkFlowResult =
+  | {
+      isAvailable: true;
+      controller: StripeLinkController;
+    }
+  | {
+      isAvailable: false;
+    };
+
 export const StripeLinkCpm = z.object({
   provider: z.literal('stripe_link'),
   processor_name: z.literal('stripe'),
@@ -53,8 +68,10 @@ export type StripeLinkRequiredUserActions = z.infer<typeof StripeLinkRequiredUse
 /*
  * Initializes the Stripe link flow (put more details here)
  */
-export const initStripeLinkFlow: InitOjsFlow<InitOjsFlowResult> = addErrorCatcherForInit(
-  async ({ context, flowCallbacks }): Promise<InitOjsFlowResult> => {
+export const initStripeLinkFlow: InitOjsFlow<InitStripeLinkFlowResult> = addErrorCatcherForInit(
+  async ({ context, flowCallbacks }): Promise<InitStripeLinkFlowResult> => {
+    const initParams = context.customInitParams.stripeLink;
+
     log__(`Checking if there are any CPMs for Stripe PR...`);
     const stripeLinkCpm = findCpmMatchingType(context.checkoutPaymentMethods, StripeLinkCpm);
 
@@ -72,9 +89,9 @@ export const initStripeLinkFlow: InitOjsFlow<InitOjsFlowResult> = addErrorCatche
       paymentMethodCreation: 'manual',
     });
 
-    log__(`Mounting payment element...`);
+    log__(`Creating express checkout...`);
     const expressCheckoutElement = elements.create('expressCheckout', {
-      buttonHeight: context.customInitParams.stripeLink?.buttonHeight,
+      buttonHeight: initParams?.buttonHeight,
       paymentMethods: {
         amazonPay: 'never',
         applePay: 'never',
@@ -82,11 +99,26 @@ export const initStripeLinkFlow: InitOjsFlow<InitOjsFlowResult> = addErrorCatche
         paypal: 'never',
       },
     });
-    expressCheckoutElement.mount(`#${OJS_STRIPE_LINK_BTN_ID}`);
+
+    // Mounting
+    const mountButton = () => {
+      expressCheckoutElement.mount(`#${OJS_STRIPE_LINK_BTN_ID}`);
+    };
+    const dismountButton = () => {
+      expressCheckoutElement.unmount();
+    };
+    if (initParams?.doNotMountOnInit) {
+      log__(`NOT mounting stripe link button (doNotMountOnInit is true)`);
+    } else {
+      log__(`Mounting stripe link button...`);
+      mountButton();
+    }
+
+    // Add listeners
     expressCheckoutElement.on('click', async (event) => {
       log__('Stripe Link button clicked');
-      if (context.customInitParams.stripeLink?.overrideLinkSubmit) {
-        const shouldSubmit = await context.customInitParams.stripeLink.overrideLinkSubmit();
+      if (initParams?.overrideLinkSubmit) {
+        const shouldSubmit = await initParams.overrideLinkSubmit();
         if (!shouldSubmit) {
           log__('Stripe Link submit aborted by overrideLinkSubmit');
           return;
@@ -118,7 +150,14 @@ export const initStripeLinkFlow: InitOjsFlow<InitOjsFlowResult> = addErrorCatche
       }
     });
 
-    return { isAvailable: true };
+    return {
+      isAvailable: true,
+      controller: {
+        mountButton,
+        dismountButton,
+        waitForButtonToMount: async () => await getElementByIdAsync(OJS_STRIPE_LINK_BTN_ID),
+      },
+    };
   }
 );
 
@@ -209,3 +248,16 @@ const fillEmptyFormInputsWithStripePM = (
   log__(`Final form inputs:`, inputs);
   return inputs;
 };
+
+const getElementByIdAsync = (id: string) =>
+  new Promise<HTMLElement>((resolve) => {
+    const getElement = () => {
+      const element = document.getElementById(id);
+      if (element) {
+        resolve(element);
+      } else {
+        requestAnimationFrame(getElement);
+      }
+    };
+    getElement();
+  });
