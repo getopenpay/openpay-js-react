@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { AllFieldNames, Amount, type ElementsStyle, PaymentRequestStatus } from './shared-models';
 import { CustomInitParams } from './flows/ojs-flow';
-import { StripeLinkController } from '../dist';
+import { StripeLinkController } from './flows/stripe/stripe-link-flow';
 
 export type DynamicPreview = {
   amount: Amount | null;
