@@ -39,5 +39,6 @@ export async function createCdeConnection(iframe: HTMLIFrameElement): Promise<Cd
   if (!isResultValid(connectionObj, isValidObject)) {
     throw new Error(`Got invalid CDE connection object`);
   }
+  console.log('[OJS] connected to iframe', iframe.id);
   return connectionObj;
 }

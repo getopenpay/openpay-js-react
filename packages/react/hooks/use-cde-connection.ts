@@ -1,11 +1,14 @@
 import { ElementType, CdeConnection, createCdeConnection } from '@getopenpay/utils';
 import useMap from './use-map';
+import { useState } from 'react';
 
 export const useCdeConnection = (): {
   cdeConns: Record<ElementType, CdeConnection | undefined>;
   anyCdeConn: CdeConnection | null;
   connectToCdeIframe: (elementType: ElementType, iframe: HTMLIFrameElement) => Promise<void>;
+  numCdeConns: number;
 } => {
+  const [numCdeConns, setNumCdeConns] = useState<number>(0);
   const [cdeConns, cdeConnsSetter] = useMap<Record<ElementType, CdeConnection | undefined>>({
     card: undefined,
     'card-cvc': undefined,
@@ -19,7 +22,9 @@ export const useCdeConnection = (): {
     anyCdeConn,
     connectToCdeIframe: async (elementType: ElementType, iframe: HTMLIFrameElement) => {
       cdeConnsSetter.set(elementType, await createCdeConnection(iframe));
+      setNumCdeConns(Object.values(cdeConns).length);
     },
+    numCdeConns,
   };
 };
 
