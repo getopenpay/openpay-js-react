@@ -1,18 +1,19 @@
+import { ElementTypeEnum } from '@getopenpay/utils';
 import { createContext } from 'react';
 
 export type ElementsContextValue = {
   formId: string;
   formHeight: string;
-  referer?: string;
+  referrer?: string;
   checkoutSecureToken?: string;
-  registerIframe: (iframe: HTMLIFrameElement) => void;
+  registerIframe: (type: ElementTypeEnum, iframe: HTMLIFrameElement) => void;
   baseUrl: string;
 };
 
 export const ElementsContext = createContext<ElementsContextValue>({
   formId: '',
   formHeight: '',
-  referer: undefined,
+  referrer: undefined,
   checkoutSecureToken: undefined,
   registerIframe: () => {},
   baseUrl: '',
