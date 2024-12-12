@@ -9,7 +9,7 @@ import { usePaymentRequests } from '../hooks/use-payment-requests';
 const FORM_ID = 'op_ojs_form';
 
 const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
-  const [opForm, setOpForm] = useState<OpenPayForm | null>(null);
+  const [opForm, setOpForm] = useState<OpenPayForm | null>();
   const [elementsContextValue, setElementsContextValue] = useState<ElementsContextValue | null>(null);
   const { paymentRequests, overridenOnPaymentRequestLoad } = usePaymentRequests(props.onPaymentRequestLoad);
 
@@ -20,16 +20,19 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
 
   useEffect(() => {
     if (opForm) return;
+    const form =
+      OpenPayForm.getInstance() ??
+      new OpenPayForm({
+        checkoutSecureToken: props.checkoutSecureToken,
+        formTarget: `#${FORM_ID}`,
+        baseUrl: props.baseUrl,
+        customInitParams: props.customInitParams,
+        ...formCallbacks,
+      });
     // TODO: make this loading process more explicit?
-    const newForm = new OpenPayForm({
-      checkoutSecureToken: props.checkoutSecureToken,
-      formTarget: `#${FORM_ID}`,
-      baseUrl: props.baseUrl,
-      customInitParams: props.customInitParams,
-      ...formCallbacks,
-    });
-    setOpForm(newForm);
-    setElementsContextValue(getElementsContextValue(newForm));
+
+    setOpForm(form);
+    setElementsContextValue(getElementsContextValue(form));
     // Currently we initialize it once and only once
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -76,7 +79,7 @@ const getElementsContextValue = (opForm: OpenPayForm): ElementsContextValue => {
     formHeight: opForm.formProperties.height,
     referrer: opForm.referrer,
     checkoutSecureToken: opForm.checkoutSecureToken,
-    registerIframe: opForm.registerIframe,
+    registerIframe: opForm.registerIframe.bind(opForm),
     baseUrl: opForm.baseUrl,
   };
 };
