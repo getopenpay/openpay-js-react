@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
     esbuild: {
       // TODO: Uncomment this when we're stable
       // drop: mode === 'development' ? [] : ['console', 'debugger'],
-      sourcemap: 'inline',
+      sourcemap: mode === 'build-umd' ? false : 'inline',
     },
     optimizeDeps: {
       include: ['penpal', 'uuid', 'zod'],
@@ -17,12 +17,13 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: mode === 'production',
       copyPublicDir: false,
       lib: {
+        formats: mode === 'build-umd' ? ['umd'] : ['es'],
         name: 'OpenPay',
         entry: resolve(__dirname, './index.ts'),
         fileName: (format) => `index.${format}.js`,
       },
       rollupOptions: {
-        external: ['react', 'react-dom', 'zod', 'penpal', 'uuid', 'chalk'], // React is included in 'utils'
+        external: ['react', 'react-dom', ...(mode === 'build-umd' ? [] : ['zod', 'penpal', 'uuid', 'chalk'])],
         output: {
           assetFileNames: 'assets/[name][extname]',
         },
