@@ -13,13 +13,10 @@ import {
   constructSubmitEventPayload,
   EventType,
   getCheckoutPreviewAmount,
+  PaymentRequestProvider,
 } from '@getopenpay/utils';
 import { Config } from '../index';
 import { PaymentRequestPaymentMethodEvent, PaymentRequest } from '@stripe/stripe-js';
-import { z } from 'zod';
-
-export const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay']);
-export type PaymentRequestProvider = z.infer<typeof PaymentRequestProvider>;
 
 const OUR_PROVIDER_TO_STRIPES: Record<PaymentRequestProvider, string> = {
   apple_pay: 'applePay',

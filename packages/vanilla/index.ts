@@ -1,5 +1,4 @@
 import {
-  AllFieldNames,
   convertStylesToQueryString,
   createInputsDictFromForm,
   ElementProps,
@@ -8,7 +7,6 @@ import {
   findCheckoutPaymentMethodStrict,
   OjsContext,
   OjsFlows,
-  PaymentRequestStatus,
   makeCallbackSafe,
   initializeOjsFlows,
   OjsFlowsInitialization,
@@ -18,35 +16,27 @@ import {
   LoadedEventPayload,
   ElementTypeEnumValue,
   FRAME_BASE_URL,
+  ElementTypeEnum,
+  PaymentRequestProvider,
 } from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
 import { ConnectionManager, createConnection } from './utils/connection';
-import { PaymentRequestProvider } from './utils/payment-request';
 import { InitStripePrFlowResult, InitStripePrFlowSuccess } from '@getopenpay/utils/src/flows/stripe/stripe-pr-flow';
 import { Loadable } from '@getopenpay/utils/src/flows/common/common-flow-utils';
 import { CustomInitParams } from '@getopenpay/utils/src/flows/ojs-flow';
+import { FormCallbacks, parseFormCallbacks } from '@getopenpay/utils/src/form-callbacks';
 export { FieldName };
 
 export type ElementsFormProps = {
   className?: string;
   checkoutSecureToken: string;
-  onFocus?: (elementId: string, field: AllFieldNames) => void;
-  onBlur?: (elementId: string, field: AllFieldNames) => void;
-  onChange?: (elementId: string, field: AllFieldNames, errors?: string[]) => void;
-  onLoad?: (totalAmountAtoms?: number, currency?: string) => void;
-  onLoadError?: (message: string) => void;
-  onValidationError?: (field: AllFieldNames, errors: string[], elementId?: string) => void;
-  onCheckoutStarted?: () => void;
-  onCheckoutSuccess?: (invoiceUrls: string[], subscriptionIds: string[], customerId: string) => void;
-  onSetupPaymentMethodSuccess?: (paymentMethodId: string) => void;
-  onCheckoutError?: (message: string) => void;
   baseUrl?: string;
   formTarget?: string;
-  onPaymentRequestLoad?: (paymentRequests: Record<PaymentRequestProvider, PaymentRequestStatus>) => void;
   customInitParams?: CustomInitParams;
 };
 
-export type Config = ElementsFormProps & { _frameUrl?: URL };
+export type Config = ElementsFormProps & { _frameUrl?: URL } & FormCallbacks;
+type RegisteredElement = { type: ElementType; node: HTMLIFrameElement; mount: (selector: string) => void };
 
 export class OpenPayForm {
   config: Config;
@@ -55,25 +45,26 @@ export class OpenPayForm {
   checkoutFired: boolean;
   ojsVersion: string;
   ojsReleaseVersion: string;
-  private referer: string;
+  formProperties: { height: string };
+  referrer: string;
+  readonly baseUrl: string;
+  readonly formCallbacks: FormCallbacks;
   private eventHandler: OpenPayFormEventHandler;
-  private formProperties: { height: string };
   private connectionManager: ConnectionManager;
   private ojsFlowsInitialization: OjsFlowsInitialization | null;
   private cdeLoadedPayload: LoadedEventPayload | null;
-  private elements: Record<
-    ElementType,
-    { type: ElementType; node: HTMLIFrameElement; mount: (selector: string) => void }
-  > | null;
+  private registeredElements: Record<ElementType, RegisteredElement | undefined> | null;
   // For easier debugging
   static ojsFlows: typeof OjsFlows = OjsFlows;
 
   constructor(config: Config) {
     OpenPayForm.assignAsSingleton(this);
-    this.config = { ...config, baseUrl: config.baseUrl ?? 'https://cde.getopenpay.com' };
-    this.elements = null;
+    this.baseUrl = config.baseUrl ?? 'https://cde.getopenpay.com';
+    this.config = { ...config, baseUrl: this.baseUrl };
+    this.formCallbacks = parseFormCallbacks(config);
+    this.registeredElements = null;
     this.formId = `opjs-form-${window.crypto.randomUUID()}`;
-    this.referer = window.location.origin;
+    this.referrer = window.location.origin;
     this.formTarget = config.formTarget ?? 'body';
     this.formProperties = { height: '1px' };
     this.cdeLoadedPayload = null;
@@ -91,7 +82,7 @@ export class OpenPayForm {
    * Assign the instance to the window as a singleton
    * @param form - The OpenPayForm instance
    */
-  static assignAsSingleton(form: OpenPayForm) {
+  private static assignAsSingleton(form: OpenPayForm) {
     if (OpenPayForm.getInstance()) {
       throw new Error('OpenPay instance already exists. Only one instance is allowed.');
     }
@@ -108,14 +99,19 @@ export class OpenPayForm {
     return window['ojs'] ?? null;
   }
 
+  public get checkoutSecureToken() {
+    return this.config.checkoutSecureToken;
+  }
+
   public getConnectionManager() {
     return this.connectionManager;
   }
 
   public setFormHeight(height: string) {
     this.formProperties.height = height;
-    if (this.elements) {
-      Object.values(this.elements).forEach((element) => {
+    if (this.registeredElements) {
+      Object.values(this.registeredElements).forEach((element) => {
+        if (!element) return;
         element.node.style.height = height;
       });
     }
@@ -145,14 +141,14 @@ export class OpenPayForm {
 
   onStripePRStatusChange = (initStatus: Loadable<InitStripePrFlowResult>) => {
     if (initStatus.status === 'loading') {
-      this.config.onPaymentRequestLoad?.({ apple_pay: PR_LOADING, google_pay: PR_LOADING });
+      this.formCallbacks.onPaymentRequestLoad?.({ apple_pay: PR_LOADING, google_pay: PR_LOADING });
     } else if (initStatus.status === 'error') {
-      this.config.onPaymentRequestLoad?.({ apple_pay: PR_ERROR, google_pay: PR_ERROR });
+      this.formCallbacks.onPaymentRequestLoad?.({ apple_pay: PR_ERROR, google_pay: PR_ERROR });
     } else if (initStatus.status === 'loaded') {
       const initResult = initStatus.result;
       const canApplePay = initResult.isAvailable && initResult.availableProviders.applePay;
       const canGooglePay = initResult.isAvailable && initResult.availableProviders.googlePay;
-      this.config.onPaymentRequestLoad?.({
+      this.formCallbacks.onPaymentRequestLoad?.({
         apple_pay: {
           isLoading: false,
           isAvailable: canApplePay,
@@ -184,25 +180,32 @@ export class OpenPayForm {
     frame.style.border = 'none';
     frame.style.width = '100%';
 
-    const element = {
+    const registeredElement = this.registerIframe(type, frame);
+    return registeredElement;
+  }
+
+  registerIframe(type: ElementTypeEnum, frame: HTMLIFrameElement): RegisteredElement {
+    const element: RegisteredElement = {
       type,
       node: frame,
       mount: (selector: string) => document.querySelector(selector)?.appendChild(frame),
     };
-
-    this.connectToElement(element);
-    if (this.elements) {
-      this.elements[type] = element;
-    } else {
-      this.elements = { [type]: element } as OpenPayForm['elements'];
+    this.connectToElement({ type: element.type, node: element.node });
+    if (!this.registeredElements) {
+      this.registeredElements = {
+        [ElementTypeEnum.CARD]: undefined,
+        [ElementTypeEnum.CARD_NUMBER]: undefined,
+        [ElementTypeEnum.CARD_EXPIRY]: undefined,
+        [ElementTypeEnum.CARD_CVC]: undefined,
+      };
     }
-
+    this.registeredElements[type] = element;
     return element;
   }
 
   private buildQueryString(options: ElementProps): URLSearchParams {
     const queryString = new URLSearchParams();
-    queryString.append('referer', this.referer);
+    queryString.append('referer', this.referrer);
     queryString.append('formId', this.formId);
     if (options.styles) {
       queryString.append('styles', convertStylesToQueryString(options.styles));
@@ -245,18 +248,18 @@ export class OpenPayForm {
   private createOjsFlowCallbacks() {
     const noOp = () => {};
     return {
-      onCheckoutError: makeCallbackSafe('onCheckoutError', this.config.onCheckoutError ?? noOp),
-      onCheckoutStarted: makeCallbackSafe('onCheckoutStarted', this.config.onCheckoutStarted ?? noOp),
-      onCheckoutSuccess: makeCallbackSafe('onCheckoutSuccess', this.config.onCheckoutSuccess ?? noOp),
+      onCheckoutError: makeCallbackSafe('onCheckoutError', this.formCallbacks.onCheckoutError ?? noOp),
+      onCheckoutStarted: makeCallbackSafe('onCheckoutStarted', this.formCallbacks.onCheckoutStarted ?? noOp),
+      onCheckoutSuccess: makeCallbackSafe('onCheckoutSuccess', this.formCallbacks.onCheckoutSuccess ?? noOp),
       onSetupPaymentMethodSuccess: makeCallbackSafe(
         'onSetupPaymentMethodSuccess',
-        this.config.onSetupPaymentMethodSuccess ?? noOp
+        this.formCallbacks.onSetupPaymentMethodSuccess ?? noOp
       ),
-      onValidationError: makeCallbackSafe('onValidationError', this.config.onValidationError ?? noOp),
+      onValidationError: makeCallbackSafe('onValidationError', this.formCallbacks.onValidationError ?? noOp),
     };
   }
 
-  submit() {
+  submitCard() {
     const context = this.createOjsFlowContext();
     OjsFlows.commonCC.run({
       context,
@@ -267,6 +270,9 @@ export class OpenPayForm {
       initResult: undefined, // This flow requires no initialization
     });
   }
+
+  // Alias for submitCard
+  submit = this.submitCard;
 
   submitPaymentRequest = (
     provider: PaymentRequestProvider,
@@ -287,11 +293,12 @@ export class OpenPayForm {
   onPaymentRequestError(errMsg: string): void {
     console.error('[form] Error from payment request:', errMsg);
     this.checkoutFired = false;
-    if (this.config.onCheckoutError) this.config.onCheckoutError(errMsg);
+    if (this.formCallbacks.onCheckoutError) this.formCallbacks.onCheckoutError(errMsg);
   }
 
   destroy() {
-    for (const element of Object.values(this.elements ?? {})) {
+    for (const element of Object.values(this.registeredElements ?? {})) {
+      if (!element) continue;
       element.node.remove();
     }
     window.removeEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));

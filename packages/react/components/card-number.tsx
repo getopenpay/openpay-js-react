@@ -1,9 +1,9 @@
 import { FC } from 'react';
-import { type ElementProps } from '@getopenpay/utils';
+import { ElementTypeEnum, type ElementProps } from '@getopenpay/utils';
 import ElementFrame from './_common/frame';
 
 const CardNumberElement: FC<ElementProps> = ({ styles }) => {
-  return <ElementFrame styles={styles} subPath="card-number" />;
+  return <ElementFrame styles={styles} elementType={ElementTypeEnum.CARD_NUMBER} />;
 };
 
 export default CardNumberElement;
