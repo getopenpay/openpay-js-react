@@ -1,6 +1,6 @@
 {
   "name": "@getopenpay/openpay-js",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "Accept payments through OpenPay, right on your site",
   "author": "OpenPay <info@getopenpay.com> (https://getopenpay.com)",
   "license": "ISC",
@@ -27,7 +27,7 @@
   "scripts": {
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --fix --report-unused-disable-directives --max-warnings 0",
-    "build": "tsc -p tsconfig.build.json && vite build",
+    "build": "tsc -p tsconfig.build.json && vite build && vite build --mode build-umd",
     "dev": "vite build --watch --mode development"
   },
   "dependencies": {
