@@ -1,21 +1,30 @@
 import { FC, useEffect, useState } from 'react';
 import { ElementsContext, type ElementsContextValue } from '../hooks/context';
 import { OpenPayForm } from '@getopenpay/openpay-js';
-import { ElementsFormChildrenProps } from '@getopenpay/utils';
+import { ElementsFormChildrenProps, StripeLinkController } from '@getopenpay/utils';
 import { ElementsFormPropsReact } from '../types';
 import { useReactiveFormCallbacks } from '../hooks/use-form-callbacks';
 import { usePaymentRequests } from '../hooks/use-payment-requests';
 
-const FORM_ID = 'op_ojs_form';
+const FORM_TARGET = 'op_ojs_form';
 
 const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
   const [opForm, setOpForm] = useState<OpenPayForm | null>();
   const [elementsContextValue, setElementsContextValue] = useState<ElementsContextValue | null>(null);
   const { paymentRequests, overridenOnPaymentRequestLoad } = usePaymentRequests(props.onPaymentRequestLoad);
+  const [loaded, setLoaded] = useState(false);
+  const [stripeLinkCtrl] = useState<StripeLinkController | null>(null);
 
+  // TODO ASAP: when CC fields are empty, we get wrong validation errors
+  // TODO ASAP: make sure stripe link is not clickable while not yet loaded
+  // TODO ASAP: make sure formCallbacks are called
   const formCallbacks = useReactiveFormCallbacks({
     ...props,
     onPaymentRequestLoad: overridenOnPaymentRequestLoad,
+    onLoad: (totalAmountAtoms?: number, currency?: string) => {
+      setLoaded(true);
+      props.onLoad?.(totalAmountAtoms, currency);
+    },
   });
 
   useEffect(() => {
@@ -24,7 +33,7 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
       OpenPayForm.getInstance() ??
       new OpenPayForm({
         checkoutSecureToken: props.checkoutSecureToken,
-        formTarget: `#${FORM_ID}`,
+        formTarget: `#${FORM_TARGET}`,
         baseUrl: props.baseUrl,
         customInitParams: props.customInitParams,
         ...formCallbacks,
@@ -32,7 +41,18 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
     // TODO: make this loading process more explicit?
 
     setOpForm(form);
-    setElementsContextValue(getElementsContextValue(form));
+    const value = getElementsContextValue(form);
+    console.log('Elements context value', value);
+    setElementsContextValue(value);
+
+    // initialization.stripeLink.subscribe((init) => {
+    //   if (init.status === 'loaded' && init.result.isAvailable) {
+    //     setStripeLinkCtrl(init.result.controller);
+    //   }
+    // });
+
+    // TODO ASAP: subscribe to stripe link
+
     // Currently we initialize it once and only once
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -48,21 +68,21 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
     submit: opForm.submitCard,
     applePay: paymentRequests.apple_pay,
     googlePay: paymentRequests.google_pay,
-    loaded: false,
+    loaded,
     // Disable dynamic previews feature for now
     preview: {
       amount: null,
       isLoading: false,
       error: null,
     },
-    stripeLink: null,
+    stripeLink: stripeLinkCtrl,
   };
 
   return (
     <>
       {elementsContextValue ? (
         <ElementsContext.Provider value={elementsContextValue}>
-          <div id={FORM_ID} className={props.className}>
+          <div id={FORM_TARGET} className={props.className}>
             {props.children(childrenProps)}
           </div>
         </ElementsContext.Provider>
@@ -75,11 +95,11 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
 
 const getElementsContextValue = (opForm: OpenPayForm): ElementsContextValue => {
   return {
-    formId: FORM_ID,
+    formId: opForm.formId,
     formHeight: opForm.formProperties.height,
     referrer: opForm.referrer,
     checkoutSecureToken: opForm.checkoutSecureToken,
-    registerIframe: opForm.registerIframe.bind(opForm),
+    registerIframe: opForm.registerIframe,
     baseUrl: opForm.baseUrl,
   };
 };

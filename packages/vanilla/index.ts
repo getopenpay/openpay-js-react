@@ -35,7 +35,7 @@ export type ElementsFormProps = {
   customInitParams?: CustomInitParams;
 };
 
-export type Config = ElementsFormProps & { _frameUrl?: URL } & FormCallbacks;
+export type Config = ElementsFormProps & FormCallbacks;
 type RegisteredElement = { type: ElementType; node: HTMLIFrameElement; mount: (selector: string) => void };
 
 export class OpenPayForm {
@@ -71,7 +71,10 @@ export class OpenPayForm {
     this.ojsFlowsInitialization = null;
     this.checkoutFired = false;
     this.connectionManager = new ConnectionManager();
-    this.eventHandler = new OpenPayFormEventHandler(this);
+    this.eventHandler = new OpenPayFormEventHandler(this.formId, this.baseUrl, this.formCallbacks, {
+      setFormHeight: this.setFormHeight,
+      onCdeLoaded: this.onCdeLoaded,
+    });
     this.ojsVersion = __APP_VERSION__;
     this.ojsReleaseVersion = __RELEASE_VERSION__;
 
@@ -82,42 +85,46 @@ export class OpenPayForm {
    * Assign the instance to the window as a singleton
    * @param form - The OpenPayForm instance
    */
-  private static assignAsSingleton(form: OpenPayForm) {
+  private static assignAsSingleton = (form: OpenPayForm) => {
     if (OpenPayForm.getInstance()) {
       throw new Error('OpenPay instance already exists. Only one instance is allowed.');
     }
     // @ts-expect-error window typing
     window['ojs'] = form;
-  }
+  };
 
   /**
    * Get the singleton instance of OpenPayForm
    * @returns The OpenPayForm instance
    */
-  static getInstance(): OpenPayForm | null {
+  static getInstance = (): OpenPayForm | null => {
     // @ts-expect-error window typing
     return window['ojs'] ?? null;
-  }
+  };
 
   public get checkoutSecureToken() {
     return this.config.checkoutSecureToken;
   }
 
-  public getConnectionManager() {
-    return this.connectionManager;
-  }
-
-  public setFormHeight(height: string) {
+  public setFormHeight = (height: string) => {
     this.formProperties.height = height;
+    window['console'].log('[iman] setting form height to', height);
+    window['console'].log('[iman] registered elements', this.registeredElements);
     if (this.registeredElements) {
       Object.values(this.registeredElements).forEach((element) => {
         if (!element) return;
         element.node.style.height = height;
       });
     }
-  }
+  };
 
   tryInitOjsFlows = () => {
+    console.log(
+      '[OJS] tryInitOjsFlows',
+      this.ojsFlowsInitialization === null,
+      !!this.cdeLoadedPayload,
+      this.connectionManager.getAllConnections().size !== 0
+    );
     if (this.ojsFlowsInitialization !== null) {
       return;
     }
@@ -165,7 +172,7 @@ export class OpenPayForm {
     }
   };
 
-  createElement(elementValue: ElementTypeEnumValue, options: ElementProps = {}) {
+  createElement = (elementValue: ElementTypeEnumValue, options: ElementProps = {}) => {
     if (!this.config) throw new Error('OpenPay form not initialized');
     const type = ElementType.parse(elementValue);
 
@@ -176,15 +183,14 @@ export class OpenPayForm {
     const url = new URL(`/app/v1/${frame.name}`, this.config.baseUrl);
     url.search = queryString.toString();
     frame.src = url.href;
-    this.config._frameUrl = url;
     frame.style.border = 'none';
     frame.style.width = '100%';
 
     const registeredElement = this.registerIframe(type, frame);
     return registeredElement;
-  }
+  };
 
-  registerIframe(type: ElementTypeEnum, frame: HTMLIFrameElement): RegisteredElement {
+  registerIframe = (type: ElementTypeEnum, frame: HTMLIFrameElement): RegisteredElement => {
     const element: RegisteredElement = {
       type,
       node: frame,
@@ -201,9 +207,9 @@ export class OpenPayForm {
     }
     this.registeredElements[type] = element;
     return element;
-  }
+  };
 
-  private buildQueryString(options: ElementProps): URLSearchParams {
+  private buildQueryString = (options: ElementProps): URLSearchParams => {
     const queryString = new URLSearchParams();
     queryString.append('referer', this.referrer);
     queryString.append('formId', this.formId);
@@ -212,22 +218,22 @@ export class OpenPayForm {
     }
     queryString.append('secureToken', this.config.checkoutSecureToken);
     return queryString;
-  }
+  };
 
-  private connectToElement(element: { type: ElementType; node: HTMLIFrameElement }) {
+  private connectToElement = (element: { type: ElementType; node: HTMLIFrameElement }) => {
     createConnection(element.node)
       .then((conn) => {
         this.connectionManager.addConnection(element.type, conn);
         this.tryInitOjsFlows();
       })
       .catch((err) => console.error('[FORM] Error connecting to CDE iframe', err));
-  }
+  };
 
-  private getFormDiv(): HTMLElement {
+  private getFormDiv = (): HTMLElement => {
     return document.querySelector(this.formTarget) ?? document.body;
-  }
+  };
 
-  private createOjsFlowContext(): OjsContext {
+  private createOjsFlowContext = (): OjsContext => {
     const cdeConnections = this.connectionManager.getAllConnections();
     if (!this.cdeLoadedPayload) {
       throw new Error('Requested context while CDE not yet loaded');
@@ -243,9 +249,9 @@ export class OpenPayForm {
       cdeConnections,
       customInitParams: this.config.customInitParams ?? {},
     };
-  }
+  };
 
-  private createOjsFlowCallbacks() {
+  private createOjsFlowCallbacks = () => {
     const noOp = () => {};
     return {
       onCheckoutError: makeCallbackSafe('onCheckoutError', this.formCallbacks.onCheckoutError ?? noOp),
@@ -257,9 +263,9 @@ export class OpenPayForm {
       ),
       onValidationError: makeCallbackSafe('onValidationError', this.formCallbacks.onValidationError ?? noOp),
     };
-  }
+  };
 
-  submitCard() {
+  submitCard = () => {
     const context = this.createOjsFlowContext();
     OjsFlows.commonCC.run({
       context,
@@ -269,7 +275,7 @@ export class OpenPayForm {
       customParams: undefined, // This flow requires no custom params
       initResult: undefined, // This flow requires no initialization
     });
-  }
+  };
 
   // Alias for submitCard
   submit = this.submitCard;
@@ -290,17 +296,17 @@ export class OpenPayForm {
     });
   };
 
-  onPaymentRequestError(errMsg: string): void {
+  onPaymentRequestError = (errMsg: string) => {
     console.error('[form] Error from payment request:', errMsg);
     this.checkoutFired = false;
     if (this.formCallbacks.onCheckoutError) this.formCallbacks.onCheckoutError(errMsg);
-  }
+  };
 
-  destroy() {
+  destroy = () => {
     for (const element of Object.values(this.registeredElements ?? {})) {
       if (!element) continue;
       element.node.remove();
     }
     window.removeEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));
-  }
+  };
 }
