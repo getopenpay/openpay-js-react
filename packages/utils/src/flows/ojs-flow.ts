@@ -1,7 +1,7 @@
 import { CdeConnection } from '../cde-connection';
 import { CheckoutSuccessResponse, SetupCheckoutResponse } from '../cde_models';
 import { getErrorMessage } from '../errors';
-import { AllFieldNames, CheckoutPaymentMethod, ElementType } from '../shared-models';
+import { AllFieldNames, CheckoutPaymentMethod } from '../shared-models';
 import chalk from 'chalk';
 
 export type OjsFlowParams<T_PARAMS = void, T_INIT_RESULT = void> = {
@@ -22,7 +22,6 @@ export type OjsFlowParams<T_PARAMS = void, T_INIT_RESULT = void> = {
   nonCdeFormInputs: Record<string, unknown>;
 
   /**
-   * Lifecycle callbacks for OJS flows.
    */
   flowCallbacks: OjsFlowCallbacks;
 
@@ -108,7 +107,7 @@ export type OjsContext = {
   /**
    * All the CDE connection objects (one for each CDE iframe).
    */
-  cdeConnections: Map<ElementType, CdeConnection>;
+  anyCdeConnection: CdeConnection;
 
   /**
    * Custom init params for init flows.

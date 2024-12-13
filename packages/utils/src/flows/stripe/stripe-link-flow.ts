@@ -76,7 +76,7 @@ export const initStripeLinkFlow: InitOjsFlow<InitStripeLinkFlowResult> = addErro
     const stripeLinkCpm = findCpmMatchingType(context.checkoutPaymentMethods, StripeLinkCpm);
 
     log__(`Starting stripe link flow...`);
-    const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
+    const anyCdeConnection = context.anyCdeConnection;
     const prefill = await getPrefill(anyCdeConnection);
     const isSetupMode = prefill.mode === 'setup';
 
@@ -174,7 +174,7 @@ export const runStripeLinkFlow: RunOjsFlow<RunStripeLinkFlowParams, InitOjsFlowR
       customParams,
     }): Promise<SimpleOjsFlowResult> => {
       log__(`Running Stripe PR flow...`);
-      const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
+      const anyCdeConnection = context.anyCdeConnection;
 
       log__(`Merging PM fields with form fields...`);
       const mergedInputs = fillEmptyFormInputsWithStripePM(nonCdeFormInputs, customParams.stripePM);

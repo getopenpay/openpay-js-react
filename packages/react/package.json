@@ -23,7 +23,6 @@
     "lint:fix": "eslint . --fix --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
-    "//": "External @getopenpay/* dependencies (i.e. published to NPM) should be listed here",
     "@getopenpay/openpay-js": "*",
     "use-async-effect": "^2.2.7",
     "uuid": "^10.0.0",
@@ -36,7 +35,6 @@
     "react-dom": "^16.x || ^17.x || ^18.x"
   },
   "devDependencies": {
-    "//": "Internal @getopenpay/* dependencies (i.e. not published to NPM) should be listed here",
     "@getopenpay/config": "*",
     "@getopenpay/utils": "*",
     "@stripe/stripe-js": "^4.3.0",

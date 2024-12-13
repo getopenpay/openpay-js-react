@@ -18,6 +18,7 @@ import {
   FRAME_BASE_URL,
   ElementTypeEnum,
   PaymentRequestProvider,
+  CdeConnection,
 } from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
 import { ConnectionManager, createConnection } from './utils/connection';
@@ -25,6 +26,7 @@ import { InitStripePrFlowResult, InitStripePrFlowSuccess } from '@getopenpay/uti
 import { Loadable } from '@getopenpay/utils/src/flows/common/common-flow-utils';
 import { CustomInitParams } from '@getopenpay/utils/src/flows/ojs-flow';
 import { FormCallbacks, parseFormCallbacks } from '@getopenpay/utils/src/form-callbacks';
+import { Subject } from 'rxjs';
 export { FieldName };
 
 export type ElementsFormProps = {
@@ -33,6 +35,7 @@ export type ElementsFormProps = {
   baseUrl?: string;
   formTarget?: string;
   customInitParams?: CustomInitParams;
+  separateFrames?: boolean;
 };
 
 export type Config = ElementsFormProps & FormCallbacks;
@@ -57,6 +60,11 @@ export class OpenPayForm {
   // For easier debugging
   static ojsFlows: typeof OjsFlows = OjsFlows;
 
+  // New system
+  private cdeLoadedSubject: Subject<LoadedEventPayload>;
+  private anyCdeConnectionSubject: Subject<CdeConnection>;
+  // private ojsContextSubject: Subject<OjsContext>;
+
   constructor(config: Config) {
     OpenPayForm.assignAsSingleton(this);
     this.baseUrl = config.baseUrl ?? 'https://cde.getopenpay.com';
@@ -71,6 +79,9 @@ export class OpenPayForm {
     this.ojsFlowsInitialization = null;
     this.checkoutFired = false;
     this.connectionManager = new ConnectionManager();
+
+    this.cdeLoadedSubject = new Subject<LoadedEventPayload>();
+
     this.eventHandler = new OpenPayFormEventHandler(this.formId, this.baseUrl, this.formCallbacks, {
       setFormHeight: this.setFormHeight,
       onCdeLoaded: this.onCdeLoaded,
@@ -80,6 +91,13 @@ export class OpenPayForm {
 
     window.addEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));
   }
+
+  private startInit = async () => {
+    // const cdeLoaded: LoadedEventPayload = await firstValueFrom(this.cdeLoadedSubject);
+    // const anyCdeConnection: CdeConnection = await firstValueFrom(this.anyCdeConnectionSubject);
+    // const ojsContext: OjsContext = this.createOjsFlowContext();
+    this.tryInitOjsFlows();
+  };
 
   /**
    * Assign the instance to the window as a singleton
@@ -119,12 +137,6 @@ export class OpenPayForm {
   };
 
   tryInitOjsFlows = () => {
-    console.log(
-      '[OJS] tryInitOjsFlows',
-      this.ojsFlowsInitialization === null,
-      !!this.cdeLoadedPayload,
-      this.connectionManager.getAllConnections().size !== 0
-    );
     if (this.ojsFlowsInitialization !== null) {
       return;
     }
@@ -139,11 +151,15 @@ export class OpenPayForm {
   };
 
   onCdeLoaded = (payload: LoadedEventPayload) => {
+    // TODO: migrate to subject later?
     if (this.cdeLoadedPayload) {
       return;
     }
     this.cdeLoadedPayload = payload;
-    this.tryInitOjsFlows();
+
+    this.cdeLoadedSubject.next(payload);
+    this.cdeLoadedSubject.complete();
+    // this.tryInitOjsFlows();
   };
 
   onStripePRStatusChange = (initStatus: Loadable<InitStripePrFlowResult>) => {
@@ -224,7 +240,7 @@ export class OpenPayForm {
     createConnection(element.node)
       .then((conn) => {
         this.connectionManager.addConnection(element.type, conn);
-        this.tryInitOjsFlows();
+        this.cdeConnectionsSubject.next(this.connectionManager.getAllConnections());
       })
       .catch((err) => console.error('[FORM] Error connecting to CDE iframe', err));
   };
@@ -241,13 +257,24 @@ export class OpenPayForm {
     if (cdeConnections.size === 0) {
       throw new Error('No CDE connections found');
     }
+    const anyCdeConnection = Object.values(cdeConnections)[0];
+    return OpenPayForm.buildOjsFlowContext(this.config, this.cdeLoadedPayload, anyCdeConnection, this.getFormDiv());
+  };
+
+  // Like createOjsFlowContext, but pure
+  private static buildOjsFlowContext = (
+    config: Config,
+    cdeLoadedPayload: LoadedEventPayload,
+    anyCdeConnection: CdeConnection,
+    formDiv: HTMLElement
+  ) => {
     return {
-      baseUrl: new URL(this.config.baseUrl ?? FRAME_BASE_URL).origin,
-      formDiv: this.getFormDiv(),
-      elementsSessionId: this.cdeLoadedPayload.sessionId,
-      checkoutPaymentMethods: this.cdeLoadedPayload.checkoutPaymentMethods,
-      cdeConnections,
-      customInitParams: this.config.customInitParams ?? {},
+      baseUrl: new URL(config.baseUrl ?? FRAME_BASE_URL).origin,
+      formDiv,
+      elementsSessionId: cdeLoadedPayload.sessionId,
+      checkoutPaymentMethods: cdeLoadedPayload.checkoutPaymentMethods,
+      anyCdeConnection,
+      customInitParams: config.customInitParams ?? {},
     };
   };
 
@@ -272,7 +299,9 @@ export class OpenPayForm {
       checkoutPaymentMethod: findCheckoutPaymentMethodStrict(context.checkoutPaymentMethods, 'credit_card'),
       nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
       flowCallbacks: this.createOjsFlowCallbacks(),
-      customParams: undefined, // This flow requires no custom params
+      customParams: {
+        currentCdeConnections: this.connectionManager.getAllConnections(),
+      },
       initResult: undefined, // This flow requires no initialization
     });
   };

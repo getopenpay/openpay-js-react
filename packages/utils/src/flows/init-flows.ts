@@ -1,10 +1,19 @@
+import Rx, { Observable } from 'rxjs';
 import { OjsFlows } from './all-flows';
 import { Loadable } from './common/common-flow-utils';
 import { createOjsFlowLoggers, InitOjsFlowParams, InitOjsFlowResult, OjsContext, OjsFlowCallbacks } from './ojs-flow';
-import Observable from 'zen-observable';
 import { StripeLinkController } from './stripe/stripe-link-flow';
 
 const { log__, err__ } = createOjsFlowLoggers('init-flows');
+
+// export const createInitializationObservable = (
+//   contextObservable: Observable<OjsContext>,
+//   flowCallbacks: OjsFlowCallbacks,
+// ) => {
+//   const observable: Promise<Loadable<OjsFlowsInitialization>> = Rx.concat([
+
+//   ]);
+// };
 
 /**
  * This object should only be used for debugging purposes.
@@ -40,33 +49,32 @@ export const initializeOjsFlows = (context: OjsContext, flowCallbacks: OjsFlowCa
 /**
  * Runs an InitOjsFlow (i.e. an OJS flow initialization step) as an observable
  */
-const runInitFlowAsObservable = <T extends InitOjsFlowResult>(
-  flowName: string,
-  initFlow: Promise<T>
-): Observable<Loadable<T>> => {
-  const observable = new Observable<Loadable<T>>((observer) => {
-    observer.next({ status: 'loading' });
-    initFlow
-      .then((result) => {
-        observer.next({ status: 'loaded', result });
-      })
-      .catch((error) => {
-        observer.next({ status: 'error', message: error.message });
-      });
-  });
+const runInitFlowAsObservable = <T extends InitOjsFlowResult>(flowName: string, initFlow: Promise<T>) => {
+  Observable.fromPromise(initFlow);
 
-  // We subscribe right away so that Observables are not lazy and are immediately executed
-  observable.subscribe({
-    next: (result) => {
-      log__(`${flowName} flow result`, result);
-      getOjsInitResultsDebugObject()[flowName] = result;
-    },
-    error: (error) => {
-      err__(`${flowName} flow initialization error:\n${JSON.stringify(error)}`);
-      // This shouldn't happen, since we're handling all the errors in the .catch block
-      throw error;
-    },
-  });
+  // const observable = new Observable<Loadable<T>>((observer) => {
+  //   observer.next({ status: 'loading' });
+  //   initFlow
+  //     .then((result) => {
+  //       observer.next({ status: 'loaded', result });
+  //     })
+  //     .catch((error) => {
+  //       observer.next({ status: 'error', message: error.message });
+  //     });
+  // });
+
+  // // We subscribe right away so that Observables are not lazy and are immediately executed
+  // observable.subscribe({
+  //   next: (result) => {
+  //     log__(`${flowName} flow result`, result);
+  //     getOjsInitResultsDebugObject()[flowName] = result;
+  //   },
+  //   error: (error) => {
+  //     err__(`${flowName} flow initialization error:\n${JSON.stringify(error)}`);
+  //     // This shouldn't happen, since we're handling all the errors in the .catch block
+  //     throw error;
+  //   },
+  // });
 
   return observable;
 };

@@ -71,7 +71,7 @@ export const initStripePrFlow: InitOjsFlow<InitStripePrFlowResult> = addErrorCat
     const checkoutPaymentMethod = findCpmMatchingType(context.checkoutPaymentMethods, StripePrCpm);
 
     log__(`Initializing Stripe PR flow...`);
-    const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
+    const anyCdeConnection = context.anyCdeConnection;
     const prefill = await getPrefill(anyCdeConnection);
     const isSetupMode = prefill.mode === 'setup';
 
@@ -121,7 +121,7 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
       if (customParams.provider !== checkoutPaymentMethod.provider) {
         throw new Error(`Provider mismatch. Expected ${customParams.provider}, got ${checkoutPaymentMethod.provider}`);
       }
-      const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
+      const anyCdeConnection = context.anyCdeConnection;
       const pr = initResult.pr;
 
       // TODO: adjust PR amounts as coupons are applied
