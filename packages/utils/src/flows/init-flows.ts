@@ -1,83 +1,89 @@
-import Rx, { Observable } from 'rxjs';
-import { OjsFlows } from './all-flows';
+import { BehaviorSubject } from 'rxjs';
 import { Loadable } from './common/common-flow-utils';
-import { createOjsFlowLoggers, InitOjsFlowParams, InitOjsFlowResult, OjsContext, OjsFlowCallbacks } from './ojs-flow';
+import {
+  createOjsFlowLoggers,
+  InitOjsFlow,
+  InitOjsFlowParams,
+  InitOjsFlowResult,
+  OjsContext,
+  OjsFlowCallbacks,
+} from './ojs-flow';
 import { StripeLinkController } from './stripe/stripe-link-flow';
+import { OjsFlows } from './all-flows';
+import { getErrorMessage } from '../errors';
 
 const { log__, err__ } = createOjsFlowLoggers('init-flows');
 
-// export const createInitializationObservable = (
-//   contextObservable: Observable<OjsContext>,
-//   flowCallbacks: OjsFlowCallbacks,
-// ) => {
-//   const observable: Promise<Loadable<OjsFlowsInitialization>> = Rx.concat([
+export type OjsInitFlowsSubjects = ReturnType<typeof createInitFlowsSubjects>;
+export type { StripeLinkController };
 
-//   ]);
-// };
+type InitFlowSubject<T extends InitOjsFlowResult> = {
+  /**
+   * Subject that will be used to observe the flow
+   */
+  subject: BehaviorSubject<Loadable<T>>;
 
-/**
- * This object should only be used for debugging purposes.
- * If you need to use OJS initialization results for RunFlows, please pass it properly from the corresponding InitFlows.
- */
-const getOjsInitResultsDebugObject = () => {
-  if (!('ojs_init_results' in window)) {
-    // @ts-expect-error window typing
-    window['ojs_init_results'] = {};
-  }
-  // @ts-expect-error window typing
-  return window['ojs_init_results'];
+  /**
+   * Internal method to run the flow.
+   * This function is not meant to be used outside of this file.
+   */
+  _runInitFlow: (initParams: InitOjsFlowParams) => Promise<void>;
 };
 
+const LOADING = { status: 'loading' } as const;
+
 /**
- * Initializes all OJS flows.
- * All init flows should be added to this function.
+ * Helper function to create a BehaviorSubject and a runner for an init flow.
  */
-export const initializeOjsFlows = (context: OjsContext, flowCallbacks: OjsFlowCallbacks) => {
-  const initParams: InitOjsFlowParams = { context, flowCallbacks };
-  console.log('[OJS] initializing OJS flows...');
+const createInitFlowSubject = <T extends InitOjsFlowResult>(
+  flowName: string,
+  initFlow: InitOjsFlow<T>
+): {
+  subject: BehaviorSubject<Loadable<T>>;
+  _runInitFlow: (initParams: InitOjsFlowParams) => Promise<void>;
+} => {
+  const subject = new BehaviorSubject<Loadable<T>>(LOADING);
   return {
-    // Stripe PR
-    stripePR: runInitFlowAsObservable('stripePR', OjsFlows.stripePR.init(initParams)),
-
-    // Stripe Link
-    stripeLink: runInitFlowAsObservable('stripeLink', OjsFlows.stripeLink.init(initParams)),
-
-    // 👉 Add initialization flows here
+    subject,
+    _runInitFlow: async (initParams: InitOjsFlowParams) => {
+      try {
+        const initResult = await initFlow(initParams);
+        log__(`✔ ${flowName} flow initialized successfully. Result:`, initResult);
+        subject.next({ status: 'loaded', result: initResult });
+        subject.complete();
+      } catch (error) {
+        err__(`𝙭 ${flowName} flow initialization failed. Error:`, getErrorMessage(error), 'Details:', error);
+        subject.next({ status: 'error', message: getErrorMessage(error) });
+      }
+    },
   };
 };
 
 /**
- * Runs an InitOjsFlow (i.e. an OJS flow initialization step) as an observable
+ * Initializes all OJS flows
  */
-const runInitFlowAsObservable = <T extends InitOjsFlowResult>(flowName: string, initFlow: Promise<T>) => {
-  Observable.fromPromise(initFlow);
-
-  // const observable = new Observable<Loadable<T>>((observer) => {
-  //   observer.next({ status: 'loading' });
-  //   initFlow
-  //     .then((result) => {
-  //       observer.next({ status: 'loaded', result });
-  //     })
-  //     .catch((error) => {
-  //       observer.next({ status: 'error', message: error.message });
-  //     });
-  // });
-
-  // // We subscribe right away so that Observables are not lazy and are immediately executed
-  // observable.subscribe({
-  //   next: (result) => {
-  //     log__(`${flowName} flow result`, result);
-  //     getOjsInitResultsDebugObject()[flowName] = result;
-  //   },
-  //   error: (error) => {
-  //     err__(`${flowName} flow initialization error:\n${JSON.stringify(error)}`);
-  //     // This shouldn't happen, since we're handling all the errors in the .catch block
-  //     throw error;
-  //   },
-  // });
-
-  return observable;
+export const startAllInitFlows = async (
+  flows: OjsInitFlowsSubjects,
+  context: OjsContext,
+  flowCallbacks: OjsFlowCallbacks
+): Promise<void> => {
+  await Promise.all(Object.values(flows).map((flow) => flow._runInitFlow({ context, flowCallbacks })));
 };
 
-export type OjsFlowsInitialization = ReturnType<typeof initializeOjsFlows>;
-export type { StripeLinkController };
+/**
+ * Creates a set of BehaviorSubjects for all OJS flows.
+ * All init flows should be added to this function.
+ */
+export const createInitFlowsSubjects = () => {
+  return {
+    // 💡 Add new init flows here
+
+    // Stripe PR
+    stripePR: createInitFlowSubject('Stripe PR', OjsFlows.stripePR.init),
+
+    // Stripe Link
+    stripeLink: createInitFlowSubject('Stripe Link', OjsFlows.stripeLink.init),
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as const satisfies Record<string, InitFlowSubject<any>>;
+};

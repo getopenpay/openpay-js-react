@@ -13,7 +13,7 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
   const [elementsContextValue, setElementsContextValue] = useState<ElementsContextValue | null>(null);
   const { paymentRequests, overridenOnPaymentRequestLoad } = usePaymentRequests(props.onPaymentRequestLoad);
   const [loaded, setLoaded] = useState(false);
-  const [stripeLinkCtrl] = useState<StripeLinkController | null>(null);
+  const [stripeLinkCtrl, setStripeLinkCtrl] = useState<StripeLinkController | null>(null);
 
   // TODO ASAP: when CC fields are empty, we get wrong validation errors
   // TODO ASAP: make sure stripe link is not clickable while not yet loaded
@@ -42,14 +42,13 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
 
     setOpForm(form);
     const value = getElementsContextValue(form);
-    console.log('Elements context value', value);
     setElementsContextValue(value);
 
-    // initialization.stripeLink.subscribe((init) => {
-    //   if (init.status === 'loaded' && init.result.isAvailable) {
-    //     setStripeLinkCtrl(init.result.controller);
-    //   }
-    // });
+    form.initFlowsSubjects.stripeLink.subject.subscribe((init) => {
+      if (init.status === 'loaded' && init.result.isAvailable) {
+        setStripeLinkCtrl(init.result.controller);
+      }
+    });
 
     // TODO ASAP: subscribe to stripe link
 

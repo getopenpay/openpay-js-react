@@ -30,6 +30,7 @@ export const OjsFlows = {
 
   // Common
   commonCC: {
+    init: async () => {},
     run: runCommonCcFlow,
   },
 
@@ -46,6 +47,6 @@ export const OjsFlows = {
   // 👉 Add more flows here
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-} satisfies Record<string, OjsFlow<any, any>>;
+} as const satisfies Record<string, OjsFlow<any, any>>;
 
 export type { OjsContext };

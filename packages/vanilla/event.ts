@@ -100,7 +100,6 @@ export class OpenPayFormEventHandler {
 
   handleLayoutEvent = (payload: LayoutEventPayload) => {
     const height = payload.height ? `${payload.height}px` : '100%';
-    console.log('[iman] handleLayoutEvent', height);
     this.internalCallbacks.setFormHeight(height);
   };
 
@@ -117,7 +116,7 @@ export class OpenPayFormEventHandler {
   };
 
   handleLoadedEvent = async (source: MessageEventSource, elementId: string, payload: LoadedEventPayload) => {
-    console.log('handleLoadedEvent is deprecated:', source, elementId, payload);
+    // console.log('handleLoadedEvent is deprecated:', source, elementId, payload);
     this.eventTargets[elementId] = source;
     this.internalCallbacks.onCdeLoaded(payload);
     if (this.formCallbacks.onLoad) {
