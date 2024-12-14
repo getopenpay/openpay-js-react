@@ -38,7 +38,6 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
         customInitParams: props.customInitParams,
         ...formCallbacks,
       });
-    // TODO: make this loading process more explicit?
 
     setOpForm(form);
     const value = getElementsContextValue(form);
@@ -49,8 +48,6 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
         setStripeLinkCtrl(init.result.controller);
       }
     });
-
-    // TODO ASAP: subscribe to stripe link
 
     // Currently we initialize it once and only once
     // eslint-disable-next-line react-hooks/exhaustive-deps

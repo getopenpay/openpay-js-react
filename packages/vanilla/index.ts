@@ -111,7 +111,7 @@ export class OpenPayForm {
 
       log__('├ CDE load event received. Waiting for CDE connection...');
       const anyCdeConnection: CdeConnection = await firstValueFrom(this.anyCdeConnectionSubject);
-      log__('├ CDE connection received.');
+      log__('├ CDE connection received');
 
       log__('├ Starting OJS init flows...');
       const ojsContext: OjsContext = OpenPayForm.buildOjsFlowContext(
@@ -285,7 +285,7 @@ export class OpenPayForm {
     if (cdeConnections.size === 0) {
       throw new Error('No CDE connections found');
     }
-    const anyCdeConnection = Object.values(cdeConnections)[0];
+    const anyCdeConnection = cdeConnections.values().next().value;
     return OpenPayForm.buildOjsFlowContext(this.config, cdeLoadedPayload, anyCdeConnection, this.getFormDiv());
   };
 
