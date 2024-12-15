@@ -43,9 +43,9 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
     const value = getElementsContextValue(form);
     setElementsContextValue(value);
 
-    form.initFlowsSubjects.stripeLink.subject.subscribe((init) => {
-      if (init.status === 'loaded' && init.result.isAvailable) {
-        setStripeLinkCtrl(init.result.controller);
+    form.initFlowsPublishers.stripeLink.publisher.subscribe((result) => {
+      if (result.isSuccess && result.loadedValue.isAvailable) {
+        setStripeLinkCtrl(result.loadedValue.controller);
       }
     });
 

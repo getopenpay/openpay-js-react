@@ -13,7 +13,7 @@ import { LoadedOncePublisher } from '../loaded-once-publisher';
 
 const { log__, err__ } = createOjsFlowLoggers('init-flows');
 
-export type OjsInitFlowsSubjects = ReturnType<typeof createInitFlowsSubjects>;
+export type OjsInitFlowsPublishers = ReturnType<typeof createInitFlowsPublishers>;
 export type { StripeLinkController };
 
 type InitFlowLoader<T extends InitOjsFlowResult> = {
@@ -56,7 +56,7 @@ const createInitFlowPublisher = <T extends InitOjsFlowResult>(
  * Initializes all OJS flows
  */
 export const startAllInitFlows = async (
-  flows: OjsInitFlowsSubjects,
+  flows: OjsInitFlowsPublishers,
   context: OjsContext,
   flowCallbacks: OjsFlowCallbacks
 ): Promise<void> => {
@@ -67,7 +67,7 @@ export const startAllInitFlows = async (
  * Creates a set of BehaviorSubjects for all OJS flows.
  * All init flows should be added to this function.
  */
-export const createInitFlowsSubjects = () => {
+export const createInitFlowsPublishers = () => {
   return {
     // 💡 Add new init flows here
 
@@ -78,5 +78,5 @@ export const createInitFlowsSubjects = () => {
     stripeLink: createInitFlowPublisher('Stripe Link', OjsFlows.stripeLink.init),
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } satisfies Record<string, InitFlowLoader<any>>;
+  } as const satisfies Record<string, InitFlowLoader<any>>;
 };

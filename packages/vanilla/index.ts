@@ -8,7 +8,7 @@ import {
   OjsContext,
   OjsFlows,
   makeCallbackSafe,
-  OjsInitFlowsSubjects,
+  OjsInitFlowsPublishers,
   PR_LOADING,
   PR_ERROR,
   PaymentRequestStartParams,
@@ -18,7 +18,7 @@ import {
   ElementTypeEnum,
   PaymentRequestProvider,
   CdeConnection,
-  createInitFlowsSubjects,
+  createInitFlowsPublishers,
   startAllInitFlows,
   getErrorMessage,
 } from '@getopenpay/utils';
@@ -69,9 +69,9 @@ export class OpenPayForm {
   static ojsFlows: typeof OjsFlows = OjsFlows;
 
   // Subjects
-  private cdeLoadedSubject: LoadedOncePublisher<LoadedEventPayload>;
-  private anyCdeConnSubject: LoadedOncePublisher<CdeConnection>;
-  readonly initFlowsSubjects: OjsInitFlowsSubjects;
+  private cdeLoadEvent: LoadedOncePublisher<LoadedEventPayload>;
+  private anyCdeConn: LoadedOncePublisher<CdeConnection>;
+  readonly initFlowsPublishers: OjsInitFlowsPublishers;
 
   constructor(config: Config) {
     OpenPayForm.assignAsSingleton(this);
@@ -88,9 +88,9 @@ export class OpenPayForm {
     this.connectionManager = new ConnectionManager();
 
     // Subjects
-    this.cdeLoadedSubject = new LoadedOncePublisher<LoadedEventPayload>();
-    this.anyCdeConnSubject = new LoadedOncePublisher<CdeConnection>();
-    this.initFlowsSubjects = createInitFlowsSubjects();
+    this.cdeLoadEvent = new LoadedOncePublisher<LoadedEventPayload>();
+    this.anyCdeConn = new LoadedOncePublisher<CdeConnection>();
+    this.initFlowsPublishers = createInitFlowsPublishers();
 
     // Event handlers
     this.eventHandler = new OpenPayFormEventHandler(this.formId, this.baseUrl, this.formCallbacks, {
@@ -108,14 +108,14 @@ export class OpenPayForm {
       log__('Initializing OpenPay form:');
 
       log__('├ Waiting for CDE load event...');
-      const cdeLoaded = await this.cdeLoadedSubject.waitForLoad({
+      const cdeLoaded = await this.cdeLoadEvent.waitForLoad({
         ms: 120_000,
         errMsg: GENERIC_CONN_ERR,
       });
       log__('├ CDE load event received');
 
       log__('├ Waiting for CDE connection...');
-      const anyCdeConn: CdeConnection = await this.anyCdeConnSubject.waitForLoad({
+      const anyCdeConn: CdeConnection = await this.anyCdeConn.waitForLoad({
         ms: 120_000,
         errMsg: GENERIC_CONN_ERR,
       });
@@ -128,7 +128,7 @@ export class OpenPayForm {
         anyCdeConn,
         this.getFormDiv()
       );
-      await startAllInitFlows(this.initFlowsSubjects, ojsContext, this.createOjsFlowCallbacks());
+      await startAllInitFlows(this.initFlowsPublishers, ojsContext, this.createOjsFlowCallbacks());
       log__('╰ Done initializing OJS flows.');
     } catch (err) {
       const errorMessage = getErrorMessage(err);
@@ -173,11 +173,11 @@ export class OpenPayForm {
   };
 
   onCdeLoaded = (payload: LoadedEventPayload) => {
-    if (this.cdeLoadedSubject.isLoaded) {
+    if (this.cdeLoadEvent.current.isSuccess) {
       // Already loaded
       return;
     }
-    this.cdeLoadedSubject.set(payload);
+    this.cdeLoadEvent.set(payload);
   };
 
   // TODO: refactor later
@@ -259,8 +259,8 @@ export class OpenPayForm {
     createConnection(element.node)
       .then((conn) => {
         this.connectionManager.addConnection(element.type, conn);
-        if (!this.anyCdeConnSubject.isLoaded) {
-          this.anyCdeConnSubject.set(conn);
+        if (!this.anyCdeConn.current.isSuccess) {
+          this.anyCdeConn.set(conn);
         }
       })
       .catch((err) => console.error('[FORM] Error connecting to CDE iframe', err));
@@ -272,8 +272,7 @@ export class OpenPayForm {
 
   private createOjsFlowContext = (): OjsContext => {
     const cdeConnections = this.connectionManager.getAllConnections();
-    const cdeLoadedPayload =
-      this.cdeLoadedSubject.current.status === 'success' ? this.cdeLoadedSubject.current.loadedValue : null;
+    const cdeLoadedPayload = this.cdeLoadEvent.current.isSuccess ? this.cdeLoadEvent.current.loadedValue : null;
     if (!cdeLoadedPayload) {
       throw new Error('Requested context while CDE not yet loaded');
     }

@@ -1,63 +1,93 @@
 import { assertNever } from '@getopenpay/utils';
 import { Subject, lastValueFrom, throwError, timeout } from 'rxjs';
 
+type InitialStatus = {
+  status: 'initial';
+  isSuccess: false;
+};
+type SuccessStatus<T> = {
+  status: 'success';
+  isSuccess: true;
+  loadedValue: T;
+};
+type ErrorStatus = {
+  status: 'error';
+  isSuccess: false;
+  error: unknown; // Anything can be thrown, so we don't want to be strict here
+  errMsg: string;
+};
+type CurrentStatus<T> = InitialStatus | SuccessStatus<T> | ErrorStatus;
+
 export class LoadedOncePublisher<T> {
-  private status:
-    | {
-        status: 'initial';
-      }
-    | {
-        status: 'success';
-        loadedValue: T;
-      }
-    | {
-        status: 'error';
-        error: unknown; // Anything can be thrown, so we don't want to be strict here
-        errMsg: string;
-      };
-  private subject: Subject<T>;
+  private _current: CurrentStatus<T>;
+  private _subject: Subject<T>;
 
   constructor() {
-    this.status = { status: 'initial' };
-    this.subject = new Subject<T>();
+    this._current = { status: 'initial', isSuccess: false };
+    this._subject = new Subject<T>();
   }
 
   set = (value: T) => {
-    if (this.status.status === 'success') {
+    if (this._current.status === 'success') {
       throw new Error('LoadedOnce is already in success state');
     }
-    this.status = { status: 'success', loadedValue: value };
-    this.subject.next(value);
-    this.subject.complete();
+    this._current = { status: 'success', isSuccess: true, loadedValue: value };
+    this._subject.next(value);
+    this._subject.complete();
   };
 
   setError = (error: unknown, errMsg: string) => {
-    if (this.status.status === 'success') {
+    if (this._current.status === 'success') {
       throw new Error('LoadedOnce is already in success state');
     }
-    this.status = { status: 'error', error, errMsg };
-    this.subject.error(error);
+    this._current = { status: 'error', isSuccess: false, error, errMsg };
+    this._subject.error(error);
     // Do not complete the subject since a set() call might be made after this
   };
 
   get current() {
-    return this.status;
+    return this._current;
   }
 
-  get isLoaded() {
-    return this.current.status === 'success';
-  }
+  subscribe = (fn: (value: Exclude<CurrentStatus<T>, InitialStatus>) => void) => {
+    if (this._current.status === 'success') {
+      fn(this._current);
+      return;
+    }
+
+    if (this._current.status === 'error') {
+      fn(this._current);
+      // Do not return, as we will still have the fn subscribed to the subject
+    }
+
+    const subscription = this._subject.subscribe({
+      next: () => {
+        if (this._current.status !== 'success') {
+          throw new Error('Invalid state (next): please make sure to update _current before the subject');
+        }
+        fn(this._current);
+        subscription.unsubscribe();
+      },
+      error: () => {
+        if (this._current.status !== 'error') {
+          throw new Error('Invalid state (error): please make sure to update _current before the subject');
+        }
+        fn(this._current);
+        // Do not unsubscribe
+      },
+    });
+  };
 
   waitForLoad = (timeoutConfig: { ms: number; errMsg: string }): Promise<T> => {
-    if (this.status.status === 'success') return Promise.resolve(this.status.loadedValue);
-    if (this.status.status === 'error') return Promise.reject(this.status.error);
-    if (this.status.status !== 'initial') assertNever(this.status);
+    if (this._current.status === 'success') return Promise.resolve(this._current.loadedValue);
+    if (this._current.status === 'error') return Promise.reject(this._current.error);
+    if (this._current.status !== 'initial') assertNever(this._current);
 
     const timeoutParams = {
       first: timeoutConfig.ms,
       with: () => throwError(() => new Error(timeoutConfig.errMsg)),
     };
 
-    return lastValueFrom(this.subject.pipe(timeout(timeoutParams)));
+    return lastValueFrom(this._subject.pipe(timeout(timeoutParams)));
   };
 }
