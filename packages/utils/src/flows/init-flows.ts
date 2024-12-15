@@ -1,5 +1,3 @@
-import { BehaviorSubject } from 'rxjs';
-import { Loadable } from './common/common-flow-utils';
 import {
   createOjsFlowLoggers,
   InitOjsFlow,
@@ -11,17 +9,18 @@ import {
 import { StripeLinkController } from './stripe/stripe-link-flow';
 import { OjsFlows } from './all-flows';
 import { getErrorMessage } from '../errors';
+import { LoadedOncePublisher } from '../loaded-once-publisher';
 
 const { log__, err__ } = createOjsFlowLoggers('init-flows');
 
 export type OjsInitFlowsSubjects = ReturnType<typeof createInitFlowsSubjects>;
 export type { StripeLinkController };
 
-type InitFlowSubject<T extends InitOjsFlowResult> = {
+type InitFlowLoader<T extends InitOjsFlowResult> = {
   /**
-   * Subject that will be used to observe the flow
+   * A publisher that can be used to observe the flow
    */
-  subject: BehaviorSubject<Loadable<T>>;
+  publisher: LoadedOncePublisher<T>;
 
   /**
    * Internal method to run the flow.
@@ -30,30 +29,24 @@ type InitFlowSubject<T extends InitOjsFlowResult> = {
   _runInitFlow: (initParams: InitOjsFlowParams) => Promise<void>;
 };
 
-const LOADING = { status: 'loading' } as const;
-
 /**
  * Helper function to create a BehaviorSubject and a runner for an init flow.
  */
-const createInitFlowSubject = <T extends InitOjsFlowResult>(
+const createInitFlowPublisher = <T extends InitOjsFlowResult>(
   flowName: string,
   initFlow: InitOjsFlow<T>
-): {
-  subject: BehaviorSubject<Loadable<T>>;
-  _runInitFlow: (initParams: InitOjsFlowParams) => Promise<void>;
-} => {
-  const subject = new BehaviorSubject<Loadable<T>>(LOADING);
+): InitFlowLoader<T> => {
+  const publisher = new LoadedOncePublisher<T>();
   return {
-    subject,
+    publisher,
     _runInitFlow: async (initParams: InitOjsFlowParams) => {
       try {
         const initResult = await initFlow(initParams);
         log__(`✔ ${flowName} flow initialized successfully. Result:`, initResult);
-        subject.next({ status: 'loaded', result: initResult });
-        subject.complete();
+        publisher.set(initResult);
       } catch (error) {
         err__(`𝙭 ${flowName} flow initialization failed. Error:`, getErrorMessage(error), 'Details:', error);
-        subject.next({ status: 'error', message: getErrorMessage(error) });
+        publisher.setError(error, getErrorMessage(error));
       }
     },
   };
@@ -79,11 +72,11 @@ export const createInitFlowsSubjects = () => {
     // 💡 Add new init flows here
 
     // Stripe PR
-    stripePR: createInitFlowSubject('Stripe PR', OjsFlows.stripePR.init),
+    stripePR: createInitFlowPublisher('Stripe PR', OjsFlows.stripePR.init),
 
     // Stripe Link
-    stripeLink: createInitFlowSubject('Stripe Link', OjsFlows.stripeLink.init),
+    stripeLink: createInitFlowPublisher('Stripe Link', OjsFlows.stripeLink.init),
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as const satisfies Record<string, InitFlowSubject<any>>;
+  } satisfies Record<string, InitFlowLoader<any>>;
 };

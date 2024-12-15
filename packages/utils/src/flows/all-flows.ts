@@ -47,6 +47,6 @@ export const OjsFlows = {
   // 👉 Add more flows here
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-} as const satisfies Record<string, OjsFlow<any, any>>;
+} satisfies Record<string, OjsFlow<any, any>>;
 
 export type { OjsContext };
