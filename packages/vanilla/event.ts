@@ -1,15 +1,4 @@
-import {
-  ElementEvent,
-  emitEvent,
-  ErrorEventPayload,
-  EventPayload,
-  LayoutEventPayload,
-  LoadedEventPayload,
-  parseEventPayload,
-  ValidationErrorEventPayload,
-  AllFieldNames,
-  FormCallbacks,
-} from '@getopenpay/utils';
+import { ElementEvent, LoadedEventPayload, parseEventPayload, FormCallbacks } from '@getopenpay/utils';
 
 // TODO: eventually refactor this to be called by OpenPayForm instead
 type InternalCallbacks = {
@@ -56,25 +45,28 @@ export class OpenPayFormEventHandler {
 
     switch (eventType) {
       case 'LAYOUT':
-        this.handleLayoutEvent(payload);
+        this.internalCallbacks.setFormHeight(payload.height ? `${payload.height}px` : '100%');
         break;
       case 'FOCUS':
-        this.handleFocusEvent(elementId, payload.elementType);
+        this.formCallbacks.onFocus?.(elementId, payload.elementType);
         break;
       case 'BLUR':
-        this.handleBlurEvent(elementId, payload.elementType);
+        this.formCallbacks.onBlur?.(elementId, payload.elementType);
         break;
       case 'CHANGE':
-        this.handleChangeEvent(elementId, payload.elementType, payload.errors);
+        this.formCallbacks.onChange?.(elementId, payload.elementType, payload.errors);
         break;
       case 'LOADED':
-        this.handleLoadedEvent(event.source, elementId, payload);
+        this.eventTargets[elementId] = event.source;
+        this.internalCallbacks.onCdeLoaded(payload);
         break;
       case 'LOAD_ERROR':
-        this.handleLoadErrorEvent(payload);
+        // TODO ASAP: if this happens, onLoadError is called but publisher might just time out.
+        // TODO ASAP: simulate an error here (thru CDE) and see what happens
+        this.formCallbacks.onLoadError?.(payload.message);
         break;
       case 'VALIDATION_ERROR':
-        this.handleValidationErrorEvent(payload, elementId);
+        this.formCallbacks.onValidationError?.(payload.elementType, payload.errors, elementId);
         break;
       default:
         console.warn('[form] Unhandled event type:', eventType);
@@ -96,48 +88,6 @@ export class OpenPayFormEventHandler {
     this.nonces.add(eventData.nonce);
 
     return true;
-  };
-
-  handleLayoutEvent = (payload: LayoutEventPayload) => {
-    const height = payload.height ? `${payload.height}px` : '100%';
-    this.internalCallbacks.setFormHeight(height);
-  };
-
-  handleFocusEvent = (elementId: string, field: AllFieldNames) => {
-    if (this.formCallbacks.onFocus) this.formCallbacks.onFocus(elementId, field);
-  };
-
-  handleBlurEvent = (elementId: string, field: AllFieldNames) => {
-    if (this.formCallbacks.onBlur) this.formCallbacks.onBlur(elementId, field);
-  };
-
-  handleChangeEvent = (elementId: string, field: AllFieldNames, errors?: string[]) => {
-    if (this.formCallbacks.onChange) this.formCallbacks.onChange(elementId, field, errors);
-  };
-
-  handleLoadedEvent = async (source: MessageEventSource, elementId: string, payload: LoadedEventPayload) => {
-    // console.log('handleLoadedEvent is deprecated:', source, elementId, payload);
-    this.eventTargets[elementId] = source;
-    this.internalCallbacks.onCdeLoaded(payload);
-    // TODO ASAP: cleanup
-    // if (this.formCallbacks.onLoad) {
-    //   this.formCallbacks.onLoad(payload.totalAmountAtoms, payload.currency);
-    // }
-  };
-
-  handleLoadErrorEvent = (payload: ErrorEventPayload) => {
-    // TODO: check if this is ok
-    if (this.formCallbacks.onLoadError) this.formCallbacks.onLoadError(payload.message);
-  };
-
-  handleValidationErrorEvent = (payload: ValidationErrorEventPayload, elementId: string) => {
-    if (this.formCallbacks.onValidationError) {
-      this.formCallbacks.onValidationError(payload.elementType, payload.errors, elementId);
-    }
-  };
-
-  postEventToFrame = (source: MessageEventSource, elementId: string, data: EventPayload) => {
-    emitEvent(source, this.formId, elementId, data, this.baseUrl);
   };
 }
 

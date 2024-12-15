@@ -162,7 +162,7 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
         return { mode: 'setup', result: createdPaymentMethod };
       } else {
         log__(`Performing checkout...`);
-        // TODO ASAP: refactor this
+        // TODO: refactor this
         const checkoutRequest: CheckoutRequest = {
           secure_token: prefill.token,
           payment_input: {

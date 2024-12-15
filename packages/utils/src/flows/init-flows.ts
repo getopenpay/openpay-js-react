@@ -23,10 +23,10 @@ type InitFlowLoader<T extends InitOjsFlowResult> = {
   publisher: LoadedOncePublisher<T>;
 
   /**
-   * Internal method to run the flow.
-   * This function is not meant to be used outside of this file.
+   * Runs the actual initFlow. This is called by startAllInitFlows.
+   * Do NOT run this yourself if you don't know what you're doing.
    */
-  _runInitFlow: (initParams: InitOjsFlowParams) => Promise<void>;
+  initialize: (initParams: InitOjsFlowParams) => Promise<void>;
 };
 
 /**
@@ -39,8 +39,11 @@ const createInitFlowPublisher = <T extends InitOjsFlowResult>(
   const publisher = new LoadedOncePublisher<T>();
   return {
     publisher,
-    _runInitFlow: async (initParams: InitOjsFlowParams) => {
+    initialize: async (initParams: InitOjsFlowParams) => {
       try {
+        if (publisher.current.isSuccess) {
+          throw new Error(`This flow has already been initialized.`);
+        }
         const initResult = await initFlow(initParams);
         log__(`✔ ${flowName} flow initialized successfully. Result:`, initResult);
         publisher.set(initResult);
@@ -60,7 +63,7 @@ export const startAllInitFlows = async (
   context: OjsContext,
   flowCallbacks: OjsFlowCallbacks
 ): Promise<void> => {
-  await Promise.all(Object.values(flows).map((flow) => flow._runInitFlow({ context, flowCallbacks })));
+  await Promise.all(Object.values(flows).map((flow) => flow.initialize({ context, flowCallbacks })));
 };
 
 /**

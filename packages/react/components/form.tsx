@@ -15,9 +15,8 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
   const [loaded, setLoaded] = useState(false);
   const [stripeLinkCtrl, setStripeLinkCtrl] = useState<StripeLinkController | null>(null);
 
-  // TODO ASAP: when CC fields are empty, we get wrong validation errors
   // TODO ASAP: make sure stripe link is not clickable while not yet loaded
-  // TODO ASAP: make sure formCallbacks are called
+  // TODO ASAP: make sure formCallbacks are called -- check if console.logs are checkable in playwright. Else do window vars.
   const formCallbacks = useReactiveFormCallbacks({
     ...props,
     onPaymentRequestLoad: overridenOnPaymentRequestLoad,
@@ -43,7 +42,7 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
     const value = getElementsContextValue(form);
     setElementsContextValue(value);
 
-    form.initFlowsPublishers.stripeLink.publisher.subscribe((result) => {
+    form.initFlows.stripeLink.publisher.subscribe((result) => {
       if (result.isSuccess && result.loadedValue.isAvailable) {
         setStripeLinkCtrl(result.loadedValue.controller);
       }

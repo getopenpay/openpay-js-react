@@ -71,7 +71,7 @@ export class OpenPayForm {
   // Subjects
   private cdeLoadEvent: LoadedOncePublisher<LoadedEventPayload>;
   private anyCdeConn: LoadedOncePublisher<CdeConnection>;
-  readonly initFlowsPublishers: OjsInitFlowsPublishers;
+  readonly initFlows: OjsInitFlowsPublishers;
 
   constructor(config: Config) {
     OpenPayForm.assignAsSingleton(this);
@@ -90,7 +90,7 @@ export class OpenPayForm {
     // Subjects
     this.cdeLoadEvent = new LoadedOncePublisher<LoadedEventPayload>();
     this.anyCdeConn = new LoadedOncePublisher<CdeConnection>();
-    this.initFlowsPublishers = createInitFlowsPublishers();
+    this.initFlows = createInitFlowsPublishers();
 
     // Event handlers
     this.eventHandler = new OpenPayFormEventHandler(this.formId, this.baseUrl, this.formCallbacks, {
@@ -128,7 +128,7 @@ export class OpenPayForm {
         anyCdeConn,
         this.getFormDiv()
       );
-      await startAllInitFlows(this.initFlowsPublishers, ojsContext, this.createOjsFlowCallbacks());
+      await startAllInitFlows(this.initFlows, ojsContext, this.createOjsFlowCallbacks());
       this.formCallbacks.onLoad?.(cdeLoaded.totalAmountAtoms, cdeLoaded.currency);
       log__('╰ Done initializing OJS flows.');
     } catch (err) {
