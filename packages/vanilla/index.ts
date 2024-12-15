@@ -215,7 +215,7 @@ export class OpenPayForm {
     const queryString = this.buildQueryString(options);
 
     frame.name = `${type}-element`;
-    const url = new URL(`/app/v1/${frame.name}`, this.config.baseUrl);
+    const url = new URL(`/app/v1/${frame.name}/`, this.config.baseUrl);
     url.search = queryString.toString();
     frame.src = url.href;
     frame.style.border = 'none';

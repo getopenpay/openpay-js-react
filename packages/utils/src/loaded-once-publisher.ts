@@ -78,6 +78,7 @@ export class LoadedOncePublisher<T> {
     });
   };
 
+  // TODO ASAP: test if timeout works
   waitForLoad = (timeoutConfig: { ms: number; errMsg: string }): Promise<T> => {
     if (this._current.status === 'success') return Promise.resolve(this._current.loadedValue);
     if (this._current.status === 'error') return Promise.reject(this._current.error);
