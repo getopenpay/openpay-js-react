@@ -119,12 +119,14 @@ export class OpenPayFormEventHandler {
     // console.log('handleLoadedEvent is deprecated:', source, elementId, payload);
     this.eventTargets[elementId] = source;
     this.internalCallbacks.onCdeLoaded(payload);
-    if (this.formCallbacks.onLoad) {
-      this.formCallbacks.onLoad(payload.totalAmountAtoms, payload.currency);
-    }
+    // TODO ASAP: cleanup
+    // if (this.formCallbacks.onLoad) {
+    //   this.formCallbacks.onLoad(payload.totalAmountAtoms, payload.currency);
+    // }
   };
 
   handleLoadErrorEvent = (payload: ErrorEventPayload) => {
+    // TODO: check if this is ok
     if (this.formCallbacks.onLoadError) this.formCallbacks.onLoadError(payload.message);
   };
 

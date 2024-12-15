@@ -109,15 +109,15 @@ export class OpenPayForm {
 
       log__('├ Waiting for CDE load event...');
       const cdeLoaded = await this.cdeLoadEvent.waitForLoad({
-        ms: 120_000,
-        errMsg: GENERIC_CONN_ERR,
+        timeoutSec: 120,
+        timeoutErrMsg: GENERIC_CONN_ERR,
       });
       log__('├ CDE load event received');
 
       log__('├ Waiting for CDE connection...');
       const anyCdeConn: CdeConnection = await this.anyCdeConn.waitForLoad({
-        ms: 120_000,
-        errMsg: GENERIC_CONN_ERR,
+        timeoutSec: 120,
+        timeoutErrMsg: GENERIC_CONN_ERR,
       });
       log__('├ CDE connection received');
 
@@ -129,10 +129,13 @@ export class OpenPayForm {
         this.getFormDiv()
       );
       await startAllInitFlows(this.initFlowsPublishers, ojsContext, this.createOjsFlowCallbacks());
+      this.formCallbacks.onLoad?.(cdeLoaded.totalAmountAtoms, cdeLoaded.currency);
       log__('╰ Done initializing OJS flows.');
     } catch (err) {
       const errorMessage = getErrorMessage(err);
       err__('╰ Error initializing OP form:', errorMessage);
+      // Note: normally you don't need this, but it's good for visibility
+      // There might be a case where onLoad is called, then onLoadError is called next
       this.formCallbacks.onLoadError?.(errorMessage);
     }
   };

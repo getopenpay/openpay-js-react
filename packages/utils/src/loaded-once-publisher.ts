@@ -79,14 +79,14 @@ export class LoadedOncePublisher<T> {
   };
 
   // TODO ASAP: test if timeout works
-  waitForLoad = (timeoutConfig: { ms: number; errMsg: string }): Promise<T> => {
+  waitForLoad = (timeoutConfig: { timeoutSec: number; timeoutErrMsg: string }): Promise<T> => {
     if (this._current.status === 'success') return Promise.resolve(this._current.loadedValue);
     if (this._current.status === 'error') return Promise.reject(this._current.error);
     if (this._current.status !== 'initial') assertNever(this._current);
 
     const timeoutParams = {
-      first: timeoutConfig.ms,
-      with: () => throwError(() => new Error(timeoutConfig.errMsg)),
+      first: timeoutConfig.timeoutSec * 1000,
+      with: () => throwError(() => new Error(timeoutConfig.timeoutErrMsg)),
     };
 
     return lastValueFrom(this._subject.pipe(timeout(timeoutParams)));
