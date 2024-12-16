@@ -93,6 +93,16 @@ export class LoadedOncePublisher<T> {
       with: () => throwError(() => new Error(timeoutConfig.timeoutErrMsg)),
     };
 
+    /*
+     * Note: lastValueFrom converts the observable to a promise (https://rxjs.dev/api/index/function/lastValueFrom)
+     *
+     * We use lastValueFrom to wait for the observable to close successfully before resolving the Promise.
+     * To avoid hanging threads forever, we use timeoutParams to throw an error if it takes too long.
+     * firstValueFrom is theoretically also usable, but it might result in bugs
+     * if we do decide to emit more values in this Observable/Subject in the future.
+     *
+     * For more details, see: https://rxjs.dev/deprecations/to-promise
+     */
     return lastValueFrom(this._subject.pipe(timeout(timeoutParams)));
   };
 }

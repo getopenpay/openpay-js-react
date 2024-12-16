@@ -30,7 +30,6 @@ export type ElementsFormProps = {
   baseUrl?: string;
   formTarget?: string;
   customInitParams?: CustomInitParams;
-  separateFrames?: boolean;
 };
 
 export type Config = ElementsFormProps & AllCallbacks;
