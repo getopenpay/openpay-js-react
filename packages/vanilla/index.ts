@@ -113,7 +113,7 @@ export class OpenPayForm {
       });
       log__('├ CDE connection received');
 
-      log__('├ Starting OJS init flows...');
+      log__('├ Creating OJS context, setting up handlers...');
       const ojsContext: OjsContext = OpenPayForm.buildOjsFlowContext(
         this.config,
         cdeLoaded,
@@ -121,10 +121,9 @@ export class OpenPayForm {
         this.getFormDiv()
       );
       this.context.set(ojsContext);
-
-      // TODO ASAP refactor
       setupPaymentRequestHandlers(this.initFlows, ojsContext, this.formCallbacks);
 
+      log__('├ Starting OJS init flows...');
       await startAllInitFlows(this.initFlows, ojsContext, this.formCallbacks);
       this.formCallbacks.get.onLoad?.(cdeLoaded.totalAmountAtoms, cdeLoaded.currency);
       log__('╰ Done initializing OJS flows.');
@@ -171,19 +170,15 @@ export class OpenPayForm {
   };
 
   onCdeLoaded = (payload: LoadedEventPayload) => {
-    if (this.cdeLoadEvent.current.isSuccess) {
-      // Already loaded
-      return;
+    if (!this.cdeLoadEvent.current.isSuccess) {
+      this.cdeLoadEvent.set(payload);
     }
-    this.cdeLoadEvent.set(payload);
   };
 
   onCdeLoadError = (errMsg: string) => {
-    if (this.cdeLoadEvent.current.isSuccess) {
-      // Already loaded
-      return;
+    if (!this.cdeLoadEvent.current.isSuccess) {
+      this.cdeLoadEvent.throw(new Error(errMsg), errMsg);
     }
-    this.cdeLoadEvent.throw(new Error(errMsg), errMsg);
   };
 
   createElement = (elementValue: ElementTypeEnumValue, options: ElementProps = {}) => {
