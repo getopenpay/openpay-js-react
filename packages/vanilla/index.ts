@@ -96,6 +96,7 @@ export class OpenPayForm {
     this.eventHandler = new OpenPayFormEventHandler(this.formId, this.baseUrl, this.formCallbacks, {
       setFormHeight: this.setFormHeight,
       onCdeLoaded: this.onCdeLoaded,
+      onCdeLoadError: this.onCdeLoadError,
     });
     window.addEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));
 
@@ -181,6 +182,14 @@ export class OpenPayForm {
       return;
     }
     this.cdeLoadEvent.set(payload);
+  };
+
+  onCdeLoadError = (errMsg: string) => {
+    if (this.cdeLoadEvent.current.isSuccess) {
+      // Already loaded
+      return;
+    }
+    this.cdeLoadEvent.setError(new Error(errMsg), errMsg);
   };
 
   // TODO: refactor later

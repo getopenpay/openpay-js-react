@@ -3,6 +3,7 @@ import { ElementEvent, LoadedEventPayload, parseEventPayload, FormCallbacks } fr
 // TODO: eventually refactor this to be called by OpenPayForm instead
 type InternalCallbacks = {
   onCdeLoaded: (payload: LoadedEventPayload) => void;
+  onCdeLoadError: (errMsg: string) => void;
   setFormHeight: (height: string) => void;
 };
 
@@ -61,9 +62,7 @@ export class OpenPayFormEventHandler {
         this.internalCallbacks.onCdeLoaded(payload);
         break;
       case 'LOAD_ERROR':
-        // TODO ASAP: if this happens, onLoadError is called but publisher might just time out.
-        // TODO ASAP: simulate an error here (thru CDE) and see what happens
-        this.formCallbacks.onLoadError?.(payload.message);
+        this.internalCallbacks.onCdeLoadError(payload.message);
         break;
       case 'VALIDATION_ERROR':
         this.formCallbacks.onValidationError?.(payload.elementType, payload.errors, elementId);
