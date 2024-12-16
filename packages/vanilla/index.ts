@@ -189,7 +189,7 @@ export class OpenPayForm {
       // Already loaded
       return;
     }
-    this.cdeLoadEvent.setError(new Error(errMsg), errMsg);
+    this.cdeLoadEvent.throwError(new Error(errMsg), errMsg);
   };
 
   // TODO: refactor later
