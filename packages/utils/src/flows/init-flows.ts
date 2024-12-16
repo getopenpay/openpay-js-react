@@ -49,7 +49,7 @@ const createInitFlowPublisher = <T extends InitOjsFlowResult>(
         publisher.set(initResult);
       } catch (error) {
         err__(`𝙭 ${flowName} flow initialization failed. Error:`, getErrorMessage(error), 'Details:', error);
-        publisher.throwError(error, getErrorMessage(error));
+        publisher.throw(error, getErrorMessage(error));
       }
     },
   };

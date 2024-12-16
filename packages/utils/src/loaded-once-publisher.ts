@@ -36,7 +36,7 @@ export class LoadedOncePublisher<T> {
     this._subject.complete();
   };
 
-  throwError = (error: unknown, errMsg: string) => {
+  throw = (error: unknown, errMsg: string) => {
     if (this._current.status === 'success') {
       throw new Error('LoadedOnce is already in success state');
     }
