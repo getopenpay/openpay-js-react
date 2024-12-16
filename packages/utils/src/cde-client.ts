@@ -42,7 +42,7 @@ export class CdeError extends CustomError {
   response: CDEResponseError;
 
   public constructor(response: CDEResponseError) {
-    const friendlyMessage = `[cde-client] Error querying CDE: ${response.message}`;
+    const friendlyMessage = `${response.message}`;
     super(friendlyMessage);
     this.response = response;
   }
