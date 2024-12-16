@@ -89,7 +89,7 @@ export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBas
             await stripeCC3DSFlow(startPfResult);
           }
 
-          // TODO ASAP: ideally we also do confirmPaymentFlow for non-setup mode,
+          // TODO URGENT: ideally we also do confirmPaymentFlow for non-setup mode,
           // but for some reason 3DS_REQUIRED is thrown again during confirmPaymentFlow
           // even though the 3DS flow has been completed.
           if (prefill.mode === 'setup') {
