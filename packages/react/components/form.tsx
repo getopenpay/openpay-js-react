@@ -15,8 +15,9 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
   const [loaded, setLoaded] = useState(false);
   const [stripeLinkCtrl, setStripeLinkCtrl] = useState<StripeLinkController | null>(null);
 
-  // TODO ASAP: make sure stripe link is not clickable while not yet loaded
-  // TODO ASAP: make sure formCallbacks are called -- check if console.logs are checkable in playwright. Else do window vars.
+  // TODO ASAP: make sure stripe link is not visible while not yet loaded
+  // TODO ASAP: make sure formCallbacks are called
+  // - Do vanilla example and check each callback
   const formCallbacks = useReactiveFormCallbacks({
     ...props,
     onPaymentRequestLoad: overridenOnPaymentRequestLoad,

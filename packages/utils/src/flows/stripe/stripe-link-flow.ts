@@ -69,7 +69,7 @@ export type StripeLinkRequiredUserActions = z.infer<typeof StripeLinkRequiredUse
  * Initializes the Stripe link flow (put more details here)
  */
 export const initStripeLinkFlow: InitOjsFlow<InitStripeLinkFlowResult> = addErrorCatcherForInit(
-  async ({ context, flowCallbacks }): Promise<InitStripeLinkFlowResult> => {
+  async ({ context, formCallbacks: flowCallbacks }): Promise<InitStripeLinkFlowResult> => {
     const initParams = context.customInitParams.stripeLink;
 
     log__(`Checking if there are any CPMs for Stripe PR...`);
@@ -143,7 +143,7 @@ export const initStripeLinkFlow: InitOjsFlow<InitStripeLinkFlowResult> = addErro
           context,
           checkoutPaymentMethod: stripeLinkCpm,
           nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
-          flowCallbacks,
+          formCallbacks: flowCallbacks,
           customParams: { stripePM: result.paymentMethod },
           initResult: { isAvailable: true },
         });
@@ -170,7 +170,7 @@ export const runStripeLinkFlow: RunOjsFlow<RunStripeLinkFlowParams, InitOjsFlowR
       context,
       checkoutPaymentMethod,
       nonCdeFormInputs,
-      flowCallbacks,
+      formCallbacks: flowCallbacks,
       customParams,
     }): Promise<SimpleOjsFlowResult> => {
       log__(`Running Stripe PR flow...`);

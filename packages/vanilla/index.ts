@@ -7,16 +7,10 @@ import {
   findCheckoutPaymentMethodStrict,
   OjsContext,
   OjsFlows,
-  makeCallbackSafe,
-  OjsInitFlowsPublishers,
-  PR_LOADING,
-  PR_ERROR,
-  PaymentRequestStartParams,
   LoadedEventPayload,
   ElementTypeEnumValue,
   FRAME_BASE_URL,
   ElementTypeEnum,
-  PaymentRequestProvider,
   CdeConnection,
   createInitFlowsPublishers,
   startAllInitFlows,
@@ -24,11 +18,10 @@ import {
 } from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
 import { ConnectionManager, createConnection } from './utils/connection';
-import { InitStripePrFlowResult, InitStripePrFlowSuccess } from '@getopenpay/utils/src/flows/stripe/stripe-pr-flow';
-import { Loadable } from '@getopenpay/utils/src/flows/common/common-flow-utils';
 import { createOjsFlowLoggers, CustomInitParams } from '@getopenpay/utils/src/flows/ojs-flow';
-import { FormCallbacks, parseFormCallbacks } from '@getopenpay/utils/src/form-callbacks';
+import { AllCallbacks, FormCallbacks } from '@getopenpay/utils/src/form-callbacks';
 import { LoadedOncePublisher } from '@getopenpay/utils/src/loaded-once-publisher';
+import { setupPaymentRequestHandlers } from './utils/payment-request';
 export { FieldName };
 
 export type ElementsFormProps = {
@@ -40,7 +33,7 @@ export type ElementsFormProps = {
   separateFrames?: boolean;
 };
 
-export type Config = ElementsFormProps & FormCallbacks;
+export type Config = ElementsFormProps & AllCallbacks;
 type RegisteredElement = { type: ElementType; node: HTMLIFrameElement; mount: (selector: string) => void };
 
 const GENERIC_CONN_ERR = `The secure form failed to load properly. Please check your internet connection, or try again later.`;
@@ -68,10 +61,11 @@ export class OpenPayForm {
   // For easier debugging
   static ojsFlows: typeof OjsFlows = OjsFlows;
 
-  // Subjects
-  private cdeLoadEvent: LoadedOncePublisher<LoadedEventPayload>;
-  private anyCdeConn: LoadedOncePublisher<CdeConnection>;
-  readonly initFlows: OjsInitFlowsPublishers;
+  // Publishers
+  private readonly cdeLoadEvent = new LoadedOncePublisher<LoadedEventPayload>();
+  private readonly anyCdeConn = new LoadedOncePublisher<CdeConnection>();
+  private readonly context = new LoadedOncePublisher<OjsContext>();
+  readonly initFlows = createInitFlowsPublishers();
 
   constructor(config: Config) {
     OpenPayForm.assignAsSingleton(this);
@@ -79,18 +73,13 @@ export class OpenPayForm {
     this.ojsReleaseVersion = __RELEASE_VERSION__;
     this.baseUrl = config.baseUrl ?? 'https://cde.getopenpay.com';
     this.config = { ...config, baseUrl: this.baseUrl };
-    this.formCallbacks = parseFormCallbacks(config);
+    this.formCallbacks = FormCallbacks.fromObject(config);
     this.registeredElements = null;
     this.formId = `opjs-form-${window.crypto.randomUUID()}`;
     this.referrer = window.location.origin;
     this.formTarget = config.formTarget ?? 'body';
     this.formProperties = { height: '1px' };
     this.connectionManager = new ConnectionManager();
-
-    // Subjects
-    this.cdeLoadEvent = new LoadedOncePublisher<LoadedEventPayload>();
-    this.anyCdeConn = new LoadedOncePublisher<CdeConnection>();
-    this.initFlows = createInitFlowsPublishers();
 
     // Event handlers
     this.eventHandler = new OpenPayFormEventHandler(this.formId, this.baseUrl, this.formCallbacks, {
@@ -104,6 +93,9 @@ export class OpenPayForm {
     this.startFormInit();
   }
 
+  /**
+   * Starts the form initialization process
+   */
   private startFormInit = async () => {
     try {
       log__('Initializing OpenPay form:');
@@ -129,21 +121,25 @@ export class OpenPayForm {
         anyCdeConn,
         this.getFormDiv()
       );
-      await startAllInitFlows(this.initFlows, ojsContext, this.createOjsFlowCallbacks());
-      this.formCallbacks.onLoad?.(cdeLoaded.totalAmountAtoms, cdeLoaded.currency);
+      this.context.set(ojsContext);
+
+      // TODO ASAP refactor
+      setupPaymentRequestHandlers(this.initFlows, ojsContext, this.formCallbacks);
+
+      await startAllInitFlows(this.initFlows, ojsContext, this.formCallbacks);
+      this.formCallbacks.get.onLoad?.(cdeLoaded.totalAmountAtoms, cdeLoaded.currency);
       log__('╰ Done initializing OJS flows.');
     } catch (err) {
       const errorMessage = getErrorMessage(err);
       err__('╰ Error initializing OP form:', errorMessage);
       // Note: normally you don't need this, but it's good for visibility
       // There might be a case where onLoad is called, then onLoadError is called next
-      this.formCallbacks.onLoadError?.(errorMessage);
+      this.formCallbacks.get.onLoadError?.(errorMessage);
     }
   };
 
   /**
    * Assign the instance to the window as a singleton
-   * @param form - The OpenPayForm instance
    */
   private static assignAsSingleton = (form: OpenPayForm) => {
     if (OpenPayForm.getInstance()) {
@@ -155,7 +151,6 @@ export class OpenPayForm {
 
   /**
    * Get the singleton instance of OpenPayForm
-   * @returns The OpenPayForm instance
    */
   static getInstance = (): OpenPayForm | null => {
     // @ts-expect-error window typing
@@ -190,33 +185,6 @@ export class OpenPayForm {
       return;
     }
     this.cdeLoadEvent.throw(new Error(errMsg), errMsg);
-  };
-
-  // TODO: refactor later
-  onStripePRStatusChange = (initStatus: Loadable<InitStripePrFlowResult>) => {
-    if (initStatus.status === 'loading') {
-      this.formCallbacks.onPaymentRequestLoad?.({ apple_pay: PR_LOADING, google_pay: PR_LOADING });
-    } else if (initStatus.status === 'error') {
-      this.formCallbacks.onPaymentRequestLoad?.({ apple_pay: PR_ERROR, google_pay: PR_ERROR });
-    } else if (initStatus.status === 'loaded') {
-      const initResult = initStatus.result;
-      const canApplePay = initResult.isAvailable && initResult.availableProviders.applePay;
-      const canGooglePay = initResult.isAvailable && initResult.availableProviders.googlePay;
-      this.formCallbacks.onPaymentRequestLoad?.({
-        apple_pay: {
-          isLoading: false,
-          isAvailable: canApplePay,
-          startFlow: async (userParams) =>
-            canApplePay ? this.submitPaymentRequest('apple_pay', initResult, userParams) : undefined,
-        },
-        google_pay: {
-          isLoading: false,
-          isAvailable: canGooglePay,
-          startFlow: async (userParams) =>
-            canGooglePay ? this.submitPaymentRequest('google_pay', initResult, userParams) : undefined,
-        },
-      });
-    }
   };
 
   createElement = (elementValue: ElementTypeEnumValue, options: ElementProps = {}) => {
@@ -275,27 +243,16 @@ export class OpenPayForm {
           this.anyCdeConn.set(conn);
         }
       })
-      .catch((err) => console.error('[FORM] Error connecting to CDE iframe', err));
+      .catch((err) => err__('[FORM] Error connecting to CDE iframe', err));
   };
 
   private getFormDiv = (): HTMLElement => {
     return document.querySelector(this.formTarget) ?? document.body;
   };
 
-  private createOjsFlowContext = (): OjsContext => {
-    const cdeConnections = this.connectionManager.getAllConnections();
-    const cdeLoadedPayload = this.cdeLoadEvent.current.isSuccess ? this.cdeLoadEvent.current.loadedValue : null;
-    if (!cdeLoadedPayload) {
-      throw new Error('Requested context while CDE not yet loaded');
-    }
-    if (cdeConnections.size === 0) {
-      throw new Error('No CDE connections found');
-    }
-    const anyCdeConnection = cdeConnections.values().next().value;
-    return OpenPayForm.buildOjsFlowContext(this.config, cdeLoadedPayload, anyCdeConnection, this.getFormDiv());
-  };
-
-  // Like createOjsFlowContext, but pure
+  /**
+   * Builds the OJS context object. Take note that this is a pure function.
+   */
   private static buildOjsFlowContext = (
     config: Config,
     cdeLoadedPayload: LoadedEventPayload,
@@ -312,28 +269,20 @@ export class OpenPayForm {
     };
   };
 
-  // TODO: convert to stateless
-  private createOjsFlowCallbacks = () => {
-    const noOp = () => {};
-    return {
-      onCheckoutError: makeCallbackSafe('onCheckoutError', this.formCallbacks.onCheckoutError ?? noOp),
-      onCheckoutStarted: makeCallbackSafe('onCheckoutStarted', this.formCallbacks.onCheckoutStarted ?? noOp),
-      onCheckoutSuccess: makeCallbackSafe('onCheckoutSuccess', this.formCallbacks.onCheckoutSuccess ?? noOp),
-      onSetupPaymentMethodSuccess: makeCallbackSafe(
-        'onSetupPaymentMethodSuccess',
-        this.formCallbacks.onSetupPaymentMethodSuccess ?? noOp
-      ),
-      onValidationError: makeCallbackSafe('onValidationError', this.formCallbacks.onValidationError ?? noOp),
-    };
-  };
-
+  /**
+   * Runs the common credit card flow
+   */
   submitCard = () => {
-    const context = this.createOjsFlowContext();
+    const context = this.context.getValueIfLoadedElse(null);
+    if (!context) {
+      err__('Please wait for the form to finish loading before submitting.');
+      return;
+    }
     OjsFlows.commonCC.run({
       context,
       checkoutPaymentMethod: findCheckoutPaymentMethodStrict(context.checkoutPaymentMethods, 'credit_card'),
       nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
-      flowCallbacks: this.createOjsFlowCallbacks(),
+      formCallbacks: this.formCallbacks,
       customParams: {
         currentCdeConnections: this.connectionManager.getAllConnections(),
       },
@@ -341,29 +290,10 @@ export class OpenPayForm {
     });
   };
 
-  // Alias for submitCard
+  /**
+   * Alias for submitCard
+   */
   submit = this.submitCard;
-
-  submitPaymentRequest = (
-    provider: PaymentRequestProvider,
-    initResult: InitStripePrFlowSuccess,
-    params?: PaymentRequestStartParams
-  ): Promise<void> => {
-    const context = this.createOjsFlowContext();
-    return OjsFlows.stripePR.run({
-      context,
-      checkoutPaymentMethod: findCheckoutPaymentMethodStrict(context.checkoutPaymentMethods, provider),
-      nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
-      flowCallbacks: this.createOjsFlowCallbacks(),
-      customParams: { provider, overridePaymentRequest: params?.overridePaymentRequest },
-      initResult,
-    });
-  };
-
-  onPaymentRequestError = (errMsg: string) => {
-    console.error('[form] Error from payment request:', errMsg);
-    if (this.formCallbacks.onCheckoutError) this.formCallbacks.onCheckoutError(errMsg);
-  };
 
   destroy = () => {
     for (const element of Object.values(this.registeredElements ?? {})) {

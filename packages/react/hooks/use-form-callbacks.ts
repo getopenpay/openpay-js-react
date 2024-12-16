@@ -1,9 +1,11 @@
 import { useMemo, useRef } from 'react';
 import { ElementsFormPropsReact } from '../types';
-import { FormCallbacks } from '@getopenpay/utils';
+import { AllCallbacks } from '@getopenpay/utils';
 
-export const useReactiveFormCallbacks = (props: ElementsFormPropsReact): FormCallbacks => {
-  const formCallbacksRef = useRef<FormCallbacks>(props);
+export const useReactiveFormCallbacks = (props: ElementsFormPropsReact): AllCallbacks => {
+  // TODO: leverage FormCallbacks class to dynamically update the callbacks.
+  // Right now, this only updates once (on form setup).
+  const formCallbacksRef = useRef<AllCallbacks>(props);
   const cb = formCallbacksRef.current;
   cb.onLoad = useMemo(() => props.onLoad, [props.onLoad]);
   cb.onLoadError = useMemo(() => props.onLoadError, [props.onLoadError]);

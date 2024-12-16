@@ -35,7 +35,7 @@ export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBas
     context,
     checkoutPaymentMethod,
     nonCdeFormInputs,
-    flowCallbacks,
+    formCallbacks: flowCallbacks,
     customParams,
   }): Promise<SimpleOjsFlowResult> => {
     log__(`├ Running common CC flow...`, { checkoutPaymentMethod });

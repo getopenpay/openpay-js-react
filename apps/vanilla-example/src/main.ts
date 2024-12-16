@@ -61,7 +61,8 @@ function initializeForm(token: string) {
         container.setAttribute('data-focused', 'true');
       }
     },
-    onBlur: () => {
+    onBlur: (elementId) => {
+      console.log('onBlur', elementId);
       const container = document.querySelector('.card-element') as HTMLElement;
       if (container) {
         container.removeAttribute('data-focused');

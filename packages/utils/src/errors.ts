@@ -92,12 +92,16 @@ export const getErrorMessage = (e: unknown): string => {
  * @returns The wrapped callback
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const makeCallbackSafe = <T extends (...args: any[]) => any>(callbackName: string, fn: T): T => {
+export const makeCallbackSafe = <T extends (...args: any[]) => any>(
+  callbackName: string,
+  fn: T,
+  errorLogger: typeof console.error
+): T => {
   return ((...args: Parameters<T>): ReturnType<T> | undefined => {
     try {
       return fn(...args);
     } catch (error) {
-      console.error(`[form] Error running callback (${callbackName}):`, error);
+      errorLogger(`[form] Error running callback (${callbackName}):`, error);
       return undefined;
     }
   }) as T;

@@ -80,7 +80,7 @@ export const runFoobarFlow: RunOjsFlow<FoobarFlowCustomParams, InitFoobarFlowSuc
       context,
       checkoutPaymentMethod,
       nonCdeFormInputs,
-      flowCallbacks,
+      formCallbacks: flowCallbacks,
       customParams,
       initResult,
     }): Promise<SimpleOjsFlowResult> => {

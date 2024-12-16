@@ -1,15 +1,9 @@
-import {
-  createOjsFlowLoggers,
-  InitOjsFlow,
-  InitOjsFlowParams,
-  InitOjsFlowResult,
-  OjsContext,
-  OjsFlowCallbacks,
-} from './ojs-flow';
+import { createOjsFlowLoggers, InitOjsFlow, InitOjsFlowParams, InitOjsFlowResult, OjsContext } from './ojs-flow';
 import { StripeLinkController } from './stripe/stripe-link-flow';
 import { OjsFlows } from './all-flows';
 import { getErrorMessage } from '../errors';
 import { LoadedOncePublisher } from '../loaded-once-publisher';
+import { FormCallbacks } from '../form-callbacks';
 
 const { log__, err__ } = createOjsFlowLoggers('init-flows');
 
@@ -61,9 +55,9 @@ const createInitFlowPublisher = <T extends InitOjsFlowResult>(
 export const startAllInitFlows = async (
   flows: OjsInitFlowsPublishers,
   context: OjsContext,
-  flowCallbacks: OjsFlowCallbacks
+  formCallbacks: FormCallbacks
 ): Promise<void> => {
-  await Promise.all(Object.values(flows).map((flow) => flow.initialize({ context, flowCallbacks })));
+  await Promise.all(Object.values(flows).map((flow) => flow.initialize({ context, formCallbacks })));
 };
 
 /**

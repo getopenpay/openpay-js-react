@@ -49,6 +49,11 @@ export class LoadedOncePublisher<T> {
     return this._current;
   }
 
+  getValueIfLoadedElse = <T_ELSE>(valueIfNotLoaded: T_ELSE): T | T_ELSE => {
+    if (this._current.status === 'success') return this._current.loadedValue;
+    return valueIfNotLoaded;
+  };
+
   subscribe = (fn: (value: Exclude<CurrentStatus<T>, InitialStatus>) => void) => {
     if (this._current.status === 'success') {
       fn(this._current);

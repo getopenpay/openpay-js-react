@@ -113,7 +113,7 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
       context,
       checkoutPaymentMethod,
       nonCdeFormInputs,
-      flowCallbacks,
+      formCallbacks,
       customParams,
       initResult,
     }): Promise<SimpleOjsFlowResult> => {
@@ -140,7 +140,7 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
 
       log__(`Merging PM fields with form fields...`);
       const mergedInputs = fillEmptyFormInputsWithStripePm(nonCdeFormInputs, stripePmAddedEvent);
-      const nonCdeFormFields = validateNonCdeFormFieldsForCC(mergedInputs, flowCallbacks.onValidationError);
+      const nonCdeFormFields = validateNonCdeFormFieldsForCC(mergedInputs, formCallbacks.get.onValidationError);
 
       log__(`PR dialog finished. Starting payment flow...`);
       const startPaymentFlowResponse = await startPaymentFlowForPR(anyCdeConnection, {
