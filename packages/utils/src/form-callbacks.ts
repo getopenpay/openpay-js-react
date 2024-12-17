@@ -47,7 +47,11 @@ export type ZodFormCallbacks = z.infer<typeof ZodFormCallbacks>;
 
 export class FormCallbacks {
   private static readonly NOOP = () => {};
-  private _callbacks: Required<AllCallbacks> = FormCallbacks.createEmptyCallbacks();
+  private _callbacks: Required<AllCallbacks>;
+
+  constructor() {
+    this._callbacks = FormCallbacks.createEmptyCallbacks();
+  }
 
   private static createEmptyCallbacks = (): Required<AllCallbacks> => {
     const x: AllCallbacks = {};
