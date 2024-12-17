@@ -181,6 +181,7 @@ export class OpenPayForm {
     }
   };
 
+  // TODO: move all element-related stuff to a separate file later
   createElement = (elementValue: ElementTypeEnumValue, options: ElementProps = {}) => {
     if (!this.config) throw new Error('OpenPay form not initialized');
     const type = ElementType.parse(elementValue);
