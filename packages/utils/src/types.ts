@@ -7,3 +7,7 @@ export const isJsonString = (str: unknown): boolean => {
     return false;
   }
 };
+
+export function assertNever(value: never): never {
+  throw new Error(`Unhandled case: ${value}`);
+}

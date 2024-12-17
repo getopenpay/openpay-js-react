@@ -53,8 +53,7 @@ export const initFoobarFlow: InitOjsFlow<InitFoobarFlowSuccess> = addErrorCatche
 
     // 👉 Examples of logs. You can also use logs as headers/sections of code blocks
     log__(`Starting foobar flow...`);
-    const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
-    const prefill = await getPrefill(anyCdeConnection);
+    const prefill = await getPrefill(context.anyCdeConnection);
     const isSetupMode = prefill.mode === 'setup';
     log__(`isSetupMode: ${isSetupMode}`);
     err__(`Example of an error log`);
@@ -81,12 +80,12 @@ export const runFoobarFlow: RunOjsFlow<FoobarFlowCustomParams, InitFoobarFlowSuc
       context,
       checkoutPaymentMethod,
       nonCdeFormInputs,
-      flowCallbacks,
+      formCallbacks: flowCallbacks,
       customParams,
       initResult,
     }): Promise<SimpleOjsFlowResult> => {
       log__(`Running Foobar flow...`);
-      const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
+      const anyCdeConnection = context.anyCdeConnection;
       log__('anyCdeConnection is convenient if you just need to do a simple CDE query', anyCdeConnection);
 
       // 👉 There are multiple params passed to runFlow

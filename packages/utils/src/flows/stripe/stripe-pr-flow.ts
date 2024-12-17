@@ -71,7 +71,7 @@ export const initStripePrFlow: InitOjsFlow<InitStripePrFlowResult> = addErrorCat
     const checkoutPaymentMethod = findCpmMatchingType(context.checkoutPaymentMethods, StripePrCpm);
 
     log__(`Initializing Stripe PR flow...`);
-    const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
+    const anyCdeConnection = context.anyCdeConnection;
     const prefill = await getPrefill(anyCdeConnection);
     const isSetupMode = prefill.mode === 'setup';
 
@@ -113,7 +113,7 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
       context,
       checkoutPaymentMethod,
       nonCdeFormInputs,
-      flowCallbacks,
+      formCallbacks,
       customParams,
       initResult,
     }): Promise<SimpleOjsFlowResult> => {
@@ -121,7 +121,7 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
       if (customParams.provider !== checkoutPaymentMethod.provider) {
         throw new Error(`Provider mismatch. Expected ${customParams.provider}, got ${checkoutPaymentMethod.provider}`);
       }
-      const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
+      const anyCdeConnection = context.anyCdeConnection;
       const pr = initResult.pr;
 
       // TODO: adjust PR amounts as coupons are applied
@@ -140,7 +140,10 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
 
       log__(`Merging PM fields with form fields...`);
       const mergedInputs = fillEmptyFormInputsWithStripePm(nonCdeFormInputs, stripePmAddedEvent);
-      const nonCdeFormFields = validateNonCdeFormFieldsForCC(mergedInputs, flowCallbacks.onValidationError);
+      const nonCdeFormFields = validateNonCdeFormFieldsForCC(
+        mergedInputs,
+        formCallbacks.get.onValidationError ?? (() => {})
+      );
 
       log__(`PR dialog finished. Starting payment flow...`);
       const startPaymentFlowResponse = await startPaymentFlowForPR(anyCdeConnection, {
@@ -162,7 +165,7 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
         return { mode: 'setup', result: createdPaymentMethod };
       } else {
         log__(`Performing checkout...`);
-        // TODO ASAP: refactor this
+        // TODO: refactor this
         const checkoutRequest: CheckoutRequest = {
           secure_token: prefill.token,
           payment_input: {

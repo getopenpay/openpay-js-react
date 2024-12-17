@@ -30,6 +30,7 @@ export const OjsFlows = {
 
   // Common
   commonCC: {
+    init: async () => {},
     run: runCommonCcFlow,
   },
 

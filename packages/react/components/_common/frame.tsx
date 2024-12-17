@@ -1,18 +1,19 @@
 import { FC, useEffect, useMemo, useRef, useState } from 'react';
-import { convertStylesToQueryString } from '@getopenpay/utils';
+import { convertStylesToQueryString, ElementType } from '@getopenpay/utils';
 import { CardPlaceholder, ElementsStyle } from '@getopenpay/utils';
 import { useOpenPayElements } from '../../hooks/use-openpay-elements';
 import { z } from 'zod';
 
 type ElementFrameProps<T extends z.ZodTypeAny = z.ZodOptional<z.ZodString | typeof CardPlaceholder>> = {
   checkoutSecureToken?: string;
-  subPath: string;
+  elementType: ElementType;
   styles?: ElementsStyle<T>;
 };
 
 const ElementFrame: FC<ElementFrameProps> = (props) => {
-  const { subPath, styles } = props;
-  const { formId, referer, formHeight, checkoutSecureToken, registerIframe, baseUrl } = useOpenPayElements();
+  const { elementType, styles } = props;
+  const { formId, referrer, formHeight, checkoutSecureToken, registerIframe, baseUrl } = useOpenPayElements();
+  const subPath = elementType.toLowerCase();
 
   const [hasLoaded, setHasLoaded] = useState<boolean>(false);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -31,22 +32,21 @@ const ElementFrame: FC<ElementFrameProps> = (props) => {
   }, [formHeight]);
 
   const queryString = useMemo(() => {
-    if (!checkoutSecureToken || !referer) return '';
+    if (!checkoutSecureToken || !referrer) return '';
     const params = new URLSearchParams();
 
-    params.append('referer', referer);
+    params.append('referer', referrer);
     params.append('styles', elementStyle);
     params.append('formId', formId);
     params.append('secureToken', checkoutSecureToken);
 
     return params.toString();
-  }, [elementStyle, formId, referer, checkoutSecureToken]);
+  }, [elementStyle, formId, referrer, checkoutSecureToken]);
 
   useEffect(() => setHasLoaded(true), []);
   useEffect(() => {
-    console.log('[OJS] element frame register attempt', !!iframeRef.current, !!hasLoaded);
     if (!iframeRef.current || !hasLoaded) return;
-    registerIframe(iframeRef.current);
+    registerIframe(elementType, iframeRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasLoaded]);
 

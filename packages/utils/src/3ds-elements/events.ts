@@ -15,11 +15,11 @@ export function startPolling(
 ): NodeJS.Timeout {
   const handlePolling = async () => {
     try {
-      console.log('🔄 Polling CDE connection...');
+      // console.log('🔄 Polling CDE connection...');
       const status = await pingCdeFor3dsStatus(iframe, childOrigin);
       if (status) {
-        console.log('🟢 CDE connection successful! Stopping polling...');
-        console.log('➡️ Got status:', status);
+        // console.log('🟢 CDE connection successful! Stopping polling...');
+        // console.log('➡️ Got status:', status);
         clearInterval(pollingInterval);
         onSuccess(status);
       }

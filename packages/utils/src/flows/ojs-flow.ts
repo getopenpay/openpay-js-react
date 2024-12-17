@@ -1,7 +1,8 @@
 import { CdeConnection } from '../cde-connection';
 import { CheckoutSuccessResponse, SetupCheckoutResponse } from '../cde_models';
 import { getErrorMessage } from '../errors';
-import { AllFieldNames, CheckoutPaymentMethod, ElementType } from '../shared-models';
+import { FormCallbacks } from '../form-callbacks';
+import { CheckoutPaymentMethod } from '../shared-models';
 import chalk from 'chalk';
 
 export type OjsFlowParams<T_PARAMS = void, T_INIT_RESULT = void> = {
@@ -22,9 +23,9 @@ export type OjsFlowParams<T_PARAMS = void, T_INIT_RESULT = void> = {
   nonCdeFormInputs: Record<string, unknown>;
 
   /**
-   * Lifecycle callbacks for OJS flows.
+   * Form callbacks. Take note that these can be dynamically updated (but the object remains)
    */
-  flowCallbacks: OjsFlowCallbacks;
+  formCallbacks: FormCallbacks;
 
   /**
    * Custom parameters for the flow.
@@ -47,7 +48,7 @@ export type InitOjsFlowParams = {
   /**
    * Lifecycle callbacks for OJS flows.
    */
-  flowCallbacks: OjsFlowCallbacks;
+  formCallbacks: FormCallbacks;
 };
 
 export type InitOjsFlowResult = {
@@ -75,20 +76,6 @@ export type SimpleOjsFlowResult =
       result: SetupCheckoutResponse;
     };
 
-export type OnCheckoutError = (message: string) => void;
-export type OnCheckoutStarted = () => void;
-export type OnCheckoutSuccess = (invoiceUrls: string[], subscriptionIds: string[], customerId: string) => void;
-export type OnSetupPaymentMethodSuccess = (paymentMethodId: string) => void;
-export type OnValidationError = (field: AllFieldNames, errors: string[], elementId?: string) => void;
-
-export type OjsFlowCallbacks = {
-  onCheckoutError: OnCheckoutError;
-  onCheckoutStarted: OnCheckoutStarted;
-  onCheckoutSuccess: OnCheckoutSuccess;
-  onSetupPaymentMethodSuccess: OnSetupPaymentMethodSuccess;
-  onValidationError: OnValidationError;
-};
-
 export type OjsContext = {
   /**
    * The form element for the OJS form (non-CDE form).
@@ -108,7 +95,7 @@ export type OjsContext = {
   /**
    * All the CDE connection objects (one for each CDE iframe).
    */
-  cdeConnections: Map<ElementType, CdeConnection>;
+  anyCdeConnection: CdeConnection;
 
   /**
    * Custom init params for init flows.
@@ -162,12 +149,12 @@ export const addBasicCheckoutCallbackHandlers = <T_PARAMS, T_INIT_RESULT>(
 ): RunOjsFlow<T_PARAMS, T_INIT_RESULT> => {
   return async (params: OjsFlowParams<T_PARAMS, T_INIT_RESULT>): Promise<void> => {
     try {
-      params.flowCallbacks.onCheckoutStarted();
+      params.formCallbacks.get.onCheckoutStarted?.();
       const flowResult = await simpleOjsFlow(params);
       if (flowResult.mode === 'setup') {
-        params.flowCallbacks.onSetupPaymentMethodSuccess(flowResult.result.payment_method_id);
+        params.formCallbacks.get.onSetupPaymentMethodSuccess?.(flowResult.result.payment_method_id);
       } else if (flowResult.mode === 'checkout') {
-        params.flowCallbacks.onCheckoutSuccess(
+        params.formCallbacks.get.onCheckoutSuccess?.(
           flowResult.result.invoice_urls,
           flowResult.result.subscription_ids,
           flowResult.result.customer_id
@@ -176,7 +163,7 @@ export const addBasicCheckoutCallbackHandlers = <T_PARAMS, T_INIT_RESULT>(
         throw new Error(`Unhandled mode: ${flowResult}`);
       }
     } catch (error) {
-      params.flowCallbacks.onCheckoutError(getErrorMessage(error));
+      params.formCallbacks.get.onCheckoutError?.(getErrorMessage(error));
       throw error;
     }
   };

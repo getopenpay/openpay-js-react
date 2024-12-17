@@ -8,8 +8,9 @@ import {
   startPaymentFlowForCC,
   tokenizeCardOnAllConnections,
 } from '../../cde-client';
+import { CdeConnection } from '../../cde-connection';
 import { StartPaymentFlowForCCResponse } from '../../cde_models';
-import { Common3DSNextActionMetadata, ThreeDSStatus } from '../../shared-models';
+import { Common3DSNextActionMetadata, ElementType, ThreeDSStatus } from '../../shared-models';
 import { launchStripe3DSDialogFlow, Stripe3DSNextActionMetadata } from '../../stripe';
 import { validateNonCdeFormFieldsForCC, validateTokenizeCardResults } from '../common/cc-flow-utils';
 import { parseConfirmPaymentFlowResponse } from '../common/common-flow-utils';
@@ -18,23 +19,40 @@ import { addBasicCheckoutCallbackHandlers, createOjsFlowLoggers, RunOjsFlow, Sim
 const { log__, err__ } = createOjsFlowLoggers('common-cc');
 const { log__: stripeLog__ } = createOjsFlowLoggers('stripe-cc');
 
+type CommonCcFlowParams = {
+  /**
+   * All of the current successful CDE connections.
+   * This value may change between different calls to the flow, if the CDE iframes are still loading.
+   */
+  currentCdeConnections: Map<ElementType, CdeConnection>;
+};
+
 /*
  * Runs the main common CC flow
  */
-export const runCommonCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
-  async ({ context, checkoutPaymentMethod, nonCdeFormInputs, flowCallbacks }): Promise<SimpleOjsFlowResult> => {
+export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBasicCheckoutCallbackHandlers(
+  async ({
+    context,
+    checkoutPaymentMethod,
+    nonCdeFormInputs,
+    formCallbacks,
+    customParams,
+  }): Promise<SimpleOjsFlowResult> => {
     log__(`├ Running common CC flow...`, { checkoutPaymentMethod });
-    const anyCdeConnection = Array.from(context.cdeConnections.values())[0];
+    const anyCdeConnection = context.anyCdeConnection;
     const prefill = await getPrefill(anyCdeConnection);
 
     log__(`├ Validating non-CDE form fields [Mode: ${prefill.mode}]`);
-    const nonCdeFormFields = validateNonCdeFormFieldsForCC(nonCdeFormInputs, flowCallbacks.onValidationError);
+    const nonCdeFormFields = validateNonCdeFormFieldsForCC(
+      nonCdeFormInputs,
+      formCallbacks.get.onValidationError ?? (() => {})
+    );
 
     log__(`├ Tokenizing card info in CDE [Session: ${context.elementsSessionId}]`);
-    const tokenizeCardResults = await tokenizeCardOnAllConnections(context.cdeConnections, {
+    const tokenizeCardResults = await tokenizeCardOnAllConnections(customParams.currentCdeConnections, {
       session_id: context.elementsSessionId,
     });
-    validateTokenizeCardResults(tokenizeCardResults, flowCallbacks.onValidationError);
+    validateTokenizeCardResults(tokenizeCardResults, formCallbacks.get.onValidationError ?? (() => {}));
 
     const commonCheckoutParams = {
       session_id: context.elementsSessionId,
@@ -74,7 +92,7 @@ export const runCommonCcFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
             await stripeCC3DSFlow(startPfResult);
           }
 
-          // TODO ASAP: ideally we also do confirmPaymentFlow for non-setup mode,
+          // TODO URGENT: ideally we also do confirmPaymentFlow for non-setup mode,
           // but for some reason 3DS_REQUIRED is thrown again during confirmPaymentFlow
           // even though the 3DS flow has been completed.
           if (prefill.mode === 'setup') {

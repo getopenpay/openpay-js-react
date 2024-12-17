@@ -1,75 +1,79 @@
-import { OjsFlows } from './all-flows';
-import { Loadable } from './common/common-flow-utils';
-import { createOjsFlowLoggers, InitOjsFlowParams, InitOjsFlowResult, OjsContext, OjsFlowCallbacks } from './ojs-flow';
-import Observable from 'zen-observable';
+import { createOjsFlowLoggers, InitOjsFlow, InitOjsFlowParams, InitOjsFlowResult, OjsContext } from './ojs-flow';
 import { StripeLinkController } from './stripe/stripe-link-flow';
+import { OjsFlows } from './all-flows';
+import { getErrorMessage } from '../errors';
+import { LoadedOncePublisher } from '../loaded-once-publisher';
+import { FormCallbacks } from '../form-callbacks';
 
 const { log__, err__ } = createOjsFlowLoggers('init-flows');
 
-/**
- * This object should only be used for debugging purposes.
- * If you need to use OJS initialization results for RunFlows, please pass it properly from the corresponding InitFlows.
- */
-const getOjsInitResultsDebugObject = () => {
-  if (!('ojs_init_results' in window)) {
-    // @ts-expect-error window typing
-    window['ojs_init_results'] = {};
-  }
-  // @ts-expect-error window typing
-  return window['ojs_init_results'];
+export type OjsInitFlowsPublishers = ReturnType<typeof createInitFlowsPublishers>;
+export type { StripeLinkController };
+
+type InitFlowLoader<T extends InitOjsFlowResult> = {
+  /**
+   * A publisher that can be used to observe the flow
+   */
+  publisher: LoadedOncePublisher<T>;
+
+  /**
+   * Runs the actual initFlow. This is called by startAllInitFlows.
+   * Do NOT run this yourself if you don't know what you're doing.
+   */
+  initialize: (initParams: InitOjsFlowParams) => Promise<void>;
 };
 
 /**
- * Initializes all OJS flows.
- * All init flows should be added to this function.
+ * Helper function to create a BehaviorSubject and a runner for an init flow.
  */
-export const initializeOjsFlows = (context: OjsContext, flowCallbacks: OjsFlowCallbacks) => {
-  const initParams: InitOjsFlowParams = { context, flowCallbacks };
-  console.log('[OJS] initializing OJS flows...');
+const createInitFlowPublisher = <T extends InitOjsFlowResult>(
+  flowName: string,
+  initFlow: InitOjsFlow<T>
+): InitFlowLoader<T> => {
+  const publisher = new LoadedOncePublisher<T>();
   return {
-    // Stripe PR
-    stripePR: runInitFlowAsObservable('stripePR', OjsFlows.stripePR.init(initParams)),
-
-    // Stripe Link
-    stripeLink: runInitFlowAsObservable('stripeLink', OjsFlows.stripeLink.init(initParams)),
-
-    // 👉 Add initialization flows here
+    publisher,
+    initialize: async (initParams: InitOjsFlowParams) => {
+      try {
+        if (publisher.current.isSuccess) {
+          throw new Error(`This flow has already been initialized.`);
+        }
+        const initResult = await initFlow(initParams);
+        log__(`✔ ${flowName} flow initialized successfully. Result:`, initResult);
+        publisher.set(initResult);
+      } catch (error) {
+        err__(`𝙭 ${flowName} flow initialization failed. Error:`, getErrorMessage(error), 'Details:', error);
+        publisher.throw(error, getErrorMessage(error));
+      }
+    },
   };
 };
 
 /**
- * Runs an InitOjsFlow (i.e. an OJS flow initialization step) as an observable
+ * Initializes all OJS flows
  */
-const runInitFlowAsObservable = <T extends InitOjsFlowResult>(
-  flowName: string,
-  initFlow: Promise<T>
-): Observable<Loadable<T>> => {
-  const observable = new Observable<Loadable<T>>((observer) => {
-    observer.next({ status: 'loading' });
-    initFlow
-      .then((result) => {
-        observer.next({ status: 'loaded', result });
-      })
-      .catch((error) => {
-        observer.next({ status: 'error', message: error.message });
-      });
-  });
-
-  // We subscribe right away so that Observables are not lazy and are immediately executed
-  observable.subscribe({
-    next: (result) => {
-      log__(`${flowName} flow result`, result);
-      getOjsInitResultsDebugObject()[flowName] = result;
-    },
-    error: (error) => {
-      err__(`${flowName} flow initialization error:\n${JSON.stringify(error)}`);
-      // This shouldn't happen, since we're handling all the errors in the .catch block
-      throw error;
-    },
-  });
-
-  return observable;
+export const startAllInitFlows = async (
+  flows: OjsInitFlowsPublishers,
+  context: OjsContext,
+  formCallbacks: FormCallbacks
+): Promise<void> => {
+  await Promise.all(Object.values(flows).map((flow) => flow.initialize({ context, formCallbacks })));
 };
 
-export type OjsFlowsInitialization = ReturnType<typeof initializeOjsFlows>;
-export type { StripeLinkController };
+/**
+ * Creates a set of BehaviorSubjects for all OJS flows.
+ * All init flows should be added to this function.
+ */
+export const createInitFlowsPublishers = () => {
+  return {
+    // 💡 Add new init flows here
+
+    // Stripe PR
+    stripePR: createInitFlowPublisher('Stripe PR', OjsFlows.stripePR.init),
+
+    // Stripe Link
+    stripeLink: createInitFlowPublisher('Stripe Link', OjsFlows.stripeLink.init),
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as const satisfies Record<string, InitFlowLoader<any>>;
+};

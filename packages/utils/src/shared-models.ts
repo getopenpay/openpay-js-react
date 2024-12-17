@@ -315,6 +315,10 @@ export type PaymentRequestStatus = {
   startFlow: (params?: PaymentRequestStartParams) => Promise<void>;
 };
 
+export const PaymentRequestProvider = z.enum(['apple_pay', 'google_pay']);
+export type PaymentRequestProvider = z.infer<typeof PaymentRequestProvider>;
+export type PRStatuses = Record<PaymentRequestProvider, PaymentRequestStatus>;
+
 // CheckoutPreviewRequest
 export const CheckoutPreviewRequest = z.object({
   secure_token: z.string(),

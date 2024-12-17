@@ -71,7 +71,6 @@ export const createStripePaymentRequest = async (
   isAmountPending?: boolean,
   isLinkOnly?: boolean
 ): Promise<PaymentRequest> => {
-  console.log(isLinkOnly);
   const stripe = await getLoadedStripe(stripePubKey);
   const stripeCurrency = ourCurrencyToTheirs[currency.toLowerCase().trim()];
   const paymentRequest = stripe.paymentRequest({
