@@ -47,7 +47,7 @@ export const setupPaymentRequestHandlers = (
           },
         },
       };
-      callbacks.get.onPaymentRequestLoad?.(finalStatus);
+      callbacks.get.onPaymentRequestLoad(finalStatus);
     }
   });
 };

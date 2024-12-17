@@ -125,14 +125,14 @@ export class OpenPayForm {
 
       log__('├ Starting OJS init flows...');
       await startAllInitFlows(this.initFlows, ojsContext, this.formCallbacks);
-      this.formCallbacks.get.onLoad?.(cdeLoaded.totalAmountAtoms, cdeLoaded.currency);
+      this.formCallbacks.get.onLoad(cdeLoaded.totalAmountAtoms, cdeLoaded.currency);
       log__('╰ Done initializing OJS flows.');
     } catch (err) {
       const errorMessage = getErrorMessage(err);
       err__('╰ Error initializing OP form:', errorMessage);
       // Note: normally you don't need this, but it's good for visibility
       // There might be a case where onLoad is called, then onLoadError is called next
-      this.formCallbacks.get.onLoadError?.(errorMessage);
+      this.formCallbacks.get.onLoadError(errorMessage);
     }
   };
 

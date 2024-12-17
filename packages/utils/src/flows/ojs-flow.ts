@@ -152,9 +152,9 @@ export const addBasicCheckoutCallbackHandlers = <T_PARAMS, T_INIT_RESULT>(
       params.formCallbacks.get.onCheckoutStarted?.();
       const flowResult = await simpleOjsFlow(params);
       if (flowResult.mode === 'setup') {
-        params.formCallbacks.get.onSetupPaymentMethodSuccess?.(flowResult.result.payment_method_id);
+        params.formCallbacks.get.onSetupPaymentMethodSuccess(flowResult.result.payment_method_id);
       } else if (flowResult.mode === 'checkout') {
-        params.formCallbacks.get.onCheckoutSuccess?.(
+        params.formCallbacks.get.onCheckoutSuccess(
           flowResult.result.invoice_urls,
           flowResult.result.subscription_ids,
           flowResult.result.customer_id
@@ -163,8 +163,7 @@ export const addBasicCheckoutCallbackHandlers = <T_PARAMS, T_INIT_RESULT>(
         throw new Error(`Unhandled mode: ${flowResult}`);
       }
     } catch (error) {
-      params.formCallbacks.get.onCheckoutError?.(getErrorMessage(error));
-      throw error;
+      params.formCallbacks.get.onCheckoutError(getErrorMessage(error));
     }
   };
 };
