@@ -71,6 +71,6 @@ export class FormCallbacks {
    * Returns a read-only version of the callbacks object.
    */
   get get() {
-    return { ...this._callbacks } as const;
+    return { ...this._callbacks };
   }
 }

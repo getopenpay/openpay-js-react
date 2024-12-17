@@ -153,7 +153,7 @@ const Form: FC<FormProps> = (props) => {
 
           <button
             data-testid="submit-button"
-            disabled={!loaded}
+            disabled={!loaded || loading}
             onClick={submit}
             className={`px-4 py-2 mt-2 w-full font-bold rounded-lg bg-emerald-500 
                        dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 
@@ -165,7 +165,7 @@ const Form: FC<FormProps> = (props) => {
 
           <button
             onClick={() => applePay.startFlow(prParams)}
-            disabled={!applePay.isAvailable}
+            disabled={!applePay.isAvailable || loading}
             className={classNames(
               'px-4 py-2 mt-2 w-full rounded-lg',
               applePay.isAvailable
@@ -178,7 +178,7 @@ const Form: FC<FormProps> = (props) => {
 
           <button
             onClick={() => googlePay.startFlow(prParams)}
-            disabled={!googlePay.isAvailable}
+            disabled={!googlePay.isAvailable || loading}
             className={classNames(
               'px-4 py-2 mt-2 w-full rounded-lg',
               googlePay.isAvailable

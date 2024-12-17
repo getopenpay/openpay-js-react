@@ -1,6 +1,7 @@
+import { OnValidationError } from '../../form-callbacks';
 import { AllFieldNames, FieldName, RequiredFormFields, TokenizeCardResponse } from '../../shared-models';
 import { extractIssuesPerField } from '../../zod-errors';
-import { createOjsFlowLoggers, OnValidationError } from '../ojs-flow';
+import { createOjsFlowLoggers } from '../ojs-flow';
 
 const { log__, err__ } = createOjsFlowLoggers('common-cc');
 
@@ -39,7 +40,7 @@ export const validateTokenizeCardResults = (
       tokenizeResult.errors.forEach((error) => {
         const parsed = AllFieldNames.safeParse(error.elementType);
         if (!parsed.success) {
-          err__(`Unknown field name in onValidationError: ${error.elementType}`);
+          err__(`Unknown field name in onValidationError: ${error.elementType}. Error object:`, error);
         } else {
           const fieldName = parsed.data;
           onValidationError(fieldName, error.errors);

@@ -69,7 +69,7 @@ export type StripeLinkRequiredUserActions = z.infer<typeof StripeLinkRequiredUse
  * Initializes the Stripe link flow (put more details here)
  */
 export const initStripeLinkFlow: InitOjsFlow<InitStripeLinkFlowResult> = addErrorCatcherForInit(
-  async ({ context, formCallbacks: flowCallbacks }): Promise<InitStripeLinkFlowResult> => {
+  async ({ context, formCallbacks }): Promise<InitStripeLinkFlowResult> => {
     const initParams = context.customInitParams.stripeLink;
 
     log__(`Checking if there are any CPMs for Stripe PR...`);
@@ -136,14 +136,14 @@ export const initStripeLinkFlow: InitOjsFlow<InitStripeLinkFlowResult> = addErro
       });
       if (result.error) {
         err__('error', result.error);
-        flowCallbacks.onCheckoutError(result.error.message ?? 'Stripe Link unknown error');
+        formCallbacks.get.onCheckoutError?.(result.error.message ?? 'Stripe Link unknown error');
       } else {
         log__('paymentMethod', result.paymentMethod);
         OjsFlows.stripeLink.run({
           context,
           checkoutPaymentMethod: stripeLinkCpm,
           nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
-          formCallbacks: flowCallbacks,
+          formCallbacks,
           customParams: { stripePM: result.paymentMethod },
           initResult: { isAvailable: true },
         });
@@ -170,7 +170,7 @@ export const runStripeLinkFlow: RunOjsFlow<RunStripeLinkFlowParams, InitOjsFlowR
       context,
       checkoutPaymentMethod,
       nonCdeFormInputs,
-      formCallbacks: flowCallbacks,
+      formCallbacks,
       customParams,
     }): Promise<SimpleOjsFlowResult> => {
       log__(`Running Stripe PR flow...`);
@@ -178,7 +178,10 @@ export const runStripeLinkFlow: RunOjsFlow<RunStripeLinkFlowParams, InitOjsFlowR
 
       log__(`Merging PM fields with form fields...`);
       const mergedInputs = fillEmptyFormInputsWithStripePM(nonCdeFormInputs, customParams.stripePM);
-      const nonCdeFormFields = validateNonCdeFormFieldsForCC(mergedInputs, flowCallbacks.onValidationError);
+      const nonCdeFormFields = validateNonCdeFormFieldsForCC(
+        mergedInputs,
+        formCallbacks.get.onValidationError ?? (() => {})
+      );
 
       log__(`Starting payment flow...`);
       const startPaymentFlowResponse = await startPaymentFlow(anyCdeConnection, {
