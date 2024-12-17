@@ -49,13 +49,13 @@ export class OpenPayFormEventHandler {
         this.internalCallbacks.setFormHeight(payload.height ? `${payload.height}px` : '100%');
         break;
       case 'FOCUS':
-        this.formCallbacks.get.onFocus?.(elementId, payload.elementType);
+        this.formCallbacks.get.onFocus(elementId, payload.elementType);
         break;
       case 'BLUR':
-        this.formCallbacks.get.onBlur?.(elementId, payload.elementType);
+        this.formCallbacks.get.onBlur(elementId, payload.elementType);
         break;
       case 'CHANGE':
-        this.formCallbacks.get.onChange?.(elementId, payload.elementType, payload.errors);
+        this.formCallbacks.get.onChange(elementId, payload.elementType, payload.errors);
         break;
       case 'LOADED':
         this.eventTargets[elementId] = event.source;
@@ -65,7 +65,7 @@ export class OpenPayFormEventHandler {
         this.internalCallbacks.onCdeLoadError(payload.message);
         break;
       case 'VALIDATION_ERROR':
-        this.formCallbacks.get.onValidationError?.(payload.elementType, payload.errors, elementId);
+        this.formCallbacks.get.onValidationError(payload.elementType, payload.errors, elementId);
         break;
       default:
         console.warn('[form] Unhandled event type:', eventType);

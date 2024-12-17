@@ -136,7 +136,7 @@ export const initStripeLinkFlow: InitOjsFlow<InitStripeLinkFlowResult> = addErro
       });
       if (result.error) {
         err__('error', result.error);
-        formCallbacks.get.onCheckoutError?.(result.error.message ?? 'Stripe Link unknown error');
+        formCallbacks.get.onCheckoutError(result.error.message ?? 'Stripe Link unknown error');
       } else {
         log__('paymentMethod', result.paymentMethod);
         OjsFlows.stripeLink.run({
@@ -178,10 +178,7 @@ export const runStripeLinkFlow: RunOjsFlow<RunStripeLinkFlowParams, InitOjsFlowR
 
       log__(`Merging PM fields with form fields...`);
       const mergedInputs = fillEmptyFormInputsWithStripePM(nonCdeFormInputs, customParams.stripePM);
-      const nonCdeFormFields = validateNonCdeFormFieldsForCC(
-        mergedInputs,
-        formCallbacks.get.onValidationError ?? (() => {})
-      );
+      const nonCdeFormFields = validateNonCdeFormFieldsForCC(mergedInputs, formCallbacks.get.onValidationError);
 
       log__(`Starting payment flow...`);
       const startPaymentFlowResponse = await startPaymentFlow(anyCdeConnection, {

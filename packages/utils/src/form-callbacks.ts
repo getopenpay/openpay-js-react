@@ -46,7 +46,17 @@ export const ZodFormCallbacks = z.object({
 export type ZodFormCallbacks = z.infer<typeof ZodFormCallbacks>;
 
 export class FormCallbacks {
-  private _callbacks: AllCallbacks = {};
+  private static readonly NOOP = () => {};
+  private _callbacks: Required<AllCallbacks> = FormCallbacks.createEmptyCallbacks();
+
+  private static createEmptyCallbacks = (): Required<AllCallbacks> => {
+    const x: AllCallbacks = {};
+    Object.keys(ZodFormCallbacks.keyof().enum).forEach((key) => {
+      // @ts-expect-error - trust the process
+      x[key] = FormCallbacks.NOOP;
+    });
+    return x as Required<AllCallbacks>;
+  };
 
   static fromObject = (obj: unknown) => {
     const instance = new FormCallbacks();
@@ -59,9 +69,9 @@ export class FormCallbacks {
    */
   setCallbacks = (rawCallbacks: AllCallbacks) => {
     // Making sure to reinitialize
-    this._callbacks = {};
+    this._callbacks = FormCallbacks.createEmptyCallbacks();
     Object.entries(rawCallbacks).forEach(([key, rawCallback]) => {
-      const safeCallback = makeCallbackSafe(key, rawCallback ?? (() => {}), err__);
+      const safeCallback = makeCallbackSafe(key, rawCallback ?? FormCallbacks.NOOP, err__);
       // @ts-expect-error - trust the process
       this._callbacks[key] = safeCallback;
     });

@@ -43,16 +43,13 @@ export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBas
     const prefill = await getPrefill(anyCdeConnection);
 
     log__(`├ Validating non-CDE form fields [Mode: ${prefill.mode}]`);
-    const nonCdeFormFields = validateNonCdeFormFieldsForCC(
-      nonCdeFormInputs,
-      formCallbacks.get.onValidationError ?? (() => {})
-    );
+    const nonCdeFormFields = validateNonCdeFormFieldsForCC(nonCdeFormInputs, formCallbacks.get.onValidationError);
 
     log__(`├ Tokenizing card info in CDE [Session: ${context.elementsSessionId}]`);
     const tokenizeCardResults = await tokenizeCardOnAllConnections(customParams.currentCdeConnections, {
       session_id: context.elementsSessionId,
     });
-    validateTokenizeCardResults(tokenizeCardResults, formCallbacks.get.onValidationError ?? (() => {}));
+    validateTokenizeCardResults(tokenizeCardResults, formCallbacks.get.onValidationError);
 
     const commonCheckoutParams = {
       session_id: context.elementsSessionId,
