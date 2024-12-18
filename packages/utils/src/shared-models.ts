@@ -393,6 +393,7 @@ export enum ThreeDSStatus {
 // Ping3DSStatusResponse
 export const Ping3DSStatusResponse = z.object({
   status: z.enum([ThreeDSStatus.SUCCESS, ThreeDSStatus.FAILURE, ThreeDSStatus.CANCELLED]),
+  href: z.string().optional().nullable(),
 });
 
 export type Ping3DSStatusResponse = z.infer<typeof Ping3DSStatusResponse>;
