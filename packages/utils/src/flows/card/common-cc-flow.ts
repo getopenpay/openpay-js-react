@@ -6,12 +6,11 @@ import {
   confirmPaymentFlow,
   getPrefill,
   setupCheckout,
-  startPaymentFlow,
   startPaymentFlowForCC,
   tokenizeCardOnAllConnections,
 } from '../../cde-client';
 import { CdeConnection } from '../../cde-connection';
-import { StartPaymentFlowForCCResponse } from '../../cde_models';
+import { StartPaymentFlowForCCRequest, StartPaymentFlowForCCResponse } from '../../cde_models';
 import { getErrorMessage } from '../../errors';
 import { Common3DSNextActionMetadata, ElementType, ThreeDSStatus } from '../../shared-models';
 import { launchStripe3DSDialogFlow, Stripe3DSNextActionMetadata } from '../../stripe';
@@ -59,10 +58,11 @@ export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBas
     log__(`├ Validating non-CDE form fields [Mode: ${prefill.mode}]`);
     const nonCdeFormFields = validateNonCdeFormFieldsForCC(nonCdeFormInputs, formCallbacks.get.onValidationError);
 
-    const commonCheckoutParams = {
+    const commonCheckoutParams: StartPaymentFlowForCCRequest = {
       session_id: context.elementsSessionId,
       checkout_payment_method: checkoutPaymentMethod,
       non_cde_form_fields: nonCdeFormFields,
+      extra_metadata: {},
     };
 
     try {
@@ -94,39 +94,46 @@ export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBas
           log__('error.response.headers', error.response.headers);
           const shouldUseNewFlow = error.response.headers?.['op-should-use-new-flow'] === 'true';
           log__(`├ op-should-use-new-flow: ${shouldUseNewFlow}`);
+          let isPockyt3DS = false;
 
-          let ccPmId: string;
+          // Check if Pockyt 3DS case
+          const pockyt3dsUrl = error.response.headers?.['op-pockyt-3ds-url'];
+          if (pockyt3dsUrl) {
+            const pockytVaultId = await pockyt3DSFlow(pockyt3dsUrl, context.baseUrl);
+            const pockytTxnNo = error.response.headers?.['op-pockyt-txn-no'];
+            const pockytRefNo = error.response.headers?.['op-pockyt-ref-no'];
 
-          // Pockyt gives us the 3DS URL in the header
-          // TODO ASAP: rename to pockyt specific header
-          const op3dsUrl = error.response.headers?.['op-3ds-url'];
-          if (op3dsUrl) {
-            const pockytVaultId = await pockyt3DSFlow(op3dsUrl, context.baseUrl);
-            const startPaymentFlowResponse = await startPaymentFlow(anyCdeConnection, {
-              payment_provider: checkoutPaymentMethod.provider,
-              checkout_payment_method: {
-                ...checkoutPaymentMethod,
-                processor_name: 'pockyt', // Needs to be specified as we now have an existing pockyt PM
+            if (!pockytTxnNo || !pockytRefNo) {
+              err__('Error checking out. Missing PockytTxnNo or PockytRefNo:', {
+                pockytTxnNo,
+                pockytRefNo,
+              });
+              throw new Error('Unable to process your credit card. Please contact support for assistance.');
+            }
+
+            commonCheckoutParams.extra_metadata = {
+              pockyt: {
+                existing_cc: {
+                  vault_id: pockytVaultId,
+                  transaction_no: pockytTxnNo,
+                  reference_no: pockytRefNo,
+                },
               },
-              their_existing_pm_id: pockytVaultId,
-            });
-            log__('Start payment flow response', startPaymentFlowResponse);
-            const nextActionMetadata = PockytRequiredUserActions.parse(startPaymentFlowResponse.required_user_actions);
-            // Start payment flow for stripe link creates a new OpenPay PM from the Stripe PM
-            const ourExistingPmId = nextActionMetadata[0].our_existing_pm_id;
-            log__('Our existing PM ID', ourExistingPmId);
-            ccPmId = ourExistingPmId;
-          } else {
-            const startPfResult = await startPaymentFlowForCC(anyCdeConnection, commonCheckoutParams);
-            log__(`├ Payment flow result:`, startPfResult);
+            };
+            isPockyt3DS = true;
+          }
 
+          const startPfResult = await startPaymentFlowForCC(anyCdeConnection, commonCheckoutParams);
+          log__(`├ Payment flow result:`, startPfResult);
+
+          if (!isPockyt3DS) {
             if (shouldUseNewFlow) {
               await commonCC3DSFlow(startPfResult, context.baseUrl);
             } else {
               await stripeCC3DSFlow(startPfResult);
             }
-            ccPmId = startPfResult.cc_pm_id;
           }
+          const ccPmId = startPfResult.cc_pm_id;
 
           // TODO URGENT: ideally we also do confirmPaymentFlow for non-setup mode,
           // but for some reason 3DS_REQUIRED is thrown again during confirmPaymentFlow

@@ -258,6 +258,7 @@ export const StartPaymentFlowForCCRequest = z.object({
   session_id: z.string(),
   non_cde_form_fields: RequiredFormFields,
   checkout_payment_method: CheckoutPaymentMethod,
+  extra_metadata: z.record(z.string(), z.any()).optional(),
 });
 export type StartPaymentFlowForCCRequest = z.infer<typeof StartPaymentFlowForCCRequest>;
 

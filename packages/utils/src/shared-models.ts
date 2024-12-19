@@ -382,6 +382,7 @@ export const SetupCheckoutRequest = z.object({
   session_id: z.string(),
   checkout_payment_method: CheckoutPaymentMethod,
   non_cde_form_fields: RequiredFormFields,
+  extra_metadata: z.record(z.string(), z.any()).optional(),
 });
 export type SetupCheckoutRequest = z.infer<typeof SetupCheckoutRequest>;
 export enum ThreeDSStatus {
