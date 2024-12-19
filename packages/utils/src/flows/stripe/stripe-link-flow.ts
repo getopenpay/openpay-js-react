@@ -72,7 +72,7 @@ export const initStripeLinkFlow: InitOjsFlow<InitStripeLinkFlowResult> = addErro
   async ({ context, formCallbacks }): Promise<InitStripeLinkFlowResult> => {
     const initParams = context.customInitParams.stripeLink;
 
-    log__(`Checking if there are any CPMs for Stripe PR...`);
+    log__(`Checking if there are any CPMs for Stripe Link...`);
     const stripeLinkCpm = findCpmMatchingType(context.checkoutPaymentMethods, StripeLinkCpm);
 
     log__(`Starting stripe link flow...`);
@@ -173,7 +173,7 @@ export const runStripeLinkFlow: RunOjsFlow<RunStripeLinkFlowParams, InitOjsFlowR
       formCallbacks,
       customParams,
     }): Promise<SimpleOjsFlowResult> => {
-      log__(`Running Stripe PR flow...`);
+      log__(`Running Stripe Link flow...`);
       const anyCdeConnection = context.anyCdeConnection;
 
       log__(`Merging PM fields with form fields...`);

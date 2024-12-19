@@ -10,7 +10,7 @@ export interface PopupElements {
 
 export function startPolling(
   iframe: HTMLIFrameElement,
-  onSuccess: (status: Ping3DSStatusResponse['status']) => void,
+  onSuccess: (status: Ping3DSStatusResponse) => void,
   childOrigin: string
 ): NodeJS.Timeout {
   const handlePolling = async () => {
@@ -39,12 +39,12 @@ export function handleEvents({
 }: {
   elements: PopupElements;
   pollingInterval: NodeJS.Timeout;
-  resolve: (value: Ping3DSStatusResponse['status']) => void;
+  resolve: (value: Ping3DSStatusResponse) => void;
 }) {
   const handleCancel = () => {
     clearInterval(pollingInterval);
     elements.host.remove();
-    resolve(ThreeDSStatus.CANCELLED);
+    resolve({ status: ThreeDSStatus.CANCELLED });
   };
 
   elements.cancelButton.addEventListener('click', handleCancel);
@@ -65,11 +65,11 @@ export async function start3dsVerification({
 }: {
   url: string;
   baseUrl: string;
-}): Promise<Ping3DSStatusResponse['status']> {
+}): Promise<Ping3DSStatusResponse> {
   const elements = createAndOpenFrame(url);
 
   return new Promise((resolve) => {
-    const onSuccess = (status: Ping3DSStatusResponse['status']) => {
+    const onSuccess = (status: Ping3DSStatusResponse) => {
       setTimeout(() => {
         elements.host.remove();
       }, 1000); // To show the success/failure message for a second

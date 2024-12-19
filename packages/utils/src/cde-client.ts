@@ -238,5 +238,6 @@ export const pingCdeFor3dsStatus = async (iframe: HTMLIFrameElement, childOrigin
   });
   const connectionObj = (await connection.promise) as unknown as CdeConnection;
   const result = await queryCDE(connectionObj, { type: 'ping-3ds-status' }, Ping3DSStatusResponse);
-  return result.status;
+  console.log('🟢 CDE connection successful! Stopping polling... Result:', result);
+  return result;
 };
