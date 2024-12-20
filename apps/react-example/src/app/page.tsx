@@ -132,7 +132,7 @@ const Form: FC<FormProps> = (props) => {
           {separateFrames ? (
             <>
               <InputField hasError={!!validationErrors.card_number}>
-                <CardNumberElement />
+                <CardNumberElement styles={{ hideIcon: 'true' }} />
               </InputField>
               <div className="flex gap-2 items-center justify-between">
                 <InputField hasError={!!validationErrors.card_expiry}>
