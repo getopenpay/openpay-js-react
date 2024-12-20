@@ -396,8 +396,13 @@ export const Ping3DSStatusResponse = z.object({
   status: z.enum([ThreeDSStatus.SUCCESS, ThreeDSStatus.FAILURE, ThreeDSStatus.CANCELLED]),
   href: z.string().optional().nullable(),
 });
-
 export type Ping3DSStatusResponse = z.infer<typeof Ping3DSStatusResponse>;
+
+// Ping3DSStatusResponseStrict (success-only version of Ping3DSStatusResponse)
+export const Ping3DSStatusResponseStrict = z.object({
+  href: z.string().optional().nullable(),
+});
+export type Ping3DSStatusResponseStrict = z.infer<typeof Ping3DSStatusResponseStrict>;
 
 export const Common3DSNextActionMetadata = z.object({
   type: z.string(),
