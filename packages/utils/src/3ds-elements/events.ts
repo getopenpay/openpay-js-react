@@ -1,4 +1,4 @@
-import { Ping3DSStatusResponse, ThreeDSStatus } from '@getopenpay/utils';
+import { assertNever, Ping3DSStatusResponse, Ping3DSStatusResponseStrict, ThreeDSStatus } from '@getopenpay/utils';
 import { CDE_POLLING_INTERVAL, pingCdeFor3dsStatus } from '../cde-client';
 import { createAndOpenFrame } from './frame';
 
@@ -10,7 +10,7 @@ export interface PopupElements {
 
 export function startPolling(
   iframe: HTMLIFrameElement,
-  onSuccess: (status: Ping3DSStatusResponse['status']) => void,
+  onSuccess: (status: Ping3DSStatusResponse) => void,
   childOrigin: string
 ): NodeJS.Timeout {
   const handlePolling = async () => {
@@ -39,12 +39,12 @@ export function handleEvents({
 }: {
   elements: PopupElements;
   pollingInterval: NodeJS.Timeout;
-  resolve: (value: Ping3DSStatusResponse['status']) => void;
+  resolve: (value: Ping3DSStatusResponse) => void;
 }) {
   const handleCancel = () => {
     clearInterval(pollingInterval);
     elements.host.remove();
-    resolve(ThreeDSStatus.CANCELLED);
+    resolve({ status: ThreeDSStatus.CANCELLED });
   };
 
   elements.cancelButton.addEventListener('click', handleCancel);
@@ -59,17 +59,12 @@ export function handleEvents({
 /**
  * @returns `Promise<'success' | 'failure' | 'cancelled'>`
  */
-export async function start3dsVerification({
-  url,
-  baseUrl,
-}: {
-  url: string;
-  baseUrl: string;
-}): Promise<Ping3DSStatusResponse['status']> {
+export async function start3dsVerification(params: { url: string; baseUrl: string }): Promise<Ping3DSStatusResponse> {
+  const { url, baseUrl } = params;
   const elements = createAndOpenFrame(url);
 
   return new Promise((resolve) => {
-    const onSuccess = (status: Ping3DSStatusResponse['status']) => {
+    const onSuccess = (status: Ping3DSStatusResponse) => {
       setTimeout(() => {
         elements.host.remove();
       }, 1000); // To show the success/failure message for a second
@@ -86,3 +81,20 @@ export async function start3dsVerification({
     });
   });
 }
+
+export const start3dsVerificationStrict = async (params: {
+  url: string;
+  baseUrl: string;
+}): Promise<Ping3DSStatusResponseStrict> => {
+  const result = await start3dsVerification(params);
+  if (result.status === ThreeDSStatus.CANCELLED) {
+    throw new Error('3DS verification cancelled');
+  } else if (result.status === ThreeDSStatus.FAILURE) {
+    throw new Error('3DS verification failed');
+  } else if (result.status !== ThreeDSStatus.SUCCESS) {
+    assertNever(result.status);
+  }
+  return {
+    href: result.href,
+  };
+};

@@ -382,6 +382,7 @@ export const SetupCheckoutRequest = z.object({
   session_id: z.string(),
   checkout_payment_method: CheckoutPaymentMethod,
   non_cde_form_fields: RequiredFormFields,
+  extra_metadata: z.record(z.string(), z.any()).optional(),
 });
 export type SetupCheckoutRequest = z.infer<typeof SetupCheckoutRequest>;
 export enum ThreeDSStatus {
@@ -393,9 +394,15 @@ export enum ThreeDSStatus {
 // Ping3DSStatusResponse
 export const Ping3DSStatusResponse = z.object({
   status: z.enum([ThreeDSStatus.SUCCESS, ThreeDSStatus.FAILURE, ThreeDSStatus.CANCELLED]),
+  href: z.string().optional().nullable(),
 });
-
 export type Ping3DSStatusResponse = z.infer<typeof Ping3DSStatusResponse>;
+
+// Ping3DSStatusResponseStrict (success-only version of Ping3DSStatusResponse)
+export const Ping3DSStatusResponseStrict = z.object({
+  href: z.string().optional().nullable(),
+});
+export type Ping3DSStatusResponseStrict = z.infer<typeof Ping3DSStatusResponseStrict>;
 
 export const Common3DSNextActionMetadata = z.object({
   type: z.string(),
