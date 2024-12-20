@@ -21,8 +21,6 @@ export const createAndOpenFrame = (url: string) => {
   const iframe = shadowRoot.querySelector('#three-ds-iframe') as HTMLIFrameElement;
   const cancelButton = shadowRoot.querySelector('.cancel-button') as HTMLButtonElement;
   document.body.appendChild(host);
-  // @ts-expect-error window is not typed
-  window['iframe_3ds'] = iframe;
 
   return { host, iframe, cancelButton };
 };
