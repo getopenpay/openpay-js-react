@@ -92,6 +92,7 @@ export const BaseElementsStyle = z.object({
   padding: OptionalString,
   letterSpacing: OptionalString,
   lineHeight: OptionalString,
+  hideIcon: OptionalString,
 });
 
 export type BaseElementsStyle = z.infer<typeof BaseElementsStyle>;

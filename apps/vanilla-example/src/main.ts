@@ -142,6 +142,7 @@ function initializeForm(token: string) {
       .createElement('card-number', {
         styles: {
           color: 'lightblue',
+          // hideIcon: 'true',
         },
       })
       .mount('#card-number-element');
@@ -168,6 +169,7 @@ function initializeForm(token: string) {
       .createElement('card', {
         styles: {
           color: 'lightblue',
+          // hideIcon: 'true',
         },
       })
       .mount('#card-element');
