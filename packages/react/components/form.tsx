@@ -49,6 +49,10 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
       }
     });
 
+    return () => {
+      form.destroy();
+    };
+
     // Currently we initialize it once and only once
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
