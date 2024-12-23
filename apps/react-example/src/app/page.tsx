@@ -1,6 +1,12 @@
 'use client';
 import { FC, useCallback, useEffect, useState } from 'react';
-import { ElementsForm, CardCvcElement, CardElement, CardNumberElement, CardExpiryElement } from '@getopenpay/openpay-js-react';
+import {
+  ElementsForm,
+  CardCvcElement,
+  CardElement,
+  CardNumberElement,
+  CardExpiryElement,
+} from '@getopenpay/openpay-js-react';
 import FormWrapper from '@/components/form-wrapper';
 import InputField from '@/components/input-field';
 import BillingDetails from '@/components/billing-details';
@@ -59,6 +65,7 @@ const Form: FC<FormProps> = (props) => {
   };
 
   const onLoad = (totalAmountAtoms?: number, loadedCurrency?: string): void => {
+    console.log('+++++++++++++++ onLoad called +++++++++++++++++++');
     setLoading(false);
     resetErrors();
     if (totalAmountAtoms) {
@@ -92,134 +99,145 @@ const Form: FC<FormProps> = (props) => {
     setOverlayMessage(null);
   }, [token]);
 
+  const [isMounted, setIsMounted] = useState(true);
+
   return (
-    <ElementsForm
-      checkoutSecureToken={token}
-      onLoad={onLoad}
-      onLoadError={onLoadError}
-      onChange={resetErrors}
-      onValidationError={onValidationError}
-      onCheckoutStarted={onCheckoutStarted}
-      onCheckoutSuccess={onCheckoutSuccess}
-      onSetupPaymentMethodSuccess={onSetupPaymentMethodSuccess}
-      onCheckoutError={onCheckoutError}
-      baseUrl={props.baseUrl ?? process.env.NEXT_PUBLIC_BASE_URL}
-      customInitParams={{
-        stripeLink: {
-          overrideLinkSubmit: async () => true,
-          doNotMountOnInit: false,
-        },
-      }}
-    >
-      {({ submit, applePay, googlePay, loaded, stripeLink }) => (
-        <FormWrapper error={validationErrors}>
-          {loading && (
-            <div data-testid="loading" className="flex items-center">
-              <span className="text-xl animate-spin">⏳︎</span>
-              Loading...
-            </div>
-          )}
-          {overlayMessage && (
-            <div className="w-full py-2 my-2 h-full flex items-center justify-center bg-emerald-100/50 dark:bg-emerald-800/50 backdrop-blur rounded-lg cursor-not-allowed">
-              <pre data-testid="overlay-message" className="block font-bold max-w-md w-full text-wrap my-3">
-                {JSON.stringify(overlayMessage, null, 2)}
-              </pre>
-            </div>
-          )}
+    <>
+      <button
+        className="text-white mb-2 w-fit text-sm px-2 py-1 rounded-md bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600"
+        onClick={() => setIsMounted(!isMounted)}
+      >
+        {isMounted ? 'Unmount' : 'Mount'}
+      </button>
+      {isMounted && (
+        <ElementsForm
+          checkoutSecureToken={token}
+          onLoad={onLoad}
+          onLoadError={onLoadError}
+          onChange={resetErrors}
+          onValidationError={onValidationError}
+          onCheckoutStarted={onCheckoutStarted}
+          onCheckoutSuccess={onCheckoutSuccess}
+          onSetupPaymentMethodSuccess={onSetupPaymentMethodSuccess}
+          onCheckoutError={onCheckoutError}
+          baseUrl={props.baseUrl ?? process.env.NEXT_PUBLIC_BASE_URL}
+          customInitParams={{
+            stripeLink: {
+              overrideLinkSubmit: async () => true,
+              doNotMountOnInit: false,
+            },
+          }}
+        >
+          {({ submit, applePay, googlePay, loaded, stripeLink }) => (
+            <FormWrapper error={validationErrors}>
+              {loading && (
+                <div data-testid="loading" className="flex items-center">
+                  <span className="text-xl animate-spin">⏳︎</span>
+                  Loading...
+                </div>
+              )}
+              {overlayMessage && (
+                <div className="w-full py-2 my-2 h-full flex items-center justify-center bg-emerald-100/50 dark:bg-emerald-800/50 backdrop-blur rounded-lg cursor-not-allowed">
+                  <pre data-testid="overlay-message" className="block font-bold max-w-md w-full text-wrap my-3">
+                    {JSON.stringify(overlayMessage, null, 2)}
+                  </pre>
+                </div>
+              )}
 
-          <BillingDetails />
+              <BillingDetails />
 
-          {separateFrames ? (
-            <>
-              <InputField hasError={!!validationErrors.card_number}>
-                <CardNumberElement styles={{ hideIcon: 'true' }} />
-              </InputField>
-              <div className="flex gap-2 items-center justify-between">
-                <InputField hasError={!!validationErrors.card_expiry}>
-                  <CardExpiryElement />
+              {separateFrames ? (
+                <>
+                  <InputField hasError={!!validationErrors.card_number}>
+                    <CardNumberElement styles={{ hideIcon: 'true' }} />
+                  </InputField>
+                  <div className="flex gap-2 items-center justify-between">
+                    <InputField hasError={!!validationErrors.card_expiry}>
+                      <CardExpiryElement />
+                    </InputField>
+                    <InputField hasError={!!validationErrors.card_cvc}>
+                      <CardCvcElement />
+                    </InputField>
+                  </div>
+                </>
+              ) : (
+                <InputField
+                  hasError={
+                    !!validationErrors.card_number || !!validationErrors.card_expiry || !!validationErrors.card_cvc
+                  }
+                >
+                  <CardElement />
                 </InputField>
-                <InputField hasError={!!validationErrors.card_cvc}>
-                  <CardCvcElement />
-                </InputField>
-              </div>
-            </>
-          ) : (
-            <InputField
-              hasError={!!validationErrors.card_number || !!validationErrors.card_expiry || !!validationErrors.card_cvc}
-            >
-              <CardElement />
-            </InputField>
-          )}
+              )}
 
-          <button
-            data-testid="submit-button"
-            disabled={!loaded || loading}
-            onClick={submit}
-            className={`px-4 py-2 mt-2 w-full font-bold rounded-lg bg-emerald-500 
+              <button
+                data-testid="submit-button"
+                disabled={!loaded || loading}
+                onClick={submit}
+                className={`px-4 py-2 mt-2 w-full font-bold rounded-lg bg-emerald-500 
                        dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 
                        active:bg-emerald-600 dark:active:bg-emerald-700
                        disabled:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-gray-100 disabled:cursor-not-allowed`}
-          >
-            Pay {amount}
-          </button>
+              >
+                Pay {amount}
+              </button>
 
-          <button
-            onClick={() => applePay.startFlow(prParams)}
-            disabled={!applePay.isAvailable || loading}
-            className={classNames(
-              'px-4 py-2 mt-2 w-full rounded-lg',
-              applePay.isAvailable
-                ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold'
-                : 'bg-gray-100 text-gray-300'
-            )}
-          >
-            {applePay.isLoading ? 'Loading' : 'Apple Pay'}
-          </button>
+              <button
+                onClick={() => applePay.startFlow(prParams)}
+                disabled={!applePay.isAvailable || loading}
+                className={classNames(
+                  'px-4 py-2 mt-2 w-full rounded-lg',
+                  applePay.isAvailable
+                    ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold'
+                    : 'bg-gray-100 text-gray-300'
+                )}
+              >
+                {applePay.isLoading ? 'Loading' : 'Apple Pay'}
+              </button>
 
-          <button
-            onClick={() => googlePay.startFlow(prParams)}
-            disabled={!googlePay.isAvailable || loading}
-            className={classNames(
-              'px-4 py-2 mt-2 w-full rounded-lg',
-              googlePay.isAvailable
-                ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold'
-                : 'bg-gray-100 text-gray-300'
-            )}
-          >
-            {googlePay.isLoading ? 'Loading' : 'Google Pay'}
-          </button>
-          {
-            stripeLinkShown ?
-              <div id="ojs-stripe-link-btn" className="stripe-link-button mt-2">Loading...</div> 
-            : 
-              <></>
-          }
-          <div
-            className="grid grid-cols-2 mt-8 bg-gray-100 p-4 rounded-lg drop-shadow"
-          >
-            {
-              stripeLink &&
-                <button
-                  onClick={async () => {
-                    if (stripeLinkShown) {
-                      setStripeLinkShown(false);
-                      stripeLink.dismountButton();
-                    }
-                    else {
-                      setStripeLinkShown(true);
-                      await stripeLink.waitForButtonToMount();
-                      stripeLink.mountButton()
-                    }
-                  }}
-                  className='text-white text-sm px-2 py-1 w-full rounded-md bg-gray-600 hover:bg-gray-700 active:bg-gray-800'
-                >
-                  {stripeLinkShown ? 'Hide' : 'Show'} stripe link
-                </button>
-            }
-          </div>
-        </FormWrapper>
+              <button
+                onClick={() => googlePay.startFlow(prParams)}
+                disabled={!googlePay.isAvailable || loading}
+                className={classNames(
+                  'px-4 py-2 mt-2 w-full rounded-lg',
+                  googlePay.isAvailable
+                    ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold'
+                    : 'bg-gray-100 text-gray-300'
+                )}
+              >
+                {googlePay.isLoading ? 'Loading' : 'Google Pay'}
+              </button>
+              {stripeLinkShown ? (
+                <div id="ojs-stripe-link-btn" className="stripe-link-button mt-2">
+                  Loading...
+                </div>
+              ) : (
+                <></>
+              )}
+              <div className="grid grid-cols-2 mt-8 bg-gray-100 p-4 rounded-lg drop-shadow">
+                {stripeLink && (
+                  <button
+                    onClick={async () => {
+                      if (stripeLinkShown) {
+                        setStripeLinkShown(false);
+                        stripeLink.dismountButton();
+                      } else {
+                        setStripeLinkShown(true);
+                        await stripeLink.waitForButtonToMount();
+                        stripeLink.mountButton();
+                      }
+                    }}
+                    className="text-white text-sm px-2 py-1 w-full rounded-md bg-gray-600 hover:bg-gray-700 active:bg-gray-800"
+                  >
+                    {stripeLinkShown ? 'Hide' : 'Show'} stripe link
+                  </button>
+                )}
+              </div>
+            </FormWrapper>
+          )}
+        </ElementsForm>
       )}
-    </ElementsForm>
+    </>
   );
 };
 

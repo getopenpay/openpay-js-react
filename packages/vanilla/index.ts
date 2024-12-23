@@ -296,5 +296,15 @@ export class OpenPayForm {
       element.node.remove();
     }
     window.removeEventListener('message', this.eventHandler.handleMessage.bind(this.eventHandler));
+    this.registeredElements = null;
+    // @ts-expect-error window typing
+    delete window['ojs'];
+  };
+
+  /**
+   * Updates form callbacks after initialization
+   */
+  updateCallbacks = (newCallbacks: AllCallbacks) => {
+    this.formCallbacks.setCallbacks(newCallbacks);
   };
 }
