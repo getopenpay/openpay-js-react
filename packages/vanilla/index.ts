@@ -300,4 +300,11 @@ export class OpenPayForm {
     // @ts-expect-error window typing
     delete window['ojs'];
   };
+
+  /**
+   * Updates form callbacks after initialization
+   */
+  updateCallbacks = (newCallbacks: AllCallbacks) => {
+    this.formCallbacks.setCallbacks(newCallbacks);
+  };
 }
