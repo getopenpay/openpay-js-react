@@ -109,6 +109,9 @@ export type OjsContext = {
 };
 
 export type CustomInitParams = {
+  // You can put custom params for your init flows here
+
+  // For stripe link
   stripeLink?: {
     /**
      * The height of the Stripe Link button. By default, the height of the buttons are 44px.

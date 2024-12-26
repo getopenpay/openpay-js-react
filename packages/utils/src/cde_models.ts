@@ -229,15 +229,24 @@ export type PydanticValidationError = z.infer<typeof PydanticValidationError>;
 export const PydanticValidationErrorResponse = z.array(PydanticValidationError);
 export type PydanticValidationErrorResponse = z.infer<typeof PydanticValidationErrorResponse>;
 
-// StartPaymentFlowRequest
-export const StartPaymentFlowRequest = z.object({
+// NewCustomerFields
+export const NewCustomerFields = z.object({
   new_customer_email: z.string().optional(),
   new_customer_address: z.record(z.string(), z.any()).optional(),
-  payment_provider: z.string(),
-  checkout_payment_method: CheckoutPaymentMethod,
-  existing_cc_pm_id: z.string().optional(),
-  their_existing_pm_id: z.string().optional(),
+  new_customer_first_name: z.string().optional(),
+  new_customer_last_name: z.string().optional(),
 });
+export type NewCustomerFields = z.infer<typeof NewCustomerFields>;
+
+// StartPaymentFlowRequest
+export const StartPaymentFlowRequest = z
+  .object({
+    payment_provider: z.string(),
+    checkout_payment_method: CheckoutPaymentMethod,
+    existing_cc_pm_id: z.string().optional(),
+    their_existing_pm_id: z.string().optional(),
+  })
+  .extend(NewCustomerFields.shape);
 export type StartPaymentFlowRequest = z.infer<typeof StartPaymentFlowRequest>;
 
 // StartPaymentFlowResponse

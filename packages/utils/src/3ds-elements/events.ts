@@ -98,3 +98,8 @@ export const start3dsVerificationStrict = async (params: {
     href: result.href,
   };
 };
+
+/**
+ * Currently this is an alias for start3dsVerificationStrict.
+ */
+export const startIframeFlowStrict = start3dsVerificationStrict;

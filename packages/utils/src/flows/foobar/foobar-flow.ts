@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getPrefill } from '../cde-client';
+import { getPrefill } from '../../cde-client';
 import {
   addBasicCheckoutCallbackHandlers,
   addErrorCatcherForInit,
@@ -7,8 +7,8 @@ import {
   InitOjsFlow,
   RunOjsFlow,
   SimpleOjsFlowResult,
-} from './ojs-flow';
-import { findCpmMatchingType } from './common/common-flow-utils';
+} from '../ojs-flow';
+import { findCpmMatchingType } from '../common/common-flow-utils';
 
 // 👉 Special loggers, edit this to reflect the flow name
 const { log__, err__ } = createOjsFlowLoggers('foobar');
@@ -30,6 +30,7 @@ export type InitFoobarFlowSuccess = {
 };
 
 // 👉 For convenience, you can use zod to define which CPMs are accepted by this flow
+// - See CheckoutPaymentMethod for more details
 export const FoobarCpm = z.object({
   processor_name: z.literal('foobar'),
 });
@@ -72,7 +73,10 @@ export const initFoobarFlow: InitOjsFlow<InitFoobarFlowSuccess> = addErrorCatche
 );
 
 /*
- * Runs the main Stripe PaymentRequest flow
+ * Runs the main foobar flow
+ * 👉 runFlow -- this is the main submission flow, 90% of the time, it is meant to be triggered on checkout form submission.
+ * 👉 The type arguments (FoobarFlowCustomParams, InitFoobarFlowSuccess) are optional, and can be set undefined.
+ *    - i.e. you can use "RunOjsFlow" as-is, without any type arguments.
  */
 export const runFoobarFlow: RunOjsFlow<FoobarFlowCustomParams, InitFoobarFlowSuccess> =
   addBasicCheckoutCallbackHandlers(
@@ -80,20 +84,23 @@ export const runFoobarFlow: RunOjsFlow<FoobarFlowCustomParams, InitFoobarFlowSuc
       context,
       checkoutPaymentMethod,
       nonCdeFormInputs,
-      formCallbacks: flowCallbacks,
+      formCallbacks,
       customParams,
       initResult,
     }): Promise<SimpleOjsFlowResult> => {
       log__(`Running Foobar flow...`);
       const anyCdeConnection = context.anyCdeConnection;
-      log__('anyCdeConnection is convenient if you just need to do a simple CDE query', anyCdeConnection);
+      log__(
+        "anyCdeConnection is convenient if you just need to do a simple CDE query -- you usually don't need all of them",
+        anyCdeConnection
+      );
 
       // 👉 There are multiple params passed to runFlow
       // - See the definitions in OjsFlowParams for more details
       log__('context', context);
       log__('checkoutPaymentMethod', checkoutPaymentMethod);
       log__('nonCdeFormInputs', nonCdeFormInputs);
-      log__('flowCallbacks', flowCallbacks);
+      log__('flowCallbacks', formCallbacks);
       log__('customParams', customParams);
       log__('initResult', initResult);
 

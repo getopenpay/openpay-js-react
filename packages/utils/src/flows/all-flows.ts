@@ -3,6 +3,7 @@ import { OjsContext, OjsFlow } from './ojs-flow';
 import { initStripeLinkFlow, runStripeLinkFlow } from './stripe/stripe-link-flow';
 import { runCommonCcFlow } from './card/common-cc-flow';
 import { initStripePrFlow, runStripePrFlow } from './stripe/stripe-pr-flow';
+import { runPockytPaypalFlow } from './pockyt/pockyt-paypal-flow';
 
 export const findCheckoutPaymentMethodStrict = (
   cpms: CheckoutPaymentMethod[],
@@ -42,6 +43,11 @@ export const OjsFlows = {
   stripeLink: {
     init: initStripeLinkFlow,
     run: runStripeLinkFlow,
+  },
+
+  // Pockyt
+  pockytPaypal: {
+    run: runPockytPaypalFlow,
   },
 
   // 👉 Add more flows here
