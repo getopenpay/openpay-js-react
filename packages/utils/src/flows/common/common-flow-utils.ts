@@ -3,7 +3,7 @@ import { CheckoutPaymentMethod, ConfirmPaymentFlowResponse, FieldName, RequiredF
 import { createOjsFlowLoggers, SimpleOjsFlowResult } from '../ojs-flow';
 import { CheckoutRequest, NewCustomerFields } from '../../cde_models';
 import { CdeConnection } from '../../cde-connection';
-import { confirmPaymentFlow, getPrefill, performCheckout } from '../../cde-client';
+import { finalizeSetupPaymentMethod, getPrefill, performCheckout } from '../../cde-client';
 
 const { log__, err__ } = createOjsFlowLoggers('common');
 
@@ -67,20 +67,22 @@ export const performSimpleCheckoutOrSetup = async (
   logPrefix: string,
   anyCdeConnection: CdeConnection,
   checkoutPaymentMethod: CheckoutPaymentMethod,
-  requiredFormFields: RequiredFormFields
+  requiredFormFields: RequiredFormFields,
+  confirmResult: ConfirmPaymentFlowResponse
 ): Promise<SimpleOjsFlowResult> => {
   const { log__ } = createOjsFlowLoggers(logPrefix);
-
   const prefill = await getPrefill(anyCdeConnection);
 
-  const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
-    secure_token: prefill.token,
-  });
   const createdPaymentMethod = parseConfirmPaymentFlowResponse(confirmResult);
 
   if (prefill.mode === 'setup') {
     log__(`Setting up payment method...`);
-    return { mode: 'setup', result: createdPaymentMethod };
+
+    const setupResult = await finalizeSetupPaymentMethod(anyCdeConnection, {
+      secure_token: prefill.token,
+      pm_id: createdPaymentMethod.payment_method_id,
+    });
+    return { mode: 'setup', result: setupResult };
   } else {
     log__(`Doing checkout...`);
     const checkoutRequest: CheckoutRequest = {
@@ -96,6 +98,7 @@ export const performSimpleCheckoutOrSetup = async (
       total_amount_atom: prefill.amount_total_atom,
       cancel_at_end: false,
       checkout_payment_method: checkoutPaymentMethod,
+      use_confirmed_pm_id: createdPaymentMethod.payment_method_id,
     };
     const result = await performCheckout(anyCdeConnection, checkoutRequest);
     return { mode: 'checkout', result };

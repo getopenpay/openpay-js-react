@@ -3,6 +3,7 @@ import { CdeConnection, CdeMessage } from './cde-connection';
 import {
   Amount,
   CardElementsCheckoutRequest,
+  CheckIfPopupWindowVerifiedResponse,
   CheckoutPreviewRequest,
   ConfirmPaymentFlowRequest,
   ConfirmPaymentFlowResponse,
@@ -17,6 +18,7 @@ import {
   CDEResponseError,
   CheckoutRequest,
   CheckoutSuccessResponse,
+  FinalizeSetupPaymentMethodRequest,
   PaymentFormPrefill,
   PreviewCheckoutResponse,
   SetupCheckoutResponse,
@@ -122,6 +124,24 @@ export const confirmPaymentFlow = async (
   payload: ConfirmPaymentFlowRequest
 ): Promise<ConfirmPaymentFlowResponse> => {
   return await queryCDE(cdeConn, { type: 'confirm_payment_flow', payload }, ConfirmPaymentFlowResponse);
+};
+
+export const finalizeSetupPaymentMethod = async (
+  cdeConn: CdeConnection,
+  payload: FinalizeSetupPaymentMethodRequest
+): Promise<SetupCheckoutResponse> => {
+  return await queryCDE(cdeConn, { type: 'finalize_setup_payment_method', payload }, SetupCheckoutResponse);
+};
+
+export const checkIfPopupWindowVerified = async (
+  cdeConn: CdeConnection,
+  payload: string
+): Promise<CheckIfPopupWindowVerifiedResponse> => {
+  return await queryCDE(
+    cdeConn,
+    { type: 'check_if_popup_window_verified', payload },
+    CheckIfPopupWindowVerifiedResponse
+  );
 };
 
 export const waitForFormFieldInput = async (

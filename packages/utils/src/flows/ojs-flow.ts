@@ -78,6 +78,11 @@ export type SimpleOjsFlowResult =
 
 export type OjsContext = {
   /**
+   * The secure token for the checkout session.
+   */
+  checkoutSecureToken: string;
+
+  /**
    * The form element for the OJS form (non-CDE form).
    */
   formDiv: HTMLElement;

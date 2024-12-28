@@ -188,6 +188,13 @@ export const CheckoutSuccessResponse = z.object({
 });
 export type CheckoutSuccessResponse = z.infer<typeof CheckoutSuccessResponse>;
 
+// FinalizeSetupPaymentMethodRequest
+export const FinalizeSetupPaymentMethodRequest = z.object({
+  secure_token: z.string(),
+  pm_id: z.string(),
+});
+export type FinalizeSetupPaymentMethodRequest = z.infer<typeof FinalizeSetupPaymentMethodRequest>;
+
 // CheckoutRequest
 export const CheckoutRequest = z.object({
   secure_token: z.string(),
@@ -201,6 +208,7 @@ export const CheckoutRequest = z.object({
   checkout_payment_method: CheckoutPaymentMethod,
   promotion_code: z.string().optional(),
   do_not_use_legacy_cc_flow: z.boolean().optional(),
+  use_confirmed_pm_id: nullOrUndefOr(z.string()),
 });
 export type CheckoutRequest = z.infer<typeof CheckoutRequest>;
 

@@ -1,9 +1,10 @@
 import { z } from 'zod';
-import { startPaymentFlow } from '../../cde-client';
+import { confirmPaymentFlow, getPrefill, startPaymentFlow } from '../../cde-client';
 import { addBasicCheckoutCallbackHandlers, createOjsFlowLoggers, RunOjsFlow, SimpleOjsFlowResult } from '../ojs-flow';
 import { createCustomerFieldsFromForm, performSimpleCheckoutOrSetup } from '../common/common-flow-utils';
 import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
-import { startIframeFlowStrict } from '../../3ds-elements/events';
+import { startPopupWindowVerificationStrict } from '../../3ds-elements/events';
+import { parseVaultIdFrom3dsHref } from './pockyt-utils';
 
 const { log__ } = createOjsFlowLoggers('pockyt-paypal');
 
@@ -19,6 +20,7 @@ export const PockytPaypalRequiredUserActions = z
   .array(
     z.object({
       paypal_iframe_url: z.string(),
+      verify_token: z.string(),
     })
   )
   .length(1);
@@ -31,6 +33,7 @@ export const runPockytPaypalFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
   async ({ context, checkoutPaymentMethod, nonCdeFormInputs, formCallbacks }): Promise<SimpleOjsFlowResult> => {
     log__(`Running Pockyt Paypal flow...`);
     const anyCdeConnection = context.anyCdeConnection;
+    const prefill = await getPrefill(anyCdeConnection);
 
     log__(`Verifying CPM...`);
     const cpm = PockytPaypalCpm.parse(checkoutPaymentMethod);
@@ -46,15 +49,25 @@ export const runPockytPaypalFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
       ...newCustomerFields,
     });
     log__('Start payment flow response', startPaymentFlowResponse);
-    const nextActionMetadata = PockytPaypalRequiredUserActions.parse(startPaymentFlowResponse.required_user_actions);
+    const nextActionMetadata = PockytPaypalRequiredUserActions.parse(startPaymentFlowResponse.required_user_actions)[0];
 
     log__(`Opening paypal iframe...`);
-    const paypalFlowResult = await startIframeFlowStrict({
-      url: nextActionMetadata[0].paypal_iframe_url,
-      baseUrl: context.baseUrl,
-    });
+    const paypalFlowResult = await startPopupWindowVerificationStrict(
+      'PayPal',
+      anyCdeConnection,
+      nextActionMetadata.verify_token,
+      nextActionMetadata.paypal_iframe_url
+    );
     log__('Paypal flow result', paypalFlowResult);
+    const vaultId = parseVaultIdFrom3dsHref(paypalFlowResult.href);
 
-    return await performSimpleCheckoutOrSetup('pockyt-paypal', anyCdeConnection, cpm, nonCdeFormFields);
+    log__(`Confirming payment flow using vault ID ${vaultId}`);
+    const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
+      secure_token: prefill.token,
+      their_pm_id: vaultId,
+    });
+    log__('Confirm payment flow result', confirmResult);
+
+    return await performSimpleCheckoutOrSetup('pockyt-paypal', anyCdeConnection, cpm, nonCdeFormFields, confirmResult);
   }
 );

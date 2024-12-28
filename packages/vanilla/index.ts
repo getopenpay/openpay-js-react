@@ -254,8 +254,9 @@ export class OpenPayForm {
     cdeLoadedPayload: LoadedEventPayload,
     anyCdeConnection: CdeConnection,
     formDiv: HTMLElement
-  ) => {
+  ): OjsContext => {
     return {
+      checkoutSecureToken: config.checkoutSecureToken,
       baseUrl: new URL(config.baseUrl ?? FRAME_BASE_URL).origin,
       formDiv,
       elementsSessionId: cdeLoadedPayload.sessionId,
