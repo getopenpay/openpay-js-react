@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ApplePayOption } from './flows/stripe/stripe-pr-flow';
 
 /**
  * Models shared between CDE and OpenPay.js
@@ -306,6 +307,7 @@ export type PaymentRequestStartParams = {
   overridePaymentRequest?: {
     amount: Amount;
     pending: boolean;
+    applePay?: ApplePayOption;
   };
 };
 

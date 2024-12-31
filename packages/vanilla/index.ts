@@ -22,6 +22,7 @@ import { createOjsFlowLoggers, CustomInitParams } from '@getopenpay/utils/src/fl
 import { AllCallbacks, FormCallbacks } from '@getopenpay/utils/src/form-callbacks';
 import { LoadedOncePublisher } from '@getopenpay/utils/src/loaded-once-publisher';
 import { setupPaymentRequestHandlers } from './utils/payment-request';
+import { v4 as uuid } from 'uuid';
 export { FieldName };
 
 export type ElementsFormProps = {
@@ -74,7 +75,7 @@ export class OpenPayForm {
     this.config = { ...config, baseUrl: this.baseUrl };
     this.formCallbacks = FormCallbacks.fromObject(config);
     this.registeredElements = null;
-    this.formId = `opjs-form-${window.crypto.randomUUID()}`;
+    this.formId = `opjs-form-${uuid()}`;
     this.referrer = window.location.origin;
     this.formTarget = config.formTarget ?? 'body';
     this.formProperties = { height: '1px' };
