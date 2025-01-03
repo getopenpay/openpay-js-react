@@ -1,6 +1,14 @@
-import { assertNever, Ping3DSStatusResponse, Ping3DSStatusResponseStrict, ThreeDSStatus } from '@getopenpay/utils';
-import { CDE_POLLING_INTERVAL, pingCdeFor3dsStatus } from '../cde-client';
+import {
+  assertNever,
+  Ping3DSStatusResponse,
+  ExternalDomainFlowSuccess,
+  ThreeDSStatus,
+  getErrorMessage,
+  CdeConnection,
+} from '@getopenpay/utils';
+import { CDE_POLLING_INTERVAL, checkIfPopupWindowVerified, pingCdeFor3dsStatus } from '../cde-client';
 import { createAndOpenFrame } from './frame';
+import { createOjsFlowLoggers } from '../flows/ojs-flow';
 
 export interface PopupElements {
   host: HTMLElement;
@@ -85,7 +93,7 @@ export async function start3dsVerification(params: { url: string; baseUrl: strin
 export const start3dsVerificationStrict = async (params: {
   url: string;
   baseUrl: string;
-}): Promise<Ping3DSStatusResponseStrict> => {
+}): Promise<ExternalDomainFlowSuccess> => {
   const result = await start3dsVerification(params);
   if (result.status === ThreeDSStatus.CANCELLED) {
     throw new Error('3DS verification cancelled');
@@ -97,4 +105,51 @@ export const start3dsVerificationStrict = async (params: {
   return {
     href: result.href,
   };
+};
+
+const openPopupWindow = (popupName: string, url: string) => {
+  const popupWindow = window.open(url, '_blank');
+  if (!popupWindow) {
+    throw new Error(`${popupName} popup window blocked. Please allow popups for this site.`);
+  }
+  return popupWindow;
+};
+
+/**
+ * Currently this is an alias for start3dsVerificationStrict.
+ */
+export const startIframeFlowStrict = start3dsVerificationStrict;
+
+export const startPopupWindowVerificationStrict = async (
+  popupName: string,
+  cdeConn: CdeConnection,
+  expectedVerifyToken: string,
+  url: string
+): Promise<{ href: string }> => {
+  const { err__ } = createOjsFlowLoggers('popup-verify');
+  return new Promise<{ href: string }>((resolve, reject) => {
+    const popupWindow = openPopupWindow(popupName, url);
+
+    // Note: be careful not to let the async function run for longer than the poll interval
+    const polling = setInterval(async () => {
+      try {
+        const verifyResult = await checkIfPopupWindowVerified(cdeConn, expectedVerifyToken);
+        if (verifyResult.present) {
+          // Success case
+          clearInterval(polling);
+          popupWindow.close(); // Make sure the popup is closed
+          resolve({ href: verifyResult.href });
+        } else if (popupWindow.closed) {
+          // Cancelled case (did not complete payment)
+          throw new Error(`${popupName} payment cancelled`);
+        } else {
+          // Loading case, keep waiting
+        }
+      } catch (error) {
+        err__(getErrorMessage(error));
+        clearInterval(polling);
+        reject(getErrorMessage(error));
+      }
+    }, 1000);
+  });
 };

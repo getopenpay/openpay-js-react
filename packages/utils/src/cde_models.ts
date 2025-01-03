@@ -188,6 +188,13 @@ export const CheckoutSuccessResponse = z.object({
 });
 export type CheckoutSuccessResponse = z.infer<typeof CheckoutSuccessResponse>;
 
+// FinalizeSetupPaymentMethodRequest
+export const FinalizeSetupPaymentMethodRequest = z.object({
+  secure_token: z.string(),
+  pm_id: z.string(),
+});
+export type FinalizeSetupPaymentMethodRequest = z.infer<typeof FinalizeSetupPaymentMethodRequest>;
+
 // CheckoutRequest
 export const CheckoutRequest = z.object({
   secure_token: z.string(),
@@ -201,6 +208,7 @@ export const CheckoutRequest = z.object({
   checkout_payment_method: CheckoutPaymentMethod,
   promotion_code: z.string().optional(),
   do_not_use_legacy_cc_flow: z.boolean().optional(),
+  use_confirmed_pm_id: nullOrUndefOr(z.string()),
 });
 export type CheckoutRequest = z.infer<typeof CheckoutRequest>;
 
@@ -229,15 +237,24 @@ export type PydanticValidationError = z.infer<typeof PydanticValidationError>;
 export const PydanticValidationErrorResponse = z.array(PydanticValidationError);
 export type PydanticValidationErrorResponse = z.infer<typeof PydanticValidationErrorResponse>;
 
-// StartPaymentFlowRequest
-export const StartPaymentFlowRequest = z.object({
+// NewCustomerFields
+export const NewCustomerFields = z.object({
   new_customer_email: z.string().optional(),
   new_customer_address: z.record(z.string(), z.any()).optional(),
-  payment_provider: z.string(),
-  checkout_payment_method: CheckoutPaymentMethod,
-  existing_cc_pm_id: z.string().optional(),
-  their_existing_pm_id: z.string().optional(),
+  new_customer_first_name: z.string().optional(),
+  new_customer_last_name: z.string().optional(),
 });
+export type NewCustomerFields = z.infer<typeof NewCustomerFields>;
+
+// StartPaymentFlowRequest
+export const StartPaymentFlowRequest = z
+  .object({
+    payment_provider: z.string(),
+    checkout_payment_method: CheckoutPaymentMethod,
+    existing_cc_pm_id: z.string().optional(),
+    their_existing_pm_id: z.string().optional(),
+  })
+  .extend(NewCustomerFields.shape);
 export type StartPaymentFlowRequest = z.infer<typeof StartPaymentFlowRequest>;
 
 // StartPaymentFlowResponse

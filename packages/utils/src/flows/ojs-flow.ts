@@ -78,6 +78,11 @@ export type SimpleOjsFlowResult =
 
 export type OjsContext = {
   /**
+   * The secure token for the checkout session.
+   */
+  checkoutSecureToken: string;
+
+  /**
    * The form element for the OJS form (non-CDE form).
    */
   formDiv: HTMLElement;
@@ -109,6 +114,9 @@ export type OjsContext = {
 };
 
 export type CustomInitParams = {
+  // You can put custom params for your init flows here
+
+  // For stripe link
   stripeLink?: {
     /**
      * The height of the Stripe Link button. By default, the height of the buttons are 44px.

@@ -333,6 +333,7 @@ export type CheckoutPreviewRequest = z.infer<typeof CheckoutPreviewRequest>;
 export const ConfirmPaymentFlowRequest = z.object({
   secure_token: z.string(),
   existing_cc_pm_id: nullOrUndefOr(z.string()),
+  their_pm_id: nullOrUndefOr(z.string()),
 });
 export type ConfirmPaymentFlowRequest = z.infer<typeof ConfirmPaymentFlowRequest>;
 
@@ -402,10 +403,10 @@ export const Ping3DSStatusResponse = z.object({
 export type Ping3DSStatusResponse = z.infer<typeof Ping3DSStatusResponse>;
 
 // Ping3DSStatusResponseStrict (success-only version of Ping3DSStatusResponse)
-export const Ping3DSStatusResponseStrict = z.object({
+export const ExternalDomainFlowSuccess = z.object({
   href: z.string().optional().nullable(),
 });
-export type Ping3DSStatusResponseStrict = z.infer<typeof Ping3DSStatusResponseStrict>;
+export type ExternalDomainFlowSuccess = z.infer<typeof ExternalDomainFlowSuccess>;
 
 export const Common3DSNextActionMetadata = z.object({
   type: z.string(),
@@ -414,3 +415,9 @@ export const Common3DSNextActionMetadata = z.object({
   consent_id: z.string(),
 });
 export type Common3DSNextActionMetadata = z.infer<typeof Common3DSNextActionMetadata>;
+
+export const CheckIfPopupWindowVerifiedResponse = z.discriminatedUnion('present', [
+  z.object({ present: z.literal(true), href: z.string() }),
+  z.object({ present: z.literal(false) }),
+]);
+export type CheckIfPopupWindowVerifiedResponse = z.infer<typeof CheckIfPopupWindowVerifiedResponse>;

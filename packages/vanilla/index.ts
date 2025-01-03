@@ -15,6 +15,7 @@ import {
   createInitFlowsPublishers,
   startAllInitFlows,
   getErrorMessage,
+  assertNever,
 } from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
 import { ConnectionManager, createConnection } from './utils/connection';
@@ -254,8 +255,9 @@ export class OpenPayForm {
     cdeLoadedPayload: LoadedEventPayload,
     anyCdeConnection: CdeConnection,
     formDiv: HTMLElement
-  ) => {
+  ): OjsContext => {
     return {
+      checkoutSecureToken: config.checkoutSecureToken,
       baseUrl: new URL(config.baseUrl ?? FRAME_BASE_URL).origin,
       formDiv,
       elementsSessionId: cdeLoadedPayload.sessionId,
@@ -284,6 +286,26 @@ export class OpenPayForm {
       },
       initResult: undefined, // This flow requires no initialization
     });
+  };
+
+  generalSubmit = (method: 'pockyt-paypal') => {
+    const context = this.context.getValueIfLoadedElse(null);
+    if (!context) {
+      err__('Please wait for the form to finish loading before submitting.');
+      return;
+    }
+    if (method === 'pockyt-paypal') {
+      OjsFlows.pockytPaypal.run({
+        context,
+        checkoutPaymentMethod: findCheckoutPaymentMethodStrict(context.checkoutPaymentMethods, 'paypal', 'pockyt'),
+        nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
+        formCallbacks: this.formCallbacks,
+        customParams: undefined,
+        initResult: undefined,
+      });
+    } else {
+      assertNever(method);
+    }
   };
 
   /**

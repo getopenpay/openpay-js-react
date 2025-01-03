@@ -142,7 +142,7 @@ function initializeForm(token: string) {
       .createElement('card-number', {
         styles: {
           color: 'lightblue',
-          // hideIcon: 'true',
+          hideIcon: 'true',
         },
       })
       .mount('#card-number-element');
@@ -178,6 +178,10 @@ function initializeForm(token: string) {
   document.querySelector('#submit')?.addEventListener('click', () => {
     console.log('Submitting form...');
     formInstance.submit();
+  });
+
+  document.querySelector('#submit-paypal')?.addEventListener('click', () => {
+    formInstance.generalSubmit('pockyt-paypal');
   });
 
   function showLoading() {

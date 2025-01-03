@@ -28,7 +28,7 @@ const parseResponseHeaders = (errorResponseHeaders?: Record<string, string>): Po
  * Parses the vault ID from the final 3DS verification result URL.
  * Pockyt redirects 3DS success to {baseUrl}/app/3ds/success/?vaultId={vaultId}
  */
-const parseVaultIdFrom3dsHref = (href: string): string => {
+export const parseVaultIdFrom3dsHref = (href: string): string => {
   try {
     // Dev note: the parameter 'vaultId' can also be found in CDE's Pockyt API request, under callbackUrl
     const vaultId = new URL(href ?? '').searchParams.get('vaultId'); // new URL() throws if href is not a valid URL
