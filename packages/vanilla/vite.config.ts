@@ -4,11 +4,12 @@ import dts from 'vite-plugin-dts';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
+  const isUmdBuild = mode === 'build-umd';
   return {
     esbuild: {
       // TODO: Uncomment this when we're stable
       // drop: mode === 'development' ? [] : ['console', 'debugger'],
-      sourcemap: mode === 'build-umd' ? false : 'inline',
+      sourcemap: isUmdBuild ? false : 'inline',
     },
     optimizeDeps: {
       include: ['penpal', 'uuid', 'zod'],
@@ -17,13 +18,13 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: mode === 'production',
       copyPublicDir: false,
       lib: {
-        formats: mode === 'build-umd' ? ['umd'] : ['es'],
+        formats: isUmdBuild ? ['umd'] : ['es'],
         name: 'OpenPay',
         entry: resolve(__dirname, './index.ts'),
         fileName: (format) => `index.${format}.js`,
       },
       rollupOptions: {
-        external: ['react', 'react-dom', ...(mode === 'build-umd' ? [] : ['zod', 'penpal', 'uuid', 'chalk'])],
+        external: ['react', 'react-dom', ...(isUmdBuild ? [] : ['zod', 'penpal', 'uuid', 'chalk'])],
         output: {
           assetFileNames: 'assets/[name][extname]',
         },

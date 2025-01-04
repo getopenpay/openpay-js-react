@@ -25,6 +25,9 @@ import { Amount, FieldName } from '../../shared-models';
 import { CheckoutRequest, StartPaymentFlowResponse } from '../../cde_models';
 import { findCpmMatchingType, parseConfirmPaymentFlowResponse } from '../common/common-flow-utils';
 import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
+import { ApplePayOption as StripeApplePayOption } from '@stripe/stripe-js/dist/stripe-js/elements/apple-pay';
+
+export type { StripeApplePayOption };
 
 const { log__, err__ } = createOjsFlowLoggers('stripe-pr');
 
@@ -50,6 +53,7 @@ export type StripePrFlowCustomParams = {
   overridePaymentRequest?: {
     amount: Amount;
     pending: boolean;
+    stripeApplePay?: StripeApplePayOption;
   };
 };
 
@@ -128,7 +132,7 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
       if (customParams?.overridePaymentRequest) {
         const override = customParams.overridePaymentRequest;
         log__(`Overriding PR amount with`, override);
-        updatePrWithAmount(pr, override.amount, override.pending);
+        updatePrWithAmount(pr, override.amount, override.pending, override.stripeApplePay);
       }
 
       // 🤚 IMPORTANT: do NOT do any async operations before this point, as Apple and Google Pay
@@ -204,7 +208,12 @@ const fillEmptyFormInputsWithStripePm = (
   return inputs;
 };
 
-const updatePrWithAmount = (pr: PaymentRequest, amount: Amount, isPending: boolean): void => {
+const updatePrWithAmount = (
+  pr: PaymentRequest,
+  amount: Amount,
+  isPending: boolean,
+  stripeApplePay?: StripeApplePayOption
+): void => {
   pr.update({
     total: {
       amount: amount.amountAtom,
@@ -212,6 +221,7 @@ const updatePrWithAmount = (pr: PaymentRequest, amount: Amount, isPending: boole
       pending: isPending,
     },
     currency: amount.currency,
+    applePay: stripeApplePay,
   });
 };
 
