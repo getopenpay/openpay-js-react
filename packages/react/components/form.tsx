@@ -66,6 +66,7 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
 
   const childrenProps: ElementsFormChildrenProps = {
     submit: opForm.submitCard,
+    submitWith: opForm.generalSubmit,
     applePay: paymentRequests.apple_pay,
     googlePay: paymentRequests.google_pay,
     loaded,

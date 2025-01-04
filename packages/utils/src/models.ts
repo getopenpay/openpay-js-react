@@ -13,8 +13,11 @@ export type ElementProps<PlaceholderType extends z.ZodTypeAny = z.ZodString> = {
   styles?: ElementsStyle<z.ZodOptional<PlaceholderType>>;
 };
 
+type SubmitMethod = 'pockyt-paypal';
+
 export type ElementsFormChildrenProps = {
   submit: () => void;
+  submitWith: (method: SubmitMethod) => void;
   applePay: PaymentRequestStatus;
   googlePay: PaymentRequestStatus;
   stripeLink: StripeLinkController | null;

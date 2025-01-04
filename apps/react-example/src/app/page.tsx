@@ -128,7 +128,7 @@ const Form: FC<FormProps> = (props) => {
             },
           }}
         >
-          {({ submit, applePay, googlePay, loaded, stripeLink }) => (
+          {({ submit, submitWith, applePay, googlePay, loaded, stripeLink }) => (
             <FormWrapper error={validationErrors}>
               {loading && (
                 <div data-testid="loading" className="flex items-center">
@@ -206,6 +206,18 @@ const Form: FC<FormProps> = (props) => {
                 )}
               >
                 {googlePay.isLoading ? 'Loading' : 'Google Pay'}
+              </button>
+              <button
+                id="submit-paypal"
+                onClick={() => submitWith('pockyt-paypal')}
+                disabled={!loaded || loading}
+                className={classNames(
+                  'px-4 py-2 mt-2 w-full rounded-lg',
+                  'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold',
+                  'disabled:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-gray-100 disabled:cursor-not-allowed'
+                )}
+              >
+                {loading ? 'Loading' : 'Pay with PayPal'}
               </button>
               {stripeLinkShown ? (
                 <div id="ojs-stripe-link-btn" className="stripe-link-button mt-2">
