@@ -16,6 +16,17 @@ const RootLayout: FC<RootLayoutProps> = ({ children }) => {
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet"></link>
         <Script src="https://js.stripe.com/v3/" />
+        <Script 
+          src="https://checkoutshopper-live-in.cdn.adyen.com/checkoutshopper/sdk/6.6.0/adyen.js"
+          integrity="sha384-Oa2agnE48SFtDpzmEK8mbhbmEA1X4WH6afLBbypUhFU8oDhJWAIGvLQTBrqgls4A"
+          crossOrigin="anonymous" 
+        />
+        <link
+          rel="stylesheet"
+          href="https://checkoutshopper-live-in.cdn.adyen.com/checkoutshopper/sdk/6.6.0/adyen.css"
+          integrity="sha384-UAD/QSv1wQyfA60svLYxJ0OJAPl9TpkksO+HEOUX8YJcD+MYzNmn+q4XL7YBeHcr"
+          crossOrigin="anonymous"
+        />
       </head>
       <body>{children}</body>
     </html>

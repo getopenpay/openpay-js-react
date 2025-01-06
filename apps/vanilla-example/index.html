@@ -96,9 +96,24 @@
 
         <div id="checkout-success" class="success-message" style="display: none"></div>
         <div id="setup-success" class="success-message" style="display: none"></div>
+
+        <div id="adyen-example"></div>
       </div>
     </main>
+    <!-- Start Stripe -->
     <script src="https://js.stripe.com/v3/"></script>
+    <!-- End Stripe -->
+
+    <!-- Start Adyen -->
+    <script src="https://checkoutshopper-live-in.cdn.adyen.com/checkoutshopper/sdk/6.6.0/adyen.js"
+    integrity="sha384-Oa2agnE48SFtDpzmEK8mbhbmEA1X4WH6afLBbypUhFU8oDhJWAIGvLQTBrqgls4A"
+    crossorigin="anonymous"></script>
+    <link rel="stylesheet"
+    href="https://checkoutshopper-live-in.cdn.adyen.com/checkoutshopper/sdk/6.6.0/adyen.css"
+    integrity="sha384-UAD/QSv1wQyfA60svLYxJ0OJAPl9TpkksO+HEOUX8YJcD+MYzNmn+q4XL7YBeHcr"
+    crossorigin="anonymous">
+    <!-- End Adyen -->
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
