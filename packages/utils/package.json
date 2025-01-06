@@ -24,6 +24,7 @@
     "react-dom": "^16.x || ^17.x || ^18.x"
   },
   "devDependencies": {
+    "@adyen/adyen-web": "^6.6.0",
     "@getopenpay/config": "*",
     "eslint": "^8.57.0",
     "typescript": "^5.2.2",

@@ -244,6 +244,7 @@ const Form: FC<FormProps> = (props) => {
                     {stripeLinkShown ? 'Hide' : 'Show'} stripe link
                   </button>
                 )}
+                <div id="adyen-example"></div>
               </div>
             </FormWrapper>
           )}
