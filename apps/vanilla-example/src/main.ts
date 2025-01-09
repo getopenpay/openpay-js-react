@@ -26,6 +26,7 @@ function initializeForm(token: string) {
     checkoutSecureToken: token,
     formTarget: '#app',
     baseUrl: baseUrl || undefined,
+    allowTracing: true,
     onLoad: (totalAmountAtoms, currency) => {
       const submitButton = document.querySelector('#submit') as HTMLButtonElement;
       if (submitButton && totalAmountAtoms && currency) {

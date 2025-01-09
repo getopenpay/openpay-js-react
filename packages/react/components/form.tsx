@@ -36,6 +36,7 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
         formTarget: `#${FORM_TARGET}`,
         baseUrl: props.baseUrl,
         customInitParams: props.customInitParams,
+        allowTracing: true,
         ...formCallbacks,
       });
 

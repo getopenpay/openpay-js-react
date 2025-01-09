@@ -16,6 +16,7 @@ import {
   startAllInitFlows,
   getErrorMessage,
   assertNever,
+  initTracerSafe,
 } from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
 import { ConnectionManager, createConnection } from './utils/connection';
@@ -32,6 +33,7 @@ export type ElementsFormProps = {
   baseUrl?: string;
   formTarget?: string;
   customInitParams?: CustomInitParams;
+  allowTracing?: boolean;
 };
 
 export type Config = ElementsFormProps & AllCallbacks;
@@ -81,6 +83,10 @@ export class OpenPayForm {
     this.formTarget = config.formTarget ?? 'body';
     this.formProperties = { height: '1px' };
     this.connectionManager = new ConnectionManager();
+
+    if (config.allowTracing) {
+      initTracerSafe(this.ojsVersion, this.baseUrl);
+    }
 
     // Event handlers
     this.eventHandler = new OpenPayFormEventHandler(this.formId, this.baseUrl, this.formCallbacks, {
