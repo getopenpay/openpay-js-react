@@ -5,8 +5,10 @@ import {
   confirmPaymentFlow,
   getCheckoutPreviewAmount,
   getPrefill,
+  getProcessorAccount,
   performCheckout,
   startPaymentFlow,
+  startPaymentSession,
 } from '../../cde-client';
 import { CheckoutRequest } from '../../cde_models';
 import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
@@ -146,6 +148,17 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
       return { isAvailable: false };
     }
 
+    // Get processor account details
+    const processorAccount = await getProcessorAccount(context.anyCdeConnection, {
+      checkout_secure_token: context.checkoutSecureToken,
+      checkout_payment_method: applePayCpm,
+    });
+
+    if (!processorAccount.id) {
+      err__('No gateway merchant ID found in processor account');
+      return { isAvailable: false };
+    }
+
     log__(`Loading Apple Pay SDK...`);
     try {
       await loadApplePayScript();
@@ -162,7 +175,7 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
     log__('Apple Pay Loaded');
 
     // Check if merchant can accept the payment
-    const canMakePayments = await ApplePaySession.applePayCapabilities('dev.airwallex.com');
+    const canMakePayments = await ApplePaySession.canMakePayments();
     if (!canMakePayments) {
       log__('No active cards available for Apple Pay');
       return { isAvailable: false };
@@ -209,21 +222,20 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
             try {
               log__('onvalidatemerchant', event);
               const validationUrl = event.validationURL;
-              log__('validationUrl', validationUrl);
-              // Call your backend to validate with Airwallex
-              // const response = await fetch('/api/validate-merchant', {
-              //   method: 'POST',
-              //   headers: {
-              //     'Content-Type': 'application/json',
-              //   },
-              //   body: JSON.stringify({
-              //     validationUrl: event.validationURL,
-              //     domain: window.location.hostname,
-              //   }),
-              // });
 
-              // const merchantSession = await response.json();
-              // session.completeMerchantValidation(merchantSession);
+              // Start payment session with Airwallex
+              const sessionResponse = await startPaymentSession(context.anyCdeConnection, {
+                checkout_secure_token: context.checkoutSecureToken,
+                checkout_payment_method: applePayCpm,
+                validation_url: validationUrl,
+                payment_intent_id: '', // This should come from your payment intent creation
+                initiative_context: window.location.hostname,
+                their_account_id: processorAccount.id,
+              });
+
+              log__('Apple Pay session response', sessionResponse);
+
+              session.completeMerchantValidation(sessionResponse);
             } catch (err) {
               err__('Merchant validation failed', err);
               session.abort();

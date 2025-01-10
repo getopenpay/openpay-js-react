@@ -297,9 +297,45 @@ export type StartPaymentFlowForCCResponse = z.infer<typeof StartPaymentFlowForCC
 export const GenericNextActionMetadata = z.record(z.any());
 export type GenericNextActionMetadata = z.infer<typeof GenericNextActionMetadata>;
 
-// StartApplePaySessionRequest
-export const StartApplePaySessionRequest = z.object({
-  merchantSession: z.string(),
-  payment_input: z.any(), // Should follow AnyPaymentInput from CDE
+export const GetProcessorAccountRequest = z.object({
+  checkout_secure_token: z.string(),
+  checkout_payment_method: CheckoutPaymentMethod,
 });
-export type StartApplePaySessionRequest = z.infer<typeof StartApplePaySessionRequest>;
+export type GetProcessorAccountRequest = z.infer<typeof GetProcessorAccountRequest>;
+
+export const GetProcessorAccountResponse = z.object({
+  id: z.string(),
+  created_at: z.string(),
+  identifier: z.string(),
+  nickname: z.string().optional(),
+  status: z.string(),
+  view_type: z.string().optional(),
+  account_details: z.record(z.string(), z.any()).optional(),
+  customer_agreements: z.record(z.string(), z.any()).optional(),
+  primary_contact: z.record(z.string(), z.any()).optional(),
+  requirements: z.record(z.string(), z.any()).optional(),
+  next_action: z.record(z.string(), z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
+});
+
+export type GetProcessorAccountResponse = z.infer<typeof GetProcessorAccountResponse>;
+
+export const StartPaymentSessionRequest = z.object({
+  checkout_secure_token: z.string(),
+  checkout_payment_method: CheckoutPaymentMethod,
+  validation_url: z.string(),
+  payment_intent_id: z.string(),
+  initiative_context: z.string(),
+  their_account_id: z.string(),
+});
+export type StartPaymentSessionRequest = z.infer<typeof StartPaymentSessionRequest>;
+
+export const StartPaymentSessionResponse = z.object({
+  epochTimestamp: z.number(),
+  expiresAt: z.number(),
+  merchantIdentifier: z.string(),
+  merchantSessionIdentifier: z.string(),
+  nonce: z.string(),
+  signature: z.string(),
+});
+export type StartPaymentSessionResponse = z.infer<typeof StartPaymentSessionResponse>;

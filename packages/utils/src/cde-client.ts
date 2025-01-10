@@ -19,6 +19,8 @@ import {
   CheckoutRequest,
   CheckoutSuccessResponse,
   FinalizeSetupPaymentMethodRequest,
+  GetProcessorAccountRequest,
+  GetProcessorAccountResponse,
   PaymentFormPrefill,
   PreviewCheckoutResponse,
   SetupCheckoutResponse,
@@ -27,6 +29,8 @@ import {
   StartPaymentFlowForPRRequest,
   StartPaymentFlowRequest,
   StartPaymentFlowResponse,
+  StartPaymentSessionRequest,
+  StartPaymentSessionResponse,
 } from './cde_models';
 import { sleep } from './stripe';
 import { sum } from './math';
@@ -262,9 +266,16 @@ export const pingCdeFor3dsStatus = async (iframe: HTMLIFrameElement, childOrigin
   return result;
 };
 
-// export const startApplePaySession = async (
-//   cdeConn: CdeConnection,
-//   payload: StartApplePaySessionRequest
-// ): Promise<StartApplePaySessionResponse> => {
-//   return await queryCDE(cdeConn, { type: 'start_apple_pay_session', payload }, StartApplePaySessionResponse);
-// };
+export const getProcessorAccount = async (
+  cdeConn: CdeConnection,
+  payload: GetProcessorAccountRequest
+): Promise<GetProcessorAccountResponse> => {
+  return await queryCDE(cdeConn, { type: 'get_processor_account', payload }, GetProcessorAccountResponse);
+};
+
+export const startPaymentSession = async (
+  cdeConn: CdeConnection,
+  payload: StartPaymentSessionRequest
+): Promise<StartPaymentSessionResponse> => {
+  return await queryCDE(cdeConn, { type: 'start_payment_session', payload }, StartPaymentSessionResponse);
+};

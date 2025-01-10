@@ -12,6 +12,7 @@ import {
   confirmPaymentFlow,
   getCheckoutPreviewAmount,
   getPrefill,
+  getProcessorAccount,
   performCheckout,
   startPaymentFlow,
 } from '../../cde-client';
@@ -119,7 +120,7 @@ const baseGooglePayRequest: PaymentDataRequest = {
         type: 'PAYMENT_GATEWAY',
         parameters: {
           gateway: 'airwallex',
-          gatewayMerchantId: 'acct_EKbmGYawND6veyiKirjWqg', // TODO: get from context
+          gatewayMerchantId: '', // Will be set dynamically
         },
       },
     },
@@ -189,6 +190,22 @@ export const initAirwallexGooglePayFlow: InitOjsFlow<InitGooglePayFlowResult> = 
     if (!googlePayCpm) {
       return { isAvailable: false };
     }
+
+    // Get processor account details
+    const processorAccount = await getProcessorAccount(context.anyCdeConnection, {
+      checkout_secure_token: context.checkoutSecureToken,
+      checkout_payment_method: googlePayCpm,
+    });
+
+    log__('Processor account', processorAccount);
+    if (!processorAccount.id) {
+      err__('No gateway merchant ID found in processor account');
+      return { isAvailable: false };
+    }
+
+    // Update baseGooglePayRequest with the merchant ID
+    baseGooglePayRequest.allowedPaymentMethods[0].tokenizationSpecification.parameters.gatewayMerchantId =
+      processorAccount.id;
 
     log__(`Loading Google Pay SDK...`);
     await loadGooglePayScript();
