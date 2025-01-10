@@ -272,6 +272,7 @@ const Form: FC<FormProps> = (props) => {
                   label: 'Google Pay (Airwallex)',
                   isAvailable: true,
                   isShown: airwallexGooglePayShown,
+
                   toggleShow: async () => {
                     if (airwallexGooglePayShown) {
                       setAirwallexGooglePayShown(false);

@@ -49,16 +49,8 @@ export type AirwallexGooglePayController = {
   mountButton: () => void;
   dismountButton: () => void;
   waitForButtonToMount: () => Promise<HTMLElement>;
+  startFlow: () => Promise<void>;
 };
-
-export type InitAirwallexGPayFlowResult =
-  | {
-      isAvailable: true;
-      controller: AirwallexGooglePayController;
-    }
-  | {
-      isAvailable: false;
-    };
 
 interface PaymentClientConfig {
   environment: 'TEST' | 'PRODUCTION';
@@ -187,16 +179,10 @@ const getGooglePaymentsClient = (environment: 'TEST' | 'PRODUCTION' = 'TEST'): P
 const OJS_GPAY_BTN_ID = 'ojs-airwallex-gpay-btn';
 const { log__, err__ } = createOjsFlowLoggers('gpay');
 
-export type GooglePayController = {
-  mountButton: () => void;
-  dismountButton: () => void;
-  waitForButtonToMount: () => Promise<HTMLElement>;
-};
-
 export type InitGooglePayFlowResult =
   | {
       isAvailable: true;
-      controller: GooglePayController;
+      controller: AirwallexGooglePayController;
     }
   | {
       isAvailable: false;
@@ -270,51 +256,48 @@ export const initAirwallexGooglePayFlow: InitOjsFlow<InitGooglePayFlowResult> = 
       return { isAvailable: false };
     }
 
-    let googlePayButton: HTMLElement | null = null;
+    const paymentDataRequest = getPaymentDataRequest('airwallex', processorAccount.id, isSetupMode, initialPreview);
+    const onGooglePayStartFlow = async () => {
+      try {
+        const paymentData = await getGooglePaymentsClient().loadPaymentData(paymentDataRequest);
+        log__('Google Pay Payment data', paymentData);
+        const billingAddress = paymentData.paymentMethodData?.info?.billingAddress;
 
+        log__('Billing address', billingAddress);
+
+        OjsFlows.airwallexGooglePay.run({
+          context,
+          checkoutPaymentMethod: googlePayCpm,
+          nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
+          formCallbacks,
+          customParams: { paymentData },
+          initResult: {
+            isAvailable: true,
+            controller: {
+              mountButton,
+              dismountButton,
+              waitForButtonToMount: async () => await getElementByIdAsync(OJS_GPAY_BTN_ID),
+              startFlow: async () => {},
+            },
+          },
+        });
+      } catch (err) {
+        err__('Google Pay payment error', err);
+        formCallbacks.get.onCheckoutError((err as Error)?.message ?? 'Unknown error');
+      }
+    };
+
+    let googlePayButton: HTMLElement | null = null;
     const mountButton = async () => {
       const container = document.getElementById(OJS_GPAY_BTN_ID);
-      if (!container) {
-        throw new Error('Failed to find container element');
+      if (container) {
+        googlePayButton = getGooglePaymentsClient().createButton({
+          // @ts-expect-error - onClick do not exists in createButton
+          onClick: onGooglePayStartFlow,
+        });
+
+        container.appendChild(googlePayButton);
       }
-
-      const paymentDataRequest = getPaymentDataRequest('airwallex', processorAccount.id, isSetupMode, initialPreview);
-      const onGooglePayStartFlow = async () => {
-        try {
-          const paymentData = await getGooglePaymentsClient().loadPaymentData(paymentDataRequest);
-          log__('Google Pay Payment data', paymentData);
-          const billingAddress = paymentData.paymentMethodData?.info?.billingAddress;
-
-          log__('Billing address', billingAddress);
-
-          // return;
-          OjsFlows.airwallexGooglePay.run({
-            context,
-            checkoutPaymentMethod: googlePayCpm,
-            nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
-            formCallbacks,
-            customParams: { paymentData },
-            initResult: {
-              isAvailable: true,
-              controller: {
-                mountButton,
-                dismountButton,
-                waitForButtonToMount: async () => await getElementByIdAsync(OJS_GPAY_BTN_ID),
-              },
-            },
-          });
-        } catch (err) {
-          err__('Google Pay payment error', err);
-          formCallbacks.get.onCheckoutError((err as Error)?.message ?? 'Unknown error');
-        }
-      };
-      // TODO: implement to expose function
-      googlePayButton = getGooglePaymentsClient().createButton({
-        // @ts-expect-error - onClick do not exists in createButton
-        onClick: onGooglePayStartFlow,
-      });
-
-      container.appendChild(googlePayButton);
     };
 
     const dismountButton = () => {
@@ -335,6 +318,10 @@ export const initAirwallexGooglePayFlow: InitOjsFlow<InitGooglePayFlowResult> = 
         mountButton,
         dismountButton,
         waitForButtonToMount: async () => await getElementByIdAsync(OJS_GPAY_BTN_ID),
+        startFlow: async () => {
+          log__('Starting Google Pay flow by clicking button...');
+          await onGooglePayStartFlow();
+        },
       },
     };
   }

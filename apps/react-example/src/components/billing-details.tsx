@@ -28,27 +28,19 @@ const BillingDetails: FC = () => {
   const fillRandomValues = () => {
     const randomId = Math.random().toString(36).replace(/[0-9]/g, '').substring(2, 8);
     document.querySelectorAll('[data-opid]').forEach((el) => {
-      switch (el.getAttribute('data-opid')) {
-        case FieldName.FIRST_NAME:
-          el.setAttribute('value', `John `);
-          break;
-        case FieldName.LAST_NAME:
-          el.setAttribute('value', `Doe${randomId}`);
-          break;
-        case FieldName.EMAIL:
-          el.setAttribute('value', `john.doe${randomId}@example.com`);
-          break;
-        case FieldName.COUNTRY:
-          el.setAttribute('value', 'US');
-          break;
-        case FieldName.ZIP_CODE:
-          el.setAttribute(
-            'value',
-            Math.floor(Math.random() * (99950 - 501) + 501)
-              .toString()
-              .padStart(5, '0')
-          );
-          break;
+      const values = {
+        [FieldName.FIRST_NAME]: 'John ',
+        [FieldName.LAST_NAME]: `Doe${randomId}`,
+        [FieldName.EMAIL]: `john.doe${randomId}@example.com`,
+        [FieldName.COUNTRY]: 'US',
+        [FieldName.ZIP_CODE]: Math.floor(Math.random() * (99950 - 501) + 501)
+          .toString()
+          .padStart(5, '0'),
+      } as Record<FieldName, string>;
+
+      const opid = el.getAttribute('data-opid') as FieldName;
+      if (opid && opid in values) {
+        el.setAttribute('value', values[opid]);
       }
     });
   };

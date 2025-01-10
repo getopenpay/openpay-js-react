@@ -33,6 +33,7 @@ export type AirwallexApplePayController = {
   mountButton: () => void;
   dismountButton: () => void;
   waitForButtonToMount: () => Promise<HTMLElement>;
+  startFlow: () => Promise<void>;
 };
 
 export type InitAirwallexGPayFlowResult =
@@ -47,16 +48,10 @@ export type InitAirwallexGPayFlowResult =
 const OJS_APPLEPAY_BTN_ID = 'ojs-airwallex-applepay-btn';
 const { log__, err__ } = createOjsFlowLoggers('applepay');
 
-export type ApplePayController = {
-  mountButton: () => void;
-  dismountButton: () => void;
-  waitForButtonToMount: () => Promise<HTMLElement>;
-};
-
 export type InitApplePayFlowResult =
   | {
       isAvailable: true;
-      controller: ApplePayController;
+      controller: AirwallexApplePayController;
     }
   | {
       isAvailable: false;
@@ -186,116 +181,98 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
     const isSetupMode = prefill.mode === 'setup';
     const initialPreview = await getCheckoutPreviewAmount(anyCdeConnection, prefill.token, isSetupMode, undefined);
 
-    let applePayButton: HTMLElement | null = null;
+    const paymentRequest: ApplePayJS.ApplePayPaymentRequest = {
+      countryCode: 'US',
+      currencyCode: initialPreview.currency?.toUpperCase() ?? 'USD',
+      supportedNetworks: ['visa', 'masterCard', 'amex', 'discover'],
+      merchantCapabilities: [
+        'supports3DS',
+        'supportsCredit',
+        'supportsDebit',
+        'supportsEMV',
+      ] as ApplePayJS.ApplePayMerchantCapability[],
+      total: {
+        label: isSetupMode ? 'Setup Payment' : 'Payment Total',
+        amount: (initialPreview.amountAtom / 100).toFixed(2),
+        type: 'final',
+      },
+    };
 
+    const onApplePayStartFlow = async () => {
+      try {
+        const session = new ApplePaySession(3, paymentRequest);
+        log__('Apple Pay session created', session);
+
+        session.onvalidatemerchant = async (event) => {
+          try {
+            log__('onvalidatemerchant', event);
+            const validationUrl = event.validationURL;
+
+            const sessionResponse = await startPaymentSession(context.anyCdeConnection, {
+              checkout_secure_token: context.checkoutSecureToken,
+              checkout_payment_method: applePayCpm,
+              validation_url: validationUrl,
+              payment_intent_id: '', // This should come from your payment intent creation
+              initiative_context: window.location.hostname,
+              their_account_id: processorAccount.id,
+            });
+
+            log__('Apple Pay session response', sessionResponse);
+            session.completeMerchantValidation(sessionResponse);
+          } catch (err) {
+            err__('Merchant validation failed', err);
+            session.abort();
+          }
+        };
+
+        session.onpaymentauthorized = async (event) => {
+          try {
+            const paymentData = event.payment;
+            log__('Payment authorized', paymentData);
+            const billingContact = paymentData.billingContact;
+
+            log__('Billing contact', billingContact);
+
+            await OjsFlows.airwallexApplePay.run({
+              context,
+              checkoutPaymentMethod: applePayCpm,
+              nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
+              formCallbacks,
+              customParams: { paymentData },
+              initResult: {
+                isAvailable: true,
+                controller: {
+                  mountButton,
+                  dismountButton,
+                  waitForButtonToMount: async () => await getElementByIdAsync(OJS_APPLEPAY_BTN_ID),
+                  startFlow: async () => {},
+                },
+              },
+            });
+
+            session.completePayment(ApplePaySession.STATUS_SUCCESS);
+          } catch (err) {
+            err__('Payment authorization failed', err);
+            session.completePayment(ApplePaySession.STATUS_FAILURE);
+            formCallbacks.get.onCheckoutError((err as Error)?.message ?? 'Unknown error');
+          }
+        };
+
+        session.begin();
+      } catch (err) {
+        err__('Apple Pay session error', err);
+        formCallbacks.get.onCheckoutError((err as Error)?.message ?? 'Unknown error');
+      }
+    };
+
+    let applePayButton: HTMLElement | null = null;
     const mountButton = async () => {
       const container = document.getElementById(OJS_APPLEPAY_BTN_ID);
-      if (!container) {
-        throw new Error('Failed to find container element');
+      if (container) {
+        applePayButton = createApplePayButton();
+        applePayButton.addEventListener('click', onApplePayStartFlow);
+        container.appendChild(applePayButton);
       }
-
-      applePayButton = createApplePayButton();
-
-      applePayButton.addEventListener('click', async () => {
-        try {
-          const paymentRequest: ApplePayJS.ApplePayPaymentRequest = {
-            countryCode: 'US',
-            currencyCode: initialPreview.currency?.toUpperCase() ?? 'USD',
-            supportedNetworks: ['visa', 'masterCard', 'amex', 'discover'],
-            merchantCapabilities: [
-              'supports3DS',
-              'supportsCredit',
-              'supportsDebit',
-              'supportsEMV',
-            ] as ApplePayJS.ApplePayMerchantCapability[],
-            total: {
-              label: isSetupMode ? 'Setup Payment' : 'Payment Total',
-              amount: (initialPreview.amountAtom / 100).toFixed(2),
-              type: 'final',
-            },
-          };
-
-          const session = new ApplePaySession(3, paymentRequest);
-          log__('Apple Pay session created', session);
-
-          session.onvalidatemerchant = async (event) => {
-            try {
-              log__('onvalidatemerchant', event);
-              const validationUrl = event.validationURL;
-
-              // Start payment session with Airwallex
-              const sessionResponse = await startPaymentSession(context.anyCdeConnection, {
-                checkout_secure_token: context.checkoutSecureToken,
-                checkout_payment_method: applePayCpm,
-                validation_url: validationUrl,
-                payment_intent_id: '', // This should come from your payment intent creation
-                initiative_context: window.location.hostname,
-                their_account_id: processorAccount.id,
-              });
-
-              log__('Apple Pay session response', sessionResponse);
-
-              session.completeMerchantValidation(sessionResponse);
-            } catch (err) {
-              err__('Merchant validation failed', err);
-              session.abort();
-            }
-          };
-
-          session.onpaymentauthorized = async (event) => {
-            try {
-              const paymentData = event.payment;
-              log__('Payment authorized', paymentData);
-
-              await OjsFlows.airwallexApplePay.run({
-                context,
-                checkoutPaymentMethod: applePayCpm,
-                nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
-                formCallbacks,
-                customParams: { paymentData },
-                initResult: {
-                  isAvailable: true,
-                  controller: {
-                    mountButton,
-                    dismountButton,
-                    waitForButtonToMount: async () => await getElementByIdAsync(OJS_APPLEPAY_BTN_ID),
-                  },
-                },
-              });
-
-              session.completePayment(ApplePaySession.STATUS_SUCCESS);
-            } catch (err) {
-              err__('Payment authorization failed', err);
-              session.completePayment(ApplePaySession.STATUS_FAILURE);
-              formCallbacks.get.onCheckoutError((err as Error)?.message ?? 'Unknown error');
-            }
-          };
-
-          session.onshippingmethodselected = () => {
-            const update = {
-              newTotal: paymentRequest.total,
-              newLineItems: [],
-            };
-            session.completeShippingMethodSelection(update);
-          };
-
-          session.onshippingcontactselected = () => {
-            const update = {
-              newTotal: paymentRequest.total,
-              newLineItems: [],
-              newShippingMethods: [],
-            };
-            session.completeShippingContactSelection(update);
-          };
-
-          session.begin();
-        } catch (err) {
-          err__('Apple Pay session error', err);
-          formCallbacks.get.onCheckoutError((err as Error)?.message ?? 'Unknown error');
-        }
-      });
-
-      container.appendChild(applePayButton);
     };
 
     const dismountButton = () => {
@@ -316,6 +293,10 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
         mountButton,
         dismountButton,
         waitForButtonToMount: async () => await getElementByIdAsync(OJS_APPLEPAY_BTN_ID),
+        startFlow: async () => {
+          log__('Starting Apple Pay flow by clicking button...');
+          await onApplePayStartFlow();
+        },
       },
     };
   }
