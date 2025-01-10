@@ -305,17 +305,16 @@ export type GetProcessorAccountRequest = z.infer<typeof GetProcessorAccountReque
 
 export const GetProcessorAccountResponse = z.object({
   id: z.string(),
-  created_at: z.string(),
-  identifier: z.string(),
-  nickname: z.string().optional(),
   status: z.string(),
-  view_type: z.string().optional(),
-  account_details: z.record(z.string(), z.any()).optional(),
-  customer_agreements: z.record(z.string(), z.any()).optional(),
-  primary_contact: z.record(z.string(), z.any()).optional(),
-  requirements: z.record(z.string(), z.any()).optional(),
-  next_action: z.record(z.string(), z.any()).optional(),
-  metadata: z.record(z.string(), z.any()).optional(),
+  created_at: z.string(),
+  account_details: z.record(z.string(), z.any()),
+  nickname: z.string().nullish(),
+  view_type: z.string().nullish(),
+  customer_agreements: z.record(z.string(), z.any()).nullish(),
+  primary_contact: z.record(z.string(), z.any()).nullish(),
+  requirements: z.record(z.string(), z.any()).nullish(),
+  next_action: z.record(z.string(), z.any()).nullish(),
+  metadata: z.record(z.string(), z.any()).nullish(),
 });
 
 export type GetProcessorAccountResponse = z.infer<typeof GetProcessorAccountResponse>;
