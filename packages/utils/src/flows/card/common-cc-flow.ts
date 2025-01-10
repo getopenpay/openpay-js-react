@@ -159,7 +159,9 @@ const parseStripe3DSNextActionMetadata = (response: StartPaymentFlowForCCRespons
   return Stripe3DSNextActionMetadata.parse(stripeAction);
 };
 
-const parseCommon3DSNextActionMetadata = (response: StartPaymentFlowForCCResponse): Common3DSNextActionMetadata => {
+export const parseCommon3DSNextActionMetadata = (
+  response: StartPaymentFlowForCCResponse
+): Common3DSNextActionMetadata => {
   // TODO: handle multiple processor 3ds
   const commonAction = response.required_user_actions.find((action) => action.type === 'airwallex_payment_consent');
   if (!commonAction) {

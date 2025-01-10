@@ -261,3 +261,10 @@ export const pingCdeFor3dsStatus = async (iframe: HTMLIFrameElement, childOrigin
   console.log('🟢 CDE connection successful! Stopping polling... Result:', result);
   return result;
 };
+
+// export const startApplePaySession = async (
+//   cdeConn: CdeConnection,
+//   payload: StartApplePaySessionRequest
+// ): Promise<StartApplePaySessionResponse> => {
+//   return await queryCDE(cdeConn, { type: 'start_apple_pay_session', payload }, StartApplePaySessionResponse);
+// };

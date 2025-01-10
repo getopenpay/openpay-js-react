@@ -334,6 +334,8 @@ export const ConfirmPaymentFlowRequest = z.object({
   secure_token: z.string(),
   existing_cc_pm_id: nullOrUndefOr(z.string()),
   their_pm_id: nullOrUndefOr(z.string()),
+  payment_method_data: z.any().optional(),
+  consent_id: nullOrUndefOr(z.string()),
 });
 export type ConfirmPaymentFlowRequest = z.infer<typeof ConfirmPaymentFlowRequest>;
 
@@ -413,6 +415,7 @@ export const Common3DSNextActionMetadata = z.object({
   redirect_url: z.string(),
   initial_intent_id: z.string(),
   consent_id: z.string(),
+  their_pm_id: z.string().optional(),
 });
 export type Common3DSNextActionMetadata = z.infer<typeof Common3DSNextActionMetadata>;
 

@@ -5,7 +5,8 @@ import { ElementsFormChildrenProps, StripeLinkController } from '@getopenpay/uti
 import { ElementsFormPropsReact } from '../types';
 import { useReactiveFormCallbacks } from '../hooks/use-form-callbacks';
 import { usePaymentRequests } from '../hooks/use-payment-requests';
-
+import { AirwallexGooglePayController } from '@getopenpay/utils/src/flows/airwallex/airwallex-google-pay-flow';
+import { AirwallexApplePayController } from '@getopenpay/utils/src/flows/airwallex/airwallex-apple-pay-flow';
 const FORM_TARGET = 'op_ojs_form';
 
 const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
@@ -14,6 +15,8 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
   const { paymentRequests, overridenOnPaymentRequestLoad } = usePaymentRequests(props.onPaymentRequestLoad);
   const [loaded, setLoaded] = useState(false);
   const [stripeLinkCtrl, setStripeLinkCtrl] = useState<StripeLinkController | null>(null);
+  const [airwallexGooglePayCtrl, setAirwallexGooglePayCtrl] = useState<AirwallexGooglePayController | null>(null);
+  const [airwallexApplePayCtrl, setAirwallexApplePayCtrl] = useState<AirwallexApplePayController | null>(null);
 
   // TODO ASAP: make sure stripe link is not visible while not yet loaded
   // TODO ASAP: make sure formCallbacks are called
@@ -41,11 +44,24 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
 
     setOpForm(form);
     const value = getElementsContextValue(form);
+    console.log('ElementsContextValue >>>>>> ', value);
     setElementsContextValue(value);
 
     form.initFlows.stripeLink.publisher.subscribe((result) => {
       if (result.isSuccess && result.loadedValue.isAvailable) {
         setStripeLinkCtrl(result.loadedValue.controller);
+      }
+    });
+
+    form.initFlows.airwallexGooglePay.publisher.subscribe((result) => {
+      if (result.isSuccess && result.loadedValue.isAvailable) {
+        setAirwallexGooglePayCtrl(result.loadedValue.controller);
+      }
+    });
+
+    form.initFlows.airwallexApplePay.publisher.subscribe((result) => {
+      if (result.isSuccess && result.loadedValue.isAvailable) {
+        setAirwallexApplePayCtrl(result.loadedValue.controller);
       }
     });
 
@@ -76,6 +92,8 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
       error: null,
     },
     stripeLink: stripeLinkCtrl,
+    airwallexGooglePay: airwallexGooglePayCtrl,
+    airwallexApplePay: airwallexApplePayCtrl,
   };
 
   return (

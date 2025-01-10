@@ -247,6 +247,12 @@ export const NewCustomerFields = z.object({
 export type NewCustomerFields = z.infer<typeof NewCustomerFields>;
 
 // StartPaymentFlowRequest
+export const PaymentMethodData = z.object({
+  payment_method_data: z.record(z.string(), z.any()).optional(),
+});
+export type PaymentMethodData = z.infer<typeof PaymentMethodData>;
+
+// StartPaymentFlowRequest
 export const StartPaymentFlowRequest = z
   .object({
     payment_provider: z.string(),
@@ -254,7 +260,8 @@ export const StartPaymentFlowRequest = z
     existing_cc_pm_id: z.string().optional(),
     their_existing_pm_id: z.string().optional(),
   })
-  .extend(NewCustomerFields.shape);
+  .extend(NewCustomerFields.shape)
+  .extend(PaymentMethodData.shape);
 export type StartPaymentFlowRequest = z.infer<typeof StartPaymentFlowRequest>;
 
 // StartPaymentFlowResponse
@@ -289,3 +296,10 @@ export type StartPaymentFlowForCCResponse = z.infer<typeof StartPaymentFlowForCC
 // GenericNextActionMetadata
 export const GenericNextActionMetadata = z.record(z.any());
 export type GenericNextActionMetadata = z.infer<typeof GenericNextActionMetadata>;
+
+// StartApplePaySessionRequest
+export const StartApplePaySessionRequest = z.object({
+  merchantSession: z.string(),
+  payment_input: z.any(), // Should follow AnyPaymentInput from CDE
+});
+export type StartApplePaySessionRequest = z.infer<typeof StartApplePaySessionRequest>;

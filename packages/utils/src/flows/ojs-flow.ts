@@ -139,6 +139,16 @@ export type CustomInitParams = {
      */
     doNotMountOnInit?: boolean;
   };
+
+  googlePay?: {
+    env: 'demo' | 'prod';
+    doNotMountOnInit?: boolean;
+  };
+
+  applePay?: {
+    env: 'demo' | 'prod';
+    doNotMountOnInit?: boolean;
+  };
 };
 
 /**

@@ -24,6 +24,17 @@ interface FormProps {
   baseUrl?: string;
 }
 
+// Add this new interface for payment method buttons
+interface PaymentMethodButton {
+  id: string;
+  label: string;
+  isAvailable?: boolean;
+  isLoading?: boolean;
+  isShown: boolean;
+  toggleShow: () => Promise<void>;
+  startFlow?: () => void;
+}
+
 const Form: FC<FormProps> = (props) => {
   const { token, separateFrames, onCheckoutSuccess, onSetupPaymentMethodSuccess } = props;
   const [loading, setLoading] = useState<boolean>(true);
@@ -35,6 +46,9 @@ const Form: FC<FormProps> = (props) => {
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [stripeLinkShown, setStripeLinkShown] = useState<boolean>(true);
+
+  const [airwallexGooglePayShown, setAirwallexGooglePayShown] = useState<boolean>(true);
+  const [airwallexApplePayShown, setAirwallexApplePayShown] = useState<boolean>(true);
 
   const prParams = {
     overridePaymentRequest: {
@@ -101,6 +115,54 @@ const Form: FC<FormProps> = (props) => {
 
   const [isMounted, setIsMounted] = useState(true);
 
+  // Inside Form component, add this new section replacing the existing payment buttons code
+  const renderPaymentMethods = (paymentMethods: PaymentMethodButton[]) => {
+    return (
+      <div className="space-y-4 mt-6">
+        {paymentMethods.map((method) => (
+          <div
+            key={method.id}
+            className="rounded-lg bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700"
+          >
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium">{method.label}</h3>
+                {method.isAvailable && (
+                  <button
+                    onClick={method.toggleShow}
+                    className="text-sm px-3 py-1 rounded-md bg-gray-100 hover:bg-gray-200 
+                           dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    {method.isShown ? 'Hide' : 'Show'}
+                  </button>
+                )}
+              </div>
+
+              {method.isShown && (
+                <div className="mt-2">
+                  {method.isLoading ? (
+                    <div className="h-12 flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-md">
+                      <span className="text-sm">Loading...</span>
+                    </div>
+                  ) : !method.isAvailable ? (
+                    <div className="h-12 flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-md">
+                      <span className="text-sm text-gray-500">Not available</span>
+                    </div>
+                  ) : (
+                    <div
+                      id={`ojs-${method.id}-btn`}
+                      className={`${method.id}-button [&_#gpay-button-online-api-id]:w-full`}
+                    ></div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <>
       <button
@@ -128,7 +190,7 @@ const Form: FC<FormProps> = (props) => {
             },
           }}
         >
-          {({ submit, applePay, googlePay, loaded, stripeLink }) => (
+          {({ submit, applePay, googlePay, loaded, stripeLink, airwallexGooglePay, airwallexApplePay }) => (
             <FormWrapper error={validationErrors}>
               {loading && (
                 <div data-testid="loading" className="flex items-center">
@@ -182,57 +244,78 @@ const Form: FC<FormProps> = (props) => {
                 Pay {amount}
               </button>
 
-              <button
-                onClick={() => applePay.startFlow(prParams)}
-                disabled={!applePay.isAvailable || loading}
-                className={classNames(
-                  'px-4 py-2 mt-2 w-full rounded-lg',
-                  applePay.isAvailable
-                    ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold'
-                    : 'bg-gray-100 text-gray-300'
-                )}
-              >
-                {applePay.isLoading ? 'Loading' : 'Apple Pay'}
-              </button>
-
-              <button
-                onClick={() => googlePay.startFlow(prParams)}
-                disabled={!googlePay.isAvailable || loading}
-                className={classNames(
-                  'px-4 py-2 mt-2 w-full rounded-lg',
-                  googlePay.isAvailable
-                    ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold'
-                    : 'bg-gray-100 text-gray-300'
-                )}
-              >
-                {googlePay.isLoading ? 'Loading' : 'Google Pay'}
-              </button>
-              {stripeLinkShown ? (
-                <div id="ojs-stripe-link-btn" className="stripe-link-button mt-2">
-                  Loading...
-                </div>
-              ) : (
-                <></>
-              )}
-              <div className="grid grid-cols-2 mt-8 bg-gray-100 p-4 rounded-lg drop-shadow">
-                {stripeLink && (
-                  <button
-                    onClick={async () => {
-                      if (stripeLinkShown) {
-                        setStripeLinkShown(false);
-                        stripeLink.dismountButton();
-                      } else {
-                        setStripeLinkShown(true);
-                        await stripeLink.waitForButtonToMount();
-                        stripeLink.mountButton();
-                      }
-                    }}
-                    className="text-white text-sm px-2 py-1 w-full rounded-md bg-gray-600 hover:bg-gray-700 active:bg-gray-800"
-                  >
-                    {stripeLinkShown ? 'Hide' : 'Show'} stripe link
-                  </button>
-                )}
-              </div>
+              {/* Alternative payment methods */}
+              {renderPaymentMethods([
+                {
+                  id: 'stripe-link',
+                  label: 'Pay with Link',
+                  isAvailable: true,
+                  isShown: stripeLinkShown,
+                  toggleShow: async () => {
+                    if (stripeLinkShown) {
+                      setStripeLinkShown(false);
+                      stripeLink?.dismountButton();
+                    } else {
+                      setStripeLinkShown(true);
+                      await stripeLink?.waitForButtonToMount();
+                      stripeLink?.mountButton();
+                    }
+                  },
+                },
+                {
+                  id: 'airwallex-gpay',
+                  label: 'Google Pay (Airwallex)',
+                  isAvailable: true,
+                  isShown: airwallexGooglePayShown,
+                  toggleShow: async () => {
+                    if (airwallexGooglePayShown) {
+                      setAirwallexGooglePayShown(false);
+                      airwallexGooglePay?.dismountButton();
+                    } else {
+                      setAirwallexGooglePayShown(true);
+                      await airwallexGooglePay?.waitForButtonToMount();
+                      airwallexGooglePay?.mountButton();
+                    }
+                  },
+                },
+                {
+                  id: 'airwallex-applepay',
+                  label: 'Apple Pay (Airwallex)',
+                  isAvailable: true,
+                  isShown: airwallexApplePayShown,
+                  toggleShow: async () => {
+                    if (airwallexApplePayShown) {
+                      setAirwallexApplePayShown(false);
+                      airwallexApplePay?.dismountButton();
+                    } else {
+                      setAirwallexApplePayShown(true);
+                      await airwallexApplePay?.waitForButtonToMount();
+                      airwallexApplePay?.mountButton();
+                    }
+                  },
+                },
+                {
+                  id: 'stripe-applepay',
+                  label: 'Apple Pay (Stripe)',
+                  isAvailable: applePay.isAvailable,
+                  isLoading: applePay.isLoading,
+                  isShown: true,
+                  toggleShow: async () => {},
+                  startFlow: () => applePay.startFlow(prParams),
+                },
+                {
+                  id: 'stripe-googlepay',
+                  label: 'Google Pay (Stripe)',
+                  isAvailable: googlePay.isAvailable,
+                  isLoading: googlePay.isLoading,
+                  isShown: true,
+                  toggleShow: async () => {},
+                  startFlow: () => {
+                    setLoading(true);
+                    googlePay.startFlow(prParams);
+                  },
+                },
+              ])}
             </FormWrapper>
           )}
         </ElementsForm>
@@ -268,6 +351,9 @@ const ElementsExample: FC = () => {
 
   const onTokenChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setCheckoutResponse(null);
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.set('token', e.target.value);
+    window.history.pushState({}, '', window.location.pathname + '?' + searchParams.toString());
     setToken(e.target.value === '' ? null : e.target.value);
   }, []);
 
@@ -290,7 +376,7 @@ const ElementsExample: FC = () => {
   }, []);
 
   return (
-    <main className="w-full max-w-5xl p-24 mx-auto">
+    <main className="w-full max-w-3xl p-4 pt-12 mx-auto">
       <div>
         <h1 className="text-2xl font-bold">OpenPay Elements</h1>
         <p className="my-4">Accept payments through OpenPay, right on your site</p>
