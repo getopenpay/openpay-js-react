@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createInputsDictFromForm, FieldName, OjsFlows, ThreeDSStatus } from '../../..';
+import { Common3DSNextActionMetadata, createInputsDictFromForm, FieldName, OjsFlows, ThreeDSStatus } from '../../..';
 import { start3dsVerification } from '../../3ds-elements/events';
 import {
   confirmPaymentFlow,
@@ -348,6 +348,28 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunApplePayFlowParams, InitApp
       formCallbacks,
     }): Promise<SimpleOjsFlowResult> => {
       log__('Starting Apple Pay flow...');
+      const extractedBillingAddress = customParams.paymentData.billingContact;
+
+      // If billing form fields are empty, try to replace with Apple Pay billing address
+      if (extractedBillingAddress) {
+        const applePayAddressToOjsFormFields = {
+          [FieldName.COUNTRY]: extractedBillingAddress.countryCode,
+          [FieldName.ADDRESS]: extractedBillingAddress.addressLines?.join(', '),
+          [FieldName.CITY]: extractedBillingAddress.locality,
+          [FieldName.ZIP_CODE]: extractedBillingAddress.postalCode,
+          [FieldName.STATE]: extractedBillingAddress.administrativeArea,
+          [FieldName.FIRST_NAME]: extractedBillingAddress.givenName,
+          [FieldName.LAST_NAME]: extractedBillingAddress.familyName,
+        };
+
+        for (const [fieldName, value] of Object.entries(applePayAddressToOjsFormFields)) {
+          if (!nonCdeFormInputs[fieldName]) {
+            nonCdeFormInputs[fieldName] = value;
+          }
+        }
+      }
+
+      log__('Non-CDE fields to validate', nonCdeFormInputs);
       const nonCdeFormFields = validateNonCdeFormFieldsForCC(nonCdeFormInputs, formCallbacks.get.onValidationError);
       const anyCdeConnection = context.anyCdeConnection;
       const prefill = await getPrefill(anyCdeConnection);
@@ -367,35 +389,48 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunApplePayFlowParams, InitApp
       });
 
       let ourPmId: string | undefined = undefined;
-      const possibleNextAction = parseAirwallex3DSNextActionMetadata(startPaymentFlowResponse);
+      let possibleNextAction: Common3DSNextActionMetadata | null = null;
 
-      if (possibleNextAction.type === 'airwallex_payment_consent' && possibleNextAction.redirect_url) {
+      try {
+        possibleNextAction = parseAirwallex3DSNextActionMetadata(startPaymentFlowResponse);
+        log__('Possible next action', possibleNextAction);
+      } catch (e) {
+        err__('Not required 3DS verification', e);
+      }
+
+      // Handle 3DS if required
+      if (possibleNextAction?.type === 'airwallex_payment_consent' && possibleNextAction.redirect_url) {
         const { status } = await start3dsVerification({
           url: possibleNextAction.redirect_url,
           baseUrl: context.baseUrl,
         });
-
+        log__(`╰ 3DS verification completed [Status: ${status}]`);
         if (status === ThreeDSStatus.CANCELLED) {
           throw new Error('3DS verification cancelled');
         }
         if (status === ThreeDSStatus.FAILURE) {
           throw new Error('3DS verification failed');
         }
-
-        const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
-          secure_token: prefill.token,
-          consent_id: possibleNextAction.consent_id,
-          their_pm_id: possibleNextAction.their_pm_id,
-          payment_method_data: {
-            type: 'applepay',
-            applepay: {
-              payment_data: customParams.paymentData,
-            },
-          },
-        });
-
-        ourPmId = confirmResult.payment_methods[0]?.id;
       }
+
+      // Always confirm payment flow, with or without 3DS
+      const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
+        secure_token: prefill.token,
+        consent_id: possibleNextAction?.consent_id,
+        their_pm_id: possibleNextAction?.their_pm_id,
+        payment_method_data: {
+          type: 'applepay',
+          applepay: {
+            payment_data: customParams.paymentData,
+          },
+        },
+      });
+      log__('Confirm result', confirmResult);
+      ourPmId = confirmResult.payment_methods?.[0]?.id;
+
+      log__('Start payment flow response', startPaymentFlowResponse);
+      const nextActionMetadata = startPaymentFlowResponse.required_user_actions;
+      log__('Next action metadata', nextActionMetadata);
 
       if (prefill.mode === 'setup') {
         if (!ourPmId) {
