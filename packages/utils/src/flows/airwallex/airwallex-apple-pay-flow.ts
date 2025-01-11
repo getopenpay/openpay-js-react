@@ -48,6 +48,9 @@ export type InitAirwallexGPayFlowResult =
 const OJS_APPLEPAY_BTN_ID = 'ojs-airwallex-applepay-btn';
 const { log__, err__ } = createOjsFlowLoggers('applepay');
 
+// Add this variable to track the active session
+let activeSession: ApplePaySession | null = null;
+
 export type InitApplePayFlowResult =
   | {
       isAvailable: true;
@@ -201,7 +204,19 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
     const onApplePayStartFlow = async () => {
       try {
         const session = new ApplePaySession(3, paymentRequest);
+        activeSession = session; // Store the active session
         log__('Apple Pay session created', session);
+
+        session.oncancel = () => {
+          log__('Apple Pay session cancelled');
+          activeSession = null; // Clear the active session
+          // Instead of calling onCheckoutError, just log the cancellation
+          log__('Apple Pay payment cancelled by user');
+        };
+
+        session.onpaymentmethodselected = async (event) => {
+          log__('Payment method selected', event);
+        };
 
         session.onvalidatemerchant = async (event) => {
           try {
@@ -212,7 +227,7 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
               checkout_secure_token: context.checkoutSecureToken,
               checkout_payment_method: applePayCpm,
               validation_url: validationUrl,
-              payment_intent_id: '', // This should come from your payment intent creation
+              payment_intent_id: 'int_hkdm8hbp2h3jp4av7uu_4ad6xi', // This should come from your payment intent creation
               initiative_context: window.location.hostname,
               their_account_id: processorAccount.id,
             });
@@ -251,9 +266,11 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
             });
 
             session.completePayment(ApplePaySession.STATUS_SUCCESS);
+            activeSession = null; // Clear the active session after success
           } catch (err) {
             err__('Payment authorization failed', err);
             session.completePayment(ApplePaySession.STATUS_FAILURE);
+            activeSession = null; // Clear the active session after failure
             formCallbacks.get.onCheckoutError((err as Error)?.message ?? 'Unknown error');
           }
         };
@@ -261,6 +278,7 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
         session.begin();
       } catch (err) {
         err__('Apple Pay session error', err);
+        activeSession = null; // Clear the active session on error
         formCallbacks.get.onCheckoutError((err as Error)?.message ?? 'Unknown error');
       }
     };
@@ -286,6 +304,8 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
       log__('Mounting Apple Pay button...');
       await mountButton();
     }
+
+    console.log('activeSession >> ', activeSession);
 
     return {
       isAvailable: true,
