@@ -1,5 +1,5 @@
 import { OnValidationError } from '../../form-callbacks';
-import { AllFieldNames, FieldName, RequiredFormFields, TokenizeCardResponse } from '../../shared-models';
+import { AllFieldNames, FieldName, PRFormFields, RequiredFormFields, TokenizeCardResponse } from '../../shared-models';
 import { extractIssuesPerField } from '../../zod-errors';
 import { createOjsFlowLoggers } from '../ojs-flow';
 
@@ -10,9 +10,12 @@ const { log__, err__ } = createOjsFlowLoggers('common-cc');
  */
 export const validateNonCdeFormFieldsForCC = (
   nonCdeFormInputs: Record<string, unknown>,
-  onValidationError: OnValidationError
-): RequiredFormFields => {
-  const payload = RequiredFormFields.safeParse(nonCdeFormInputs);
+  onValidationError: OnValidationError,
+  usePrFormFields?: boolean
+): RequiredFormFields | PRFormFields => {
+  const payload = usePrFormFields
+    ? PRFormFields.safeParse(nonCdeFormInputs)
+    : RequiredFormFields.safeParse(nonCdeFormInputs);
   if (!payload.success) {
     const formatted = payload.error.format();
     const issues = extractIssuesPerField(formatted);

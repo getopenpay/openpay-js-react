@@ -230,10 +230,15 @@ export type RequiredFormFields = z.infer<typeof RequiredFormFields>;
 
 // Like RequiredFormFields, but without first and last name
 export const PRFormFields = z.object({
+  [FieldName.FIRST_NAME]: OptionalString,
+  [FieldName.LAST_NAME]: OptionalString,
   [FieldName.EMAIL]: RequiredString,
   [FieldName.ZIP_CODE]: RequiredString,
   [FieldName.COUNTRY]: RequiredString,
   [FieldName.PROMOTION_CODE]: OptionalString,
+  [FieldName.ADDRESS]: OptionalString,
+  [FieldName.CITY]: OptionalString,
+  [FieldName.STATE]: OptionalString,
 });
 export type PRFormFields = z.infer<typeof PRFormFields>;
 

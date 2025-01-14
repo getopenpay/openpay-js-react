@@ -29,8 +29,6 @@ import {
   StartPaymentFlowForPRRequest,
   StartPaymentFlowRequest,
   StartPaymentFlowResponse,
-  StartPaymentSessionRequest,
-  StartPaymentSessionResponse,
 } from './cde_models';
 import { sleep } from './stripe';
 import { sum } from './math';
@@ -271,11 +269,4 @@ export const getProcessorAccount = async (
   payload: GetProcessorAccountRequest
 ): Promise<GetProcessorAccountResponse> => {
   return await queryCDE(cdeConn, { type: 'get_processor_account', payload }, GetProcessorAccountResponse);
-};
-
-export const startPaymentSession = async (
-  cdeConn: CdeConnection,
-  payload: StartPaymentSessionRequest
-): Promise<StartPaymentSessionResponse> => {
-  return await queryCDE(cdeConn, { type: 'start_payment_session', payload }, StartPaymentSessionResponse);
 };

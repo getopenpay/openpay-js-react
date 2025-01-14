@@ -146,7 +146,7 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
       const mergedInputs = fillEmptyFormInputsWithStripePm(nonCdeFormInputs, stripePmAddedEvent);
       const nonCdeFormFields = validateNonCdeFormFieldsForCC(mergedInputs, formCallbacks.get.onValidationError);
 
-      log__(`PR dialog finished. Starting payment flow...`);
+      log__(`PR dialog finished. Starting payment flow...`, nonCdeFormFields);
       const startPaymentFlowResponse = await startPaymentFlowForPR(anyCdeConnection, {
         fields: nonCdeFormFields,
         checkoutPaymentMethod,
@@ -172,6 +172,8 @@ export const runStripePrFlow: RunOjsFlow<StripePrFlowCustomParams, InitStripePrF
           payment_input: {
             provider_type: checkoutPaymentMethod.provider,
           },
+          customer_first_name: nonCdeFormFields[FieldName.FIRST_NAME],
+          customer_last_name: nonCdeFormFields[FieldName.LAST_NAME],
           customer_email: nonCdeFormFields[FieldName.EMAIL],
           customer_zip_code: nonCdeFormFields[FieldName.ZIP_CODE],
           customer_country: nonCdeFormFields[FieldName.COUNTRY],
@@ -197,12 +199,16 @@ const fillEmptyFormInputsWithStripePm = (
   const [payerFirstName, ...payerLastNameParts] = stripePmEvt.payerName?.trim()?.split(/\s+/) ?? []; // Note that payerFirstName can also be undefined
   const payerLastName = payerLastNameParts.join(' ') || undefined; // Force blank strings to be undefined
 
+  const stripeBillingAddress = stripePmEvt.paymentMethod?.billing_details?.address;
   // Note: we use ||, not ?? to ensure that blanks are falsish
   inputs[FieldName.FIRST_NAME] = inputs[FieldName.FIRST_NAME] || payerFirstName || '_OP_UNKNOWN';
   inputs[FieldName.LAST_NAME] = inputs[FieldName.LAST_NAME] || payerLastName || '_OP_UNKNOWN';
   inputs[FieldName.EMAIL] = inputs[FieldName.EMAIL] || stripePmEvt.payerEmail || 'op_unfilled@getopenpay.com';
-  inputs[FieldName.ZIP_CODE] = inputs[FieldName.ZIP_CODE] || stripePmEvt.shippingAddress?.postalCode || '00000';
-  inputs[FieldName.COUNTRY] = inputs[FieldName.COUNTRY] || stripePmEvt.shippingAddress?.country || 'US';
+  inputs[FieldName.ZIP_CODE] = inputs[FieldName.ZIP_CODE] || stripeBillingAddress?.postal_code || '00000';
+  inputs[FieldName.COUNTRY] = inputs[FieldName.COUNTRY] || stripeBillingAddress?.country || 'US';
+  inputs[FieldName.CITY] = inputs[FieldName.CITY] || stripeBillingAddress?.city || '';
+  inputs[FieldName.ADDRESS] = inputs[FieldName.ADDRESS] || stripeBillingAddress?.line1 || '';
+  inputs[FieldName.STATE] = inputs[FieldName.STATE] || stripeBillingAddress?.state || '';
 
   log__(`Final form inputs:`, inputs);
   return inputs;

@@ -199,6 +199,8 @@ export type FinalizeSetupPaymentMethodRequest = z.infer<typeof FinalizeSetupPaym
 export const CheckoutRequest = z.object({
   secure_token: z.string(),
   payment_input: z.any(), // Should follow AnyPaymentInput from CDE
+  customer_first_name: z.string().optional(),
+  customer_last_name: z.string().optional(),
   customer_email: z.string(),
   customer_zip_code: z.string(),
   customer_country: z.string(),
@@ -252,7 +254,18 @@ export const PaymentMethodData = z.object({
 });
 export type PaymentMethodData = z.infer<typeof PaymentMethodData>;
 
-// StartPaymentFlowRequest
+// Add PaymentSession type
+export const PaymentSession = z.object({
+  payment_session: z
+    .object({
+      validation_url: z.string(),
+      initiative_context: z.string(),
+      their_account_id: z.string(),
+    })
+    .optional(),
+});
+export type PaymentSession = z.infer<typeof PaymentSession>;
+
 export const StartPaymentFlowRequest = z
   .object({
     payment_provider: z.string(),
@@ -261,7 +274,8 @@ export const StartPaymentFlowRequest = z
     their_existing_pm_id: z.string().optional(),
   })
   .extend(NewCustomerFields.shape)
-  .extend(PaymentMethodData.shape);
+  .extend(PaymentMethodData.shape)
+  .extend(PaymentSession.shape);
 export type StartPaymentFlowRequest = z.infer<typeof StartPaymentFlowRequest>;
 
 // StartPaymentFlowResponse

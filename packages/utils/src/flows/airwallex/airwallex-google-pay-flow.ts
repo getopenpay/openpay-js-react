@@ -129,6 +129,7 @@ const getPaymentDataRequest = (
         },
       },
     ],
+    emailRequired: true,
     merchantInfo: {
       merchantName: 'OpenPay Demo',
     },
@@ -363,12 +364,13 @@ export const runAirwallexGooglePayFlow: RunOjsFlow<RunGooglePayFlowParams, InitG
       customParams,
       formCallbacks,
     }): Promise<SimpleOjsFlowResult> => {
-      log__('Starting Google Pay flow...');
+      log__('Starting Google Pay flow...', customParams.paymentData);
       const extractedBillingAddress = customParams.paymentData.paymentMethodData?.info?.billingAddress;
 
       // If billing form fields are empty, try to replace with GooglePay billing address
       if (extractedBillingAddress) {
         const googlePayAddressToOjsFormFields = {
+          [FieldName.EMAIL]: customParams.paymentData?.email,
           [FieldName.COUNTRY]: extractedBillingAddress?.countryCode,
           [FieldName.ADDRESS]: extractedBillingAddress?.address1,
           [FieldName.CITY]: extractedBillingAddress?.locality,

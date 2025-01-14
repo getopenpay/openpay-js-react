@@ -8,7 +8,6 @@ import {
   getProcessorAccount,
   performCheckout,
   startPaymentFlow,
-  startPaymentSession,
 } from '../../cde-client';
 import { CheckoutRequest } from '../../cde_models';
 import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
@@ -217,29 +216,41 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
         session.onpaymentmethodselected = async (event) => {
           log__('Payment method selected', event);
         };
+        const nonCdeFormInputs = createInputsDictFromForm(context.formDiv);
 
         session.onvalidatemerchant = async (event) => {
           try {
             log__('onvalidatemerchant', event);
             const validationUrl = event.validationURL;
 
-            const sessionResponse = await startPaymentSession(context.anyCdeConnection, {
-              checkout_secure_token: context.checkoutSecureToken,
+            const startPaymentFlowResponse = await startPaymentFlow(context.anyCdeConnection, {
+              payment_provider: applePayCpm.provider,
               checkout_payment_method: applePayCpm,
-              validation_url: validationUrl,
-              payment_intent_id: 'int_hkdm8hbp2h3jp4av7uu_4ad6xi', // This should come from your payment intent creation
-              initiative_context: window.location.hostname,
-              their_account_id: processorAccount.id,
+              new_customer_email: nonCdeFormInputs[FieldName.EMAIL] as string,
+              new_customer_first_name: nonCdeFormInputs[FieldName.FIRST_NAME] as string,
+              new_customer_last_name: nonCdeFormInputs[FieldName.LAST_NAME] as string,
+              payment_session: {
+                validation_url: validationUrl,
+                initiative_context: window.location.hostname,
+                their_account_id: processorAccount.id,
+              },
             });
 
-            log__('Apple Pay session response', sessionResponse);
-            session.completeMerchantValidation(sessionResponse);
+            const requiredUserActions = startPaymentFlowResponse.required_user_actions;
+            const paymentSessionResponse = requiredUserActions.find(
+              (action) => Object.keys(action)[0] === 'payment_session'
+            );
+            log__('Apple Pay session', paymentSessionResponse);
+            if (!paymentSessionResponse) {
+              throw new Error('No session data received from payment flow');
+            }
+
+            session.completeMerchantValidation(paymentSessionResponse['payment_session']);
           } catch (err) {
             err__('Merchant validation failed', err);
             session.abort();
           }
         };
-
         session.onpaymentauthorized = async (event) => {
           try {
             const paymentData = event.payment;
@@ -251,7 +262,7 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
             await OjsFlows.airwallexApplePay.run({
               context,
               checkoutPaymentMethod: applePayCpm,
-              nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
+              nonCdeFormInputs,
               formCallbacks,
               customParams: { paymentData },
               initResult: {
@@ -350,7 +361,7 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunApplePayFlowParams, InitApp
     }): Promise<SimpleOjsFlowResult> => {
       log__('Starting Apple Pay flow...');
       const extractedBillingAddress = customParams.paymentData.billingContact;
-
+      const encryptedPaymentToken = customParams.paymentData.token;
       // If billing form fields are empty, try to replace with Apple Pay billing address
       if (extractedBillingAddress) {
         const applePayAddressToOjsFormFields = {
@@ -375,6 +386,7 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunApplePayFlowParams, InitApp
       const anyCdeConnection = context.anyCdeConnection;
       const prefill = await getPrefill(anyCdeConnection);
 
+      console.log('encryptedPaymentToken >> ', encryptedPaymentToken);
       const startPaymentFlowResponse = await startPaymentFlow(anyCdeConnection, {
         payment_provider: checkoutPaymentMethod.provider,
         checkout_payment_method: checkoutPaymentMethod,
@@ -384,7 +396,8 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunApplePayFlowParams, InitApp
         payment_method_data: {
           type: 'applepay',
           applepay: {
-            payment_data: customParams.paymentData,
+            payment_data_type: 'encrypted_payment_token',
+            encrypted_payment_token: encryptedPaymentToken,
           },
         },
       });
