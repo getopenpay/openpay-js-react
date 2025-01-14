@@ -209,6 +209,7 @@ export const CheckoutRequest = z.object({
   promotion_code: z.string().optional(),
   do_not_use_legacy_cc_flow: z.boolean().optional(),
   use_confirmed_pm_id: nullOrUndefOr(z.string()),
+  is_paid_with_setup_intent: z.boolean().optional().nullable(),
 });
 export type CheckoutRequest = z.infer<typeof CheckoutRequest>;
 
@@ -253,6 +254,7 @@ export const StartPaymentFlowRequest = z
     checkout_payment_method: CheckoutPaymentMethod,
     existing_cc_pm_id: z.string().optional(),
     their_existing_pm_id: z.string().optional(),
+    use_pay_first_flow: z.boolean().optional(),
   })
   .extend(NewCustomerFields.shape);
 export type StartPaymentFlowRequest = z.infer<typeof StartPaymentFlowRequest>;

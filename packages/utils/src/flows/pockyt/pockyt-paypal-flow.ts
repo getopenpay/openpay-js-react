@@ -46,6 +46,7 @@ export const runPockytPaypalFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
     const startPaymentFlowResponse = await startPaymentFlow(anyCdeConnection, {
       payment_provider: cpm.provider,
       checkout_payment_method: cpm,
+      use_pay_first_flow: true,
       ...newCustomerFields,
     });
     log__('Start payment flow response', startPaymentFlowResponse);
@@ -68,6 +69,13 @@ export const runPockytPaypalFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
     });
     log__('Confirm payment flow result', confirmResult);
 
-    return await performSimpleCheckoutOrSetup('pockyt-paypal', anyCdeConnection, cpm, nonCdeFormFields, confirmResult);
+    return await performSimpleCheckoutOrSetup({
+      logPrefix: 'pockyt-paypal',
+      anyCdeConnection,
+      checkoutPaymentMethod: cpm,
+      requiredFormFields: nonCdeFormFields,
+      confirmResult,
+      usePayFirstFlow: true,
+    });
   }
 );
