@@ -199,6 +199,8 @@ export type FinalizeSetupPaymentMethodRequest = z.infer<typeof FinalizeSetupPaym
 export const CheckoutRequest = z.object({
   secure_token: z.string(),
   payment_input: z.any(), // Should follow AnyPaymentInput from CDE
+  customer_first_name: z.string().optional(),
+  customer_last_name: z.string().optional(),
   customer_email: z.string(),
   customer_zip_code: z.string(),
   customer_country: z.string(),
