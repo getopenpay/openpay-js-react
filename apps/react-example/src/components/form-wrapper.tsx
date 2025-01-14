@@ -12,15 +12,17 @@ const FormWrapper: FC<FormWrapperProps> = (props) => {
       <div className="max-w-lg w-full mb-4">{children}</div>
 
       {error ? (
-        <pre
-          data-testid="validation-error"
-          className="text-red-600 dark:text-red-400 font-bold text-xs block text-wrap"
-        >
-          {JSON.stringify(error)}
-        </pre>
-      ) : (
-        <p className="text-emerald-800 dark:text-emerald-400 text-xs">You won&apos;t be charged real money.</p>
-      )}
+        <>
+          <p className="text-red-700 dark:text-red-300 text-sm font-bold mb-2">Errors</p>
+          <pre
+            data-testid="validation-error"
+            className="text-red-700 dark:text-red-200 bg-red-200 dark:bg-red-900/80 p-3 rounded-lg max-w-lg w-full mb-4 text-xs block text-wrap"
+          >
+            {JSON.stringify(error, null, 4)}
+          </pre>
+        </>
+      ) : null}
+      <p className="text-emerald-800 dark:text-emerald-400 text-xs">You won&apos;t be charged real money.</p>
     </div>
   );
 };
