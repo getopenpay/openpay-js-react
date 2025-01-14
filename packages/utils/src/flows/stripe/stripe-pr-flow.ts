@@ -198,14 +198,17 @@ const fillEmptyFormInputsWithStripePm = (
   // Try splitting full name into first and last
   const [payerFirstName, ...payerLastNameParts] = stripePmEvt.payerName?.trim()?.split(/\s+/) ?? []; // Note that payerFirstName can also be undefined
   const payerLastName = payerLastNameParts.join(' ') || undefined; // Force blank strings to be undefined
+
   const billingAddress = stripePmEvt.paymentMethod?.billing_details?.address;
+  const shippingAddress = stripePmEvt.shippingAddress;
 
   // Note: we use ||, not ?? to ensure that blanks are falsish
   inputs[FieldName.FIRST_NAME] = inputs[FieldName.FIRST_NAME] || payerFirstName || '_OP_UNKNOWN';
   inputs[FieldName.LAST_NAME] = inputs[FieldName.LAST_NAME] || payerLastName || '_OP_UNKNOWN';
   inputs[FieldName.EMAIL] = inputs[FieldName.EMAIL] || stripePmEvt.payerEmail || 'op_unfilled@getopenpay.com';
-  inputs[FieldName.ZIP_CODE] = inputs[FieldName.ZIP_CODE] || billingAddress?.postal_code || '00000';
-  inputs[FieldName.COUNTRY] = inputs[FieldName.COUNTRY] || billingAddress?.country || 'US';
+  inputs[FieldName.ZIP_CODE] =
+    inputs[FieldName.ZIP_CODE] || billingAddress?.postal_code || shippingAddress?.postalCode || '00000';
+  inputs[FieldName.COUNTRY] = inputs[FieldName.COUNTRY] || billingAddress?.country || shippingAddress?.country || 'US';
 
   log__(`Final form inputs:`, inputs);
   return inputs;
