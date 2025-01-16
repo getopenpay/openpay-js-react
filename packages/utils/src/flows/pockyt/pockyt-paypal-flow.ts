@@ -5,6 +5,7 @@ import { createCustomerFieldsFromForm, performSimpleCheckoutOrSetup } from '../c
 import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
 import { startPopupWindowVerificationStrict } from '../../3ds-elements/events';
 import { parseVaultIdFrom3dsHref } from './pockyt-utils';
+import { PayFirstFlowParams } from '../../cde_models';
 
 const { log__ } = createOjsFlowLoggers('pockyt-paypal');
 
@@ -43,10 +44,17 @@ export const runPockytPaypalFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
     const newCustomerFields = createCustomerFieldsFromForm(nonCdeFormFields);
 
     log__(`Starting payment flow...`);
+    const pay_first_flow: PayFirstFlowParams | undefined =
+      prefill.mode === 'setup'
+        ? undefined
+        : {
+            // TODO add coupon and cart adjusted line items later
+            line_items: prefill.line_items,
+          };
     const startPaymentFlowResponse = await startPaymentFlow(anyCdeConnection, {
       payment_provider: cpm.provider,
       checkout_payment_method: cpm,
-      use_pay_first_flow: true,
+      pay_first_flow,
       ...newCustomerFields,
     });
     log__('Start payment flow response', startPaymentFlowResponse);

@@ -247,6 +247,13 @@ export const NewCustomerFields = z.object({
 });
 export type NewCustomerFields = z.infer<typeof NewCustomerFields>;
 
+// PayFirstFlowParams
+export const PayFirstFlowParams = z.object({
+  line_items: z.array(LineItem),
+  coupon_id: z.string().optional(),
+});
+export type PayFirstFlowParams = z.infer<typeof PayFirstFlowParams>;
+
 // StartPaymentFlowRequest
 export const StartPaymentFlowRequest = z
   .object({
@@ -254,7 +261,7 @@ export const StartPaymentFlowRequest = z
     checkout_payment_method: CheckoutPaymentMethod,
     existing_cc_pm_id: z.string().optional(),
     their_existing_pm_id: z.string().optional(),
-    use_pay_first_flow: z.boolean().optional(),
+    pay_first_flow: PayFirstFlowParams.optional(),
   })
   .extend(NewCustomerFields.shape);
 export type StartPaymentFlowRequest = z.infer<typeof StartPaymentFlowRequest>;
