@@ -213,9 +213,6 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
           log__('Apple Pay payment cancelled by user');
         };
 
-        session.onpaymentmethodselected = async (event) => {
-          log__('Payment method selected', event);
-        };
         const nonCdeFormInputs = createInputsDictFromForm(context.formDiv);
 
         session.onvalidatemerchant = async (event) => {
@@ -244,6 +241,7 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
             if (!paymentSessionResponse) {
               throw new Error('No session data received from payment flow');
             }
+            console.log('about to call completeMerchantValidation >> ', paymentSessionResponse['payment_session']);
 
             session.completeMerchantValidation(paymentSessionResponse['payment_session']);
           } catch (err) {
@@ -251,7 +249,26 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
             session.abort();
           }
         };
+        session.onpaymentmethodselected = async (event) => {
+          log__('Payment method selected', event);
+          const update = {};
+          session.completePaymentMethodSelection(update);
+        };
+        session.onshippingmethodselected = (event) => {
+          // Define ApplePayShippingMethodUpdate based on the selected shipping method.
+          // No updates or errors are needed, pass an empty object.
+          log__('Shipping method selected', event);
+          const update = {};
+          session.completeShippingMethodSelection(update);
+        };
+        session.onshippingcontactselected = (event) => {
+          // Define ApplePayShippingContactUpdate based on the selected shipping contact.
+          log__('Shipping contact selected', event);
+          const update = {};
+          session.completeShippingContactSelection(update);
+        };
         session.onpaymentauthorized = async (event) => {
+          log__('Payment authorized >>>>> ', event);
           try {
             const paymentData = event.payment;
             log__('Payment authorized', paymentData);
@@ -474,3 +491,21 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunApplePayFlowParams, InitApp
       }
     }
   );
+
+// Apply pay PM example:
+
+//   {
+//     "target": {
+//         "onshippingcontactselected": null,
+//         "onshippingmethodselected": null,
+//         "oncouponcodechanged": null
+//     },
+//     "srcElement": {
+//         "onshippingcontactselected": null,
+//         "onshippingmethodselected": null,
+//         "oncouponcodechanged": null
+//     },
+//     "paymentMethod": {
+//         "type": "credit"
+//     }
+// }

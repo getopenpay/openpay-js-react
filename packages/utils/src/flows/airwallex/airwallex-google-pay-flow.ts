@@ -141,7 +141,7 @@ const getPaymentDataRequest = (
   }
 
   // Google Pay error when amount is 0
-  const totalPrice = Math.max(initialPreview.amountAtom / 100, 0.01);
+  const totalPrice = Math.max(initialPreview.amountAtom / 100, 0);
   log__('Total price', totalPrice, initialPreview.amountAtom / 100);
 
   return {
@@ -151,15 +151,15 @@ const getPaymentDataRequest = (
       currencyCode: initialPreview.currency?.toUpperCase() ?? 'USD',
       totalPriceStatus: 'FINAL',
       totalPrice: totalPrice.toFixed(2),
-      ...(isSetupMode && {
-        displayItems: [
-          {
-            label: 'Subscription total',
-            price: totalPrice.toFixed(2),
-            type: 'SUBTOTAL',
-          },
-        ],
-      }),
+      // ...(isSetupMode && {
+      //   displayItems: [
+      //     {
+      //       label: 'Subscription total',
+      //       price: totalPrice.toFixed(2),
+      //       type: 'SUBTOTAL',
+      //     },
+      //   ],
+      // }),
     },
   };
 };
