@@ -79,8 +79,8 @@ export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBas
         // this hits elements_router in cde /setup
         // 1. get partial payment method from CDE
         // 2. create customer for session
-        // 3. partial payment method -> payment intput 
-        // 4. create card against all processors 
+        // 3. partial payment method -> payment intput
+        // 4. create card against all processors
         const result = await setupCheckout(anyCdeConnection, commonCheckoutParams);
         log__(`╰ Setup completed successfully [PM ID: ${result.payment_method_id}]`);
         return { mode: 'setup', result };
@@ -97,7 +97,7 @@ export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBas
       }
     } catch (error) {
       if (error instanceof CdeError) {
-        if (error.originalErrorMessage.includes('3DS_REQUIRED')) { 
+        if (error.originalErrorMessage.includes('3DS_REQUIRED')) {
           log__(`├ Card requires 3DS, starting non-legacy payment flow`);
           log__('Received 3DS error response headers:', error.response.headers);
 
