@@ -185,6 +185,13 @@ export const runStripeLinkFlow: RunOjsFlow<RunStripeLinkFlowParams, InitOjsFlowR
         payment_provider: checkoutPaymentMethod.provider,
         checkout_payment_method: checkoutPaymentMethod,
         their_existing_pm_id: customParams.stripePM.id,
+        new_customer_email: nonCdeFormFields[FieldName.EMAIL],
+        new_customer_first_name: nonCdeFormFields[FieldName.FIRST_NAME],
+        new_customer_last_name: nonCdeFormFields[FieldName.LAST_NAME],
+        new_customer_address: {
+          zip_code: nonCdeFormFields[FieldName.ZIP_CODE],
+          country: nonCdeFormFields[FieldName.COUNTRY],
+        },
       });
       log__('Start payment flow response', startPaymentFlowResponse);
       const nextActionMetadata = StripeLinkRequiredUserActions.parse(startPaymentFlowResponse.required_user_actions);
