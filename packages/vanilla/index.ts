@@ -16,6 +16,7 @@ import {
   startAllInitFlows,
   getErrorMessage,
   assertNever,
+  SubmitMethod,
 } from '@getopenpay/utils';
 import { OpenPayFormEventHandler } from './event';
 import { ConnectionManager, createConnection } from './utils/connection';
@@ -288,7 +289,7 @@ export class OpenPayForm {
     });
   };
 
-  generalSubmit = (method: 'pockyt-paypal') => {
+  generalSubmit = (method: SubmitMethod) => {
     const context = this.context.getValueIfLoadedElse(null);
     if (!context) {
       err__('Please wait for the form to finish loading before submitting.');
@@ -298,6 +299,32 @@ export class OpenPayForm {
       OjsFlows.pockytPaypal.run({
         context,
         checkoutPaymentMethod: findCheckoutPaymentMethodStrict(context.checkoutPaymentMethods, 'paypal', 'pockyt'),
+        nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
+        formCallbacks: this.formCallbacks,
+        customParams: undefined,
+        initResult: undefined,
+      });
+    } else if (method === 'airwallex-google-pay') {
+      OjsFlows.airwallexGooglePay.run({
+        context,
+        checkoutPaymentMethod: findCheckoutPaymentMethodStrict(
+          context.checkoutPaymentMethods,
+          'google_pay',
+          'airwallex'
+        ),
+        nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
+        formCallbacks: this.formCallbacks,
+        customParams: undefined,
+        initResult: undefined,
+      });
+    } else if (method === 'airwallex-apple-pay') {
+      OjsFlows.airwallexApplePay.run({
+        context,
+        checkoutPaymentMethod: findCheckoutPaymentMethodStrict(
+          context.checkoutPaymentMethods,
+          'apple_pay',
+          'airwallex'
+        ),
         nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
         formCallbacks: this.formCallbacks,
         customParams: undefined,

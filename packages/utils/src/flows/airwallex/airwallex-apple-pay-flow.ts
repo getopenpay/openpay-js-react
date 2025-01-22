@@ -251,21 +251,8 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
         };
         session.onpaymentmethodselected = async (event) => {
           log__('Payment method selected', event);
-          const update = {};
-          session.completePaymentMethodSelection(update);
-        };
-        session.onshippingmethodselected = (event) => {
-          // Define ApplePayShippingMethodUpdate based on the selected shipping method.
-          // No updates or errors are needed, pass an empty object.
-          log__('Shipping method selected', event);
-          const update = {};
-          session.completeShippingMethodSelection(update);
-        };
-        session.onshippingcontactselected = (event) => {
-          // Define ApplePayShippingContactUpdate based on the selected shipping contact.
-          log__('Shipping contact selected', event);
-          const update = {};
-          session.completeShippingContactSelection(update);
+          // @ts-expect-error - do not override
+          session.completePaymentMethodSelection({});
         };
         session.onpaymentauthorized = async (event) => {
           log__('Payment authorized >>>>> ', event);

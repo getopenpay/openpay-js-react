@@ -337,18 +337,13 @@ export type CheckoutPreviewRequest = z.infer<typeof CheckoutPreviewRequest>;
 // ConfirmPaymentFlowRequest
 export const ConfirmPaymentFlowRequest = z.object({
   secure_token: z.string(),
+  payment_provider: z.string().optional(),
   existing_cc_pm_id: nullOrUndefOr(z.string()),
   their_pm_id: nullOrUndefOr(z.string()),
   payment_method_data: z.any().optional(),
   consent_id: nullOrUndefOr(z.string()),
 });
 export type ConfirmPaymentFlowRequest = z.infer<typeof ConfirmPaymentFlowRequest>;
-
-// ConfirmPaymentFlowResponse
-export const ConfirmPaymentFlowResponse = z.object({
-  payment_methods: z.array(PaymentMethodMinimal),
-});
-export type ConfirmPaymentFlowResponse = z.infer<typeof ConfirmPaymentFlowResponse>;
 
 // FieldValidationError
 export const FieldValidationError = z.object({
@@ -424,8 +419,24 @@ export const Common3DSNextActionMetadata = z.object({
 });
 export type Common3DSNextActionMetadata = z.infer<typeof Common3DSNextActionMetadata>;
 
+export const CommonNextActionMetadata = z.object({
+  type: z.string(),
+  redirect_url: nullOrUndefOr(z.string()),
+  initial_intent_id: nullOrUndefOr(z.string()),
+  consent_id: nullOrUndefOr(z.string()),
+  their_pm_id: nullOrUndefOr(z.string()),
+});
+export type CommonNextActionMetadata = z.infer<typeof CommonNextActionMetadata>;
+
 export const CheckIfPopupWindowVerifiedResponse = z.discriminatedUnion('present', [
   z.object({ present: z.literal(true), href: z.string() }),
   z.object({ present: z.literal(false) }),
 ]);
 export type CheckIfPopupWindowVerifiedResponse = z.infer<typeof CheckIfPopupWindowVerifiedResponse>;
+
+// ConfirmPaymentFlowResponse
+export const ConfirmPaymentFlowResponse = z.object({
+  payment_methods: z.array(PaymentMethodMinimal),
+  required_user_actions: nullOrUndefOr(z.array(CommonNextActionMetadata)),
+});
+export type ConfirmPaymentFlowResponse = z.infer<typeof ConfirmPaymentFlowResponse>;
