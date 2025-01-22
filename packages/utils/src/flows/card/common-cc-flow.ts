@@ -66,6 +66,8 @@ export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBas
 
     try {
       log__(`├ Tokenizing card info in CDE [Session: ${context.elementsSessionId}]`);
+
+      // creates partial payment methods in CDE
       const tokenizeCardResults = await tokenizeCardOnAllConnections(customParams.currentCdeConnections, {
         session_id: context.elementsSessionId,
       });
@@ -73,10 +75,21 @@ export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBas
 
       if (prefill.mode === 'setup') {
         log__(`├ Setting up payment method in CDE [Token: ${prefill.token}]`);
+
+        // this hits elements_router in cde /setup
+        // 1. get partial payment method from CDE
+        // 2. create customer for session
+        // 3. partial payment method -> payment intput
+        // 4. create card against all processors
         const result = await setupCheckout(anyCdeConnection, commonCheckoutParams);
         log__(`╰ Setup completed successfully [PM ID: ${result.payment_method_id}]`);
         return { mode: 'setup', result };
       } else {
+        // this hits elements_router in cde /checkout
+        // 1. create checkout subscriptions
+        //   a. creating customer
+        //   b. creating card against all processors
+        //   c. create subscription
         log__(`├ Initial checkout flow. Checking out card info in CDE [Session: ${context.elementsSessionId}]`);
         const result = await checkoutCardElements(anyCdeConnection, commonCheckoutParams);
         log__(`╰ Checkout completed successfully.`);

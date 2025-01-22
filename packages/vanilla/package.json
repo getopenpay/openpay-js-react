@@ -1,6 +1,6 @@
 {
   "name": "@getopenpay/openpay-js",
-  "version": "0.1.20",
+  "version": "0.1.21",
   "description": "Accept payments through OpenPay, right on your site",
   "author": "OpenPay <info@getopenpay.com> (https://getopenpay.com)",
   "license": "ISC",
