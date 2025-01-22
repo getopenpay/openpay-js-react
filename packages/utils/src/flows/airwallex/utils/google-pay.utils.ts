@@ -1,4 +1,5 @@
-import { Amount } from '../../../shared-models';
+import { StartPaymentFlowResponse } from '../../../cde_models';
+import { Amount, Common3DSNextActionMetadata, CommonNextActionMetadata, FieldName } from '../../../shared-models';
 import { PaymentDataRequest } from '../types/google-pay.types';
 
 export const getPaymentDataRequest = ({
@@ -74,4 +75,48 @@ export const loadGooglePayScript = (): Promise<void> => {
     script.onerror = () => reject(new Error('Failed to load Google Pay SDK'));
     document.body.appendChild(script);
   });
+};
+
+export const parseAirwallex3DSNextActionMetadata = (
+  response: StartPaymentFlowResponse
+): Common3DSNextActionMetadata | null => {
+  const commonAction = response.required_user_actions.find((action) => action.type === 'airwallex_payment_consent');
+  if (!commonAction) {
+    return null;
+  }
+  return Common3DSNextActionMetadata.parse(commonAction);
+};
+
+export const parseAirwallexStartPaymentFlowResponse = (response: StartPaymentFlowResponse) => {
+  const commonAction = response.required_user_actions.find((action) => action.type === 'airwallex_payment_consent');
+  if (!commonAction) {
+    return null;
+  }
+  return CommonNextActionMetadata.parse(commonAction);
+};
+
+export const fillEmptyFormInputsWithGooglePay = (
+  formInputs: Record<string, unknown>,
+  paymentData: google.payments.api.PaymentData
+): Record<string, unknown> => {
+  const inputs = { ...formInputs };
+  const billingAddress = paymentData.paymentMethodData?.info?.billingAddress;
+
+  if (billingAddress) {
+    // Split name into first and last if available
+    const [firstName, ...lastNameParts] = billingAddress.name?.trim()?.split(/\s+/) ?? [];
+    const lastName = lastNameParts.join(' ') || undefined;
+
+    // Note: we use ||, not ?? to ensure that blanks are falsish
+    inputs[FieldName.EMAIL] = inputs[FieldName.EMAIL] || paymentData.email || 'op_unfilled@getopenpay.com';
+    inputs[FieldName.COUNTRY] = inputs[FieldName.COUNTRY] || billingAddress.countryCode || 'US';
+    inputs[FieldName.ADDRESS] = inputs[FieldName.ADDRESS] || billingAddress.address1 || '';
+    inputs[FieldName.CITY] = inputs[FieldName.CITY] || billingAddress.locality || '';
+    inputs[FieldName.ZIP_CODE] = inputs[FieldName.ZIP_CODE] || billingAddress.postalCode || '00000';
+    inputs[FieldName.STATE] = inputs[FieldName.STATE] || billingAddress.administrativeArea || '';
+    inputs[FieldName.FIRST_NAME] = inputs[FieldName.FIRST_NAME] || firstName || '_OP_UNKNOWN';
+    inputs[FieldName.LAST_NAME] = inputs[FieldName.LAST_NAME] || lastName || '_OP_UNKNOWN';
+  }
+
+  return inputs;
 };

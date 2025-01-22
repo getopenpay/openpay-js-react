@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { AllFieldNames, Amount, type ElementsStyle, PaymentRequestStatus } from './shared-models';
 import { CustomInitParams } from './flows/ojs-flow';
 import { StripeLinkController } from './flows/stripe/stripe-link-flow';
-import { AirwallexApplePayController } from './flows/airwallex/airwallex-apple-pay-flow';
 import { InitGooglePayFlowResult } from './flows/airwallex/types/google-pay.types';
+import { InitApplePayFlowResult } from './flows/airwallex/types/apple-pay.types';
 
 export type DynamicPreview = {
   amount: Amount | null;
@@ -24,7 +24,7 @@ export type ElementsFormChildrenProps = {
   googlePay: PaymentRequestStatus;
   stripeLink: StripeLinkController | null;
   airwallexGooglePay: InitGooglePayFlowResult | null;
-  airwallexApplePay: AirwallexApplePayController | null;
+  airwallexApplePay: InitApplePayFlowResult | null;
   loaded: boolean;
   preview: DynamicPreview;
 };

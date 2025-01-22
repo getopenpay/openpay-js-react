@@ -48,9 +48,6 @@ const Form: FC<FormProps> = (props) => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [stripeLinkShown, setStripeLinkShown] = useState<boolean>(true);
 
-  const [airwallexGooglePayShown, setAirwallexGooglePayShown] = useState<boolean>(true);
-  const [airwallexApplePayShown, setAirwallexApplePayShown] = useState<boolean>(true);
-
   const prParams = {
     overridePaymentRequest: {
       amount: { amountAtom: 420, currency: 'usd' },
@@ -208,9 +205,7 @@ const Form: FC<FormProps> = (props) => {
                   </pre>
                 </div>
               )}
-
               <BillingDetails />
-
               {separateFrames ? (
                 <>
                   <InputField hasError={!!validationErrors.card_number}>
@@ -234,7 +229,6 @@ const Form: FC<FormProps> = (props) => {
                   <CardElement />
                 </InputField>
               )}
-
               <button
                 data-testid="submit-button"
                 disabled={!loaded || loading}
@@ -291,17 +285,21 @@ const Form: FC<FormProps> = (props) => {
                   id: 'airwallex-applepay',
                   label: 'Apple Pay (Airwallex)',
                   isAvailable: true,
-                  isShown: airwallexApplePayShown,
-                  toggleShow: async () => {
-                    if (airwallexApplePayShown) {
-                      setAirwallexApplePayShown(false);
-                      airwallexApplePay?.dismountButton();
-                    } else {
-                      setAirwallexApplePayShown(true);
-                      await airwallexApplePay?.waitForButtonToMount();
-                      airwallexApplePay?.mountButton();
-                    }
-                  },
+                  isShown: true,
+                  toggleShow: async () => {},
+                  render: () => (
+                    <button
+                      onClick={() => submitWith('airwallex-apple-pay')}
+                      disabled={!loaded || loading}
+                      className={classNames(
+                        'px-4 py-2 mt-2 w-full rounded-lg',
+                        'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold',
+                        'disabled:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-gray-100 disabled:cursor-not-allowed'
+                      )}
+                    >
+                      Pay with Apple Pay
+                    </button>
+                  ),
                 },
                 {
                   id: 'stripe-applepay',

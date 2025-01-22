@@ -1,13 +1,5 @@
 import { z } from 'zod';
-import {
-  Common3DSNextActionMetadata,
-  CommonNextActionMetadata,
-  createInputsDictFromForm,
-  FieldName,
-  FRAME_BASE_URL,
-  OjsFlows,
-  ThreeDSStatus,
-} from '../../..';
+import { createInputsDictFromForm, FieldName, FRAME_BASE_URL, OjsFlows, ThreeDSStatus } from '../../..';
 import { start3dsVerification } from '../../3ds-elements/events';
 import {
   confirmPaymentFlow,
@@ -17,7 +9,7 @@ import {
   performCheckout,
   startPaymentFlow,
 } from '../../cde-client';
-import { CheckoutRequest, StartPaymentFlowResponse } from '../../cde_models';
+import { CheckoutRequest } from '../../cde_models';
 import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
 import { findCpmMatchingType } from '../common/common-flow-utils';
 import {
@@ -28,8 +20,13 @@ import {
   RunOjsFlow,
   SimpleOjsFlowResult,
 } from '../ojs-flow';
-import { getPaymentDataRequest, loadGooglePayScript } from './utils/google-pay.utils';
-import { PaymentsClient, InitGooglePayFlowResult } from './types/google-pay.types';
+import { InitGooglePayFlowResult, PaymentsClient } from './types/google-pay.types';
+import {
+  fillEmptyFormInputsWithGooglePay,
+  getPaymentDataRequest,
+  loadGooglePayScript,
+  parseAirwallexStartPaymentFlowResponse,
+} from './utils/google-pay.utils';
 
 const { log__, err__ } = createOjsFlowLoggers('gpay');
 
@@ -86,11 +83,6 @@ export const initAirwallexGooglePayFlow: InitOjsFlow<InitGooglePayFlowResult> = 
 
     log__('Google Pay SDK loaded', window.google.payments);
 
-    const anyCdeConnection = context.anyCdeConnection;
-    const prefill = await getPrefill(anyCdeConnection);
-    const isSetupMode = prefill.mode === 'setup';
-    const initialPreview = await getCheckoutPreviewAmount(anyCdeConnection, prefill.token, isSetupMode, undefined);
-
     // Check if Google Pay is available for the user
     try {
       const { result: isReadyToPay } = await getGooglePaymentsClient(context.baseUrl).isReadyToPay(
@@ -111,21 +103,8 @@ export const initAirwallexGooglePayFlow: InitOjsFlow<InitGooglePayFlowResult> = 
       return { isAvailable: false };
     }
 
-    const paymentDataRequest = getPaymentDataRequest({
-      gateway: 'airwallex',
-      gatewayMerchantId: processorAccount.id,
-      merchantName: processorAccount.nickname ?? '',
-      merchantId: '', // TODO: for prod mode
-      initialPreview,
-    });
     const onGooglePayStartFlow = async () => {
       try {
-        const paymentData = await getGooglePaymentsClient(context.baseUrl).loadPaymentData(paymentDataRequest);
-        log__('Google Pay Payment data', paymentData);
-        const billingAddress = paymentData.paymentMethodData?.info?.billingAddress;
-
-        log__('Billing address', billingAddress);
-
         OjsFlows.airwallexGooglePay.run({
           context,
           checkoutPaymentMethod: googlePayCpm,
@@ -146,51 +125,6 @@ export const initAirwallexGooglePayFlow: InitOjsFlow<InitGooglePayFlowResult> = 
     };
   }
 );
-
-export const parseAirwallex3DSNextActionMetadata = (
-  response: StartPaymentFlowResponse
-): Common3DSNextActionMetadata | null => {
-  const commonAction = response.required_user_actions.find((action) => action.type === 'airwallex_payment_consent');
-  if (!commonAction) {
-    return null;
-  }
-  return Common3DSNextActionMetadata.parse(commonAction);
-};
-
-export const parseAirwallexStartPaymentFlowResponse = (response: StartPaymentFlowResponse) => {
-  const commonAction = response.required_user_actions.find((action) => action.type === 'airwallex_payment_consent');
-  if (!commonAction) {
-    return null;
-  }
-  return CommonNextActionMetadata.parse(commonAction);
-};
-
-const fillEmptyFormInputsWithGooglePay = (
-  formInputs: Record<string, unknown>,
-  paymentData: google.payments.api.PaymentData
-): Record<string, unknown> => {
-  const inputs = { ...formInputs };
-  const billingAddress = paymentData.paymentMethodData?.info?.billingAddress;
-
-  if (billingAddress) {
-    // Split name into first and last if available
-    const [firstName, ...lastNameParts] = billingAddress.name?.trim()?.split(/\s+/) ?? [];
-    const lastName = lastNameParts.join(' ') || undefined;
-
-    // Note: we use ||, not ?? to ensure that blanks are falsish
-    inputs[FieldName.EMAIL] = inputs[FieldName.EMAIL] || paymentData.email || 'op_unfilled@getopenpay.com';
-    inputs[FieldName.COUNTRY] = inputs[FieldName.COUNTRY] || billingAddress.countryCode || 'US';
-    inputs[FieldName.ADDRESS] = inputs[FieldName.ADDRESS] || billingAddress.address1 || '';
-    inputs[FieldName.CITY] = inputs[FieldName.CITY] || billingAddress.locality || '';
-    inputs[FieldName.ZIP_CODE] = inputs[FieldName.ZIP_CODE] || billingAddress.postalCode || '00000';
-    inputs[FieldName.STATE] = inputs[FieldName.STATE] || billingAddress.administrativeArea || '';
-    inputs[FieldName.FIRST_NAME] = inputs[FieldName.FIRST_NAME] || firstName || '_OP_UNKNOWN';
-    inputs[FieldName.LAST_NAME] = inputs[FieldName.LAST_NAME] || lastName || '_OP_UNKNOWN';
-  }
-
-  log__('Final form inputs:', inputs);
-  return inputs;
-};
 
 export const runAirwallexGooglePayFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
   async ({ context, checkoutPaymentMethod, nonCdeFormInputs, formCallbacks }): Promise<SimpleOjsFlowResult> => {
