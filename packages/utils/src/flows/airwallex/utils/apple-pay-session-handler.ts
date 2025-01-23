@@ -1,4 +1,4 @@
-import { CheckoutPaymentMethod, GetProcessorAccountResponse, PaymentFormPrefill } from '../../../cde_models';
+import { CheckoutPaymentMethod, PaymentFormPrefill } from '../../../cde_models';
 import { startPaymentFlow, confirmPaymentFlow, performCheckout } from '../../../cde-client';
 import { start3dsVerification } from '../../../3ds-elements/events';
 import { validateNonCdeFormFieldsForCC } from '../../common/cc-flow-utils';
@@ -8,6 +8,7 @@ import { SimpleOjsFlowResult } from '../../ojs-flow';
 import { FormCallbacks } from '../../../form-callbacks';
 import { CdeConnection, CommonNextActionMetadata, FieldName } from '../../../..';
 import { ThreeDSStatus } from '../../../..';
+import { AirwallexProcessorMetadata } from '../types/google-pay.types';
 
 const { log__ } = createOjsFlowLoggers('applepay-session');
 
@@ -16,7 +17,7 @@ export type SessionContext = {
   connection: CdeConnection;
   checkoutPaymentMethod: CheckoutPaymentMethod;
   nonCdeFormInputs: Record<string, unknown>;
-  processorAccount: GetProcessorAccountResponse;
+  processorAccount: AirwallexProcessorMetadata;
   prefill: PaymentFormPrefill;
   isSetupMode: boolean;
   baseUrl: string;
@@ -37,7 +38,7 @@ export async function handleValidateMerchant(
       airwallex_payment_session: {
         validation_url: event.validationURL,
         initiative_context: window.location.hostname,
-        their_account_id: context.processorAccount.id,
+        their_account_id: context.processorAccount.processor_account_id,
       },
     });
 
@@ -82,7 +83,7 @@ async function handle3DS(
   // confirm flow again
   const confirmResult = await confirmPaymentFlow(context.connection, {
     secure_token: context.prefill.token,
-    consent_id: nextActionMetadata.consent_id,
+    airwallex_consent_id: nextActionMetadata.consent_id,
     payment_provider: context.checkoutPaymentMethod.provider,
     their_pm_id: nextActionMetadata.their_pm_id,
   });
@@ -128,9 +129,9 @@ export async function handlePaymentAuthorized(
 
     const confirmResult = await confirmPaymentFlow(context.connection, {
       secure_token: context.prefill.token,
-      consent_id: consentId,
       payment_provider: context.checkoutPaymentMethod.provider,
-      payment_method_data: {
+      airwallex_consent_id: consentId,
+      airwallex_payment_method_data: {
         type: 'applepay',
         applepay: {
           payment_data_type: 'encrypted_payment_token',

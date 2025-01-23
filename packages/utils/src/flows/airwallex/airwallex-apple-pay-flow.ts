@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { createInputsDictFromForm, OjsFlows } from '../../..';
-import { getCheckoutPreviewAmount, getPrefill, getProcessorAccount } from '../../cde-client';
-import { GetProcessorAccountResponse, PaymentFormPrefill } from '../../cde_models';
+import { getCheckoutPreviewAmount, getPrefill } from '../../cde-client';
+import { PaymentFormPrefill } from '../../cde_models';
 import { findCpmMatchingType } from '../common/common-flow-utils';
 import {
   addBasicCheckoutCallbackHandlers,
@@ -29,6 +29,10 @@ const { log__, err__ } = createOjsFlowLoggers('applepay');
 export const ApplePayCpm = z.object({
   provider: z.literal('apple_pay'),
   processor_name: z.literal('airwallex'),
+  metadata: z.object({
+    processor_account_id: z.string(),
+    processor_account_name: z.string(),
+  }),
 });
 export type ApplePayCpm = z.infer<typeof ApplePayCpm>;
 
@@ -68,14 +72,11 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
     const initialPreview = await getCheckoutPreviewAmount(anyCdeConnection, prefill.token, isSetupMode, undefined);
 
     // Get processor account details
-    const processorAccount = await getProcessorAccount(context.anyCdeConnection, {
-      checkout_secure_token: context.checkoutSecureToken,
-      checkout_payment_method: applePayCpm,
-    });
+    const processorAccount = applePayCpm.metadata;
 
     log__('processorAccount', processorAccount);
 
-    if (!processorAccount.id) {
+    if (!processorAccount.processor_account_id) {
       throw new Error('No gateway merchant ID found in processor account');
     }
 
@@ -89,7 +90,6 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
           formCallbacks: formCallbacks,
           customParams: {
             initialPreview,
-            processorAccount,
             isSetupMode,
             prefill,
           },
@@ -115,7 +115,6 @@ type RunAirwallexApplePayFlowParams = {
   };
   isSetupMode: boolean;
   prefill: PaymentFormPrefill;
-  processorAccount: GetProcessorAccountResponse;
 };
 
 export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams> = addBasicCheckoutCallbackHandlers(
@@ -126,7 +125,8 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
     customParams,
     formCallbacks,
   }): Promise<SimpleOjsFlowResult> => {
-    const { initialPreview, processorAccount, isSetupMode, prefill } = customParams;
+    const applePayCpm = findCpmMatchingType(context.checkoutPaymentMethods, ApplePayCpm);
+    const { initialPreview, isSetupMode, prefill } = customParams;
 
     const paymentRequest: ApplePayJS.ApplePayPaymentRequest = {
       countryCode: 'US',
@@ -154,7 +154,7 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
       connection: context.anyCdeConnection,
       checkoutPaymentMethod,
       nonCdeFormInputs,
-      processorAccount,
+      processorAccount: applePayCpm.metadata,
       prefill,
       isSetupMode,
       baseUrl: context.baseUrl,

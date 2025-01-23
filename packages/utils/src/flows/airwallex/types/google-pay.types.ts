@@ -72,3 +72,8 @@ export type InitGooglePayFlowResult =
 export type RunGooglePayFlowParams = {
   paymentData: google.payments.api.PaymentData;
 };
+
+export type AirwallexProcessorMetadata = {
+  processor_account_id: string;
+  processor_account_name: string;
+};

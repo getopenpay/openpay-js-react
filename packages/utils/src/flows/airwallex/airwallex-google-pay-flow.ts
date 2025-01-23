@@ -5,7 +5,6 @@ import {
   confirmPaymentFlow,
   getCheckoutPreviewAmount,
   getPrefill,
-  getProcessorAccount,
   performCheckout,
   startPaymentFlow,
 } from '../../cde-client';
@@ -50,6 +49,10 @@ const getGooglePaymentsClient = (baseUrl: string): PaymentsClient => {
 export const GooglePayCpm = z.object({
   provider: z.literal('google_pay'),
   processor_name: z.literal('airwallex'),
+  metadata: z.object({
+    processor_account_id: z.string(),
+    processor_account_name: z.string(),
+  }),
 });
 export type GooglePayCpm = z.infer<typeof GooglePayCpm>;
 
@@ -63,12 +66,9 @@ export const initAirwallexGooglePayFlow: InitOjsFlow<InitGooglePayFlowResult> = 
     log__('Google Pay CPM', googlePayCpm);
 
     // Get processor account details
-    const processorAccount = await getProcessorAccount(context.anyCdeConnection, {
-      checkout_secure_token: context.checkoutSecureToken,
-      checkout_payment_method: googlePayCpm,
-    });
+    const processorAccount = googlePayCpm.metadata;
 
-    if (!processorAccount.id) {
+    if (!processorAccount.processor_account_id) {
       err__('No gateway merchant ID found in processor account');
       return { isAvailable: false };
     }
@@ -88,8 +88,8 @@ export const initAirwallexGooglePayFlow: InitOjsFlow<InitGooglePayFlowResult> = 
       const { result: isReadyToPay } = await getGooglePaymentsClient(context.baseUrl).isReadyToPay(
         getPaymentDataRequest({
           gateway: 'airwallex',
-          gatewayMerchantId: processorAccount.id,
-          merchantName: processorAccount.nickname ?? '',
+          gatewayMerchantId: processorAccount.processor_account_id,
+          merchantName: processorAccount.processor_account_name,
           merchantId: '', // TODO: for prod mode
           initialPreview: undefined,
         })
@@ -129,26 +129,23 @@ export const initAirwallexGooglePayFlow: InitOjsFlow<InitGooglePayFlowResult> = 
 export const runAirwallexGooglePayFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
   async ({ context, checkoutPaymentMethod, nonCdeFormInputs, formCallbacks }): Promise<SimpleOjsFlowResult> => {
     log__('Starting Google Pay flow...');
-
+    const googlePayCpm = findCpmMatchingType(context.checkoutPaymentMethods, GooglePayCpm);
     // Get Google Pay client
     const client = getGooglePaymentsClient(context.baseUrl);
     const anyCdeConnection = context.anyCdeConnection;
     const prefill = await getPrefill(anyCdeConnection);
 
     // Get processor account details
-    const processorAccount = await getProcessorAccount(context.anyCdeConnection, {
-      checkout_secure_token: context.checkoutSecureToken,
-      checkout_payment_method: checkoutPaymentMethod,
-    });
+    const processorAccount = googlePayCpm.metadata;
 
-    if (!processorAccount.id) {
+    if (!processorAccount.processor_account_id) {
       throw new Error('No gateway merchant ID found in processor account');
     }
 
     const paymentDataRequest = getPaymentDataRequest({
       gateway: 'airwallex',
-      gatewayMerchantId: processorAccount.id,
-      merchantName: processorAccount.nickname ?? '',
+      gatewayMerchantId: processorAccount.processor_account_id,
+      merchantName: processorAccount.processor_account_name,
       merchantId: '', // TODO: for prod mode
       initialPreview: await getCheckoutPreviewAmount(
         anyCdeConnection,
@@ -182,13 +179,6 @@ export const runAirwallexGooglePayFlow: RunOjsFlow = addBasicCheckoutCallbackHan
           postal_code: nonCdeFormFields[FieldName.ZIP_CODE],
           country_code: nonCdeFormFields[FieldName.COUNTRY],
         },
-        airwallex_payment_method_data: {
-          type: 'googlepay',
-          googlepay: {
-            payment_data_type: 'encrypted_payment_token',
-            encrypted_payment_token: encryptedPaymentToken,
-          },
-        },
       });
 
       // For Airwallex, we can assume it the requied_user_actions will be in this format
@@ -198,10 +188,10 @@ export const runAirwallexGooglePayFlow: RunOjsFlow = addBasicCheckoutCallbackHan
       // Always confirm payment flow, with or without 3DS
       const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
         secure_token: prefill.token,
-        consent_id: startFlowNextActions?.consent_id,
         payment_provider: checkoutPaymentMethod.provider,
         // GooglePay's encrypted_payment_token provided to verify the consent first
-        payment_method_data: {
+        airwallex_consent_id: startFlowNextActions?.consent_id,
+        airwallex_payment_method_data: {
           type: 'googlepay',
           googlepay: {
             payment_data_type: 'encrypted_payment_token',
@@ -237,9 +227,9 @@ export const runAirwallexGooglePayFlow: RunOjsFlow = addBasicCheckoutCallbackHan
         // confirm flow again
         const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
           secure_token: prefill.token,
-          consent_id: nextActionMetadata.consent_id,
           payment_provider: checkoutPaymentMethod.provider,
           their_pm_id: nextActionMetadata.their_pm_id,
+          airwallex_consent_id: nextActionMetadata.consent_id,
         });
 
         log__('[2nd] Confirm payment flow response', confirmResult);

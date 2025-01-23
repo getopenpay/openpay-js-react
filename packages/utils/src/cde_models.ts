@@ -248,12 +248,6 @@ export const NewCustomerFields = z.object({
 });
 export type NewCustomerFields = z.infer<typeof NewCustomerFields>;
 
-// StartPaymentFlowRequest
-export const AirwallexPaymentMethodData = z.object({
-  airwallex_payment_method_data: z.record(z.string(), z.any()).optional(),
-});
-export type AirwallexPaymentMethodData = z.infer<typeof AirwallexPaymentMethodData>;
-
 // Add PaymentSession type
 export const AirwallexPaymentSession = z.object({
   airwallex_payment_session: z
@@ -274,7 +268,6 @@ export const StartPaymentFlowRequest = z
     their_existing_pm_id: z.string().optional(),
   })
   .extend(NewCustomerFields.shape)
-  .extend(AirwallexPaymentMethodData.shape)
   .extend(AirwallexPaymentSession.shape);
 export type StartPaymentFlowRequest = z.infer<typeof StartPaymentFlowRequest>;
 
@@ -310,45 +303,3 @@ export type StartPaymentFlowForCCResponse = z.infer<typeof StartPaymentFlowForCC
 // GenericNextActionMetadata
 export const GenericNextActionMetadata = z.record(z.any());
 export type GenericNextActionMetadata = z.infer<typeof GenericNextActionMetadata>;
-
-export const GetProcessorAccountRequest = z.object({
-  checkout_secure_token: z.string(),
-  checkout_payment_method: CheckoutPaymentMethod,
-});
-export type GetProcessorAccountRequest = z.infer<typeof GetProcessorAccountRequest>;
-
-export const GetProcessorAccountResponse = z.object({
-  id: z.string(),
-  status: z.string(),
-  created_at: z.string(),
-  account_details: z.record(z.string(), z.any()),
-  nickname: z.string().nullish(),
-  view_type: z.string().nullish(),
-  customer_agreements: z.record(z.string(), z.any()).nullish(),
-  primary_contact: z.record(z.string(), z.any()).nullish(),
-  requirements: z.record(z.string(), z.any()).nullish(),
-  next_action: z.record(z.string(), z.any()).nullish(),
-  metadata: z.record(z.string(), z.any()).nullish(),
-});
-
-export type GetProcessorAccountResponse = z.infer<typeof GetProcessorAccountResponse>;
-
-export const StartPaymentSessionRequest = z.object({
-  checkout_secure_token: z.string(),
-  checkout_payment_method: CheckoutPaymentMethod,
-  validation_url: z.string(),
-  payment_intent_id: z.string(),
-  initiative_context: z.string(),
-  their_account_id: z.string(),
-});
-export type StartPaymentSessionRequest = z.infer<typeof StartPaymentSessionRequest>;
-
-export const StartPaymentSessionResponse = z.object({
-  epochTimestamp: z.number(),
-  expiresAt: z.number(),
-  merchantIdentifier: z.string(),
-  merchantSessionIdentifier: z.string(),
-  nonce: z.string(),
-  signature: z.string(),
-});
-export type StartPaymentSessionResponse = z.infer<typeof StartPaymentSessionResponse>;

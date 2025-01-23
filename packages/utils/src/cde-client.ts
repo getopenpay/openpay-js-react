@@ -19,8 +19,6 @@ import {
   CheckoutRequest,
   CheckoutSuccessResponse,
   FinalizeSetupPaymentMethodRequest,
-  GetProcessorAccountRequest,
-  GetProcessorAccountResponse,
   PaymentFormPrefill,
   PreviewCheckoutResponse,
   SetupCheckoutResponse,
@@ -262,11 +260,4 @@ export const pingCdeFor3dsStatus = async (iframe: HTMLIFrameElement, childOrigin
   const result = await queryCDE(connectionObj, { type: 'ping-3ds-status' }, Ping3DSStatusResponse);
   console.log('🟢 CDE connection successful! Stopping polling... Result:', result);
   return result;
-};
-
-export const getProcessorAccount = async (
-  cdeConn: CdeConnection,
-  payload: GetProcessorAccountRequest
-): Promise<GetProcessorAccountResponse> => {
-  return await queryCDE(cdeConn, { type: 'get_processor_account', payload }, GetProcessorAccountResponse);
 };

@@ -340,8 +340,8 @@ export const ConfirmPaymentFlowRequest = z.object({
   payment_provider: z.string().optional(),
   existing_cc_pm_id: nullOrUndefOr(z.string()),
   their_pm_id: nullOrUndefOr(z.string()),
-  payment_method_data: z.any().optional(),
-  consent_id: nullOrUndefOr(z.string()),
+  airwallex_consent_id: nullOrUndefOr(z.string()),
+  airwallex_payment_method_data: nullOrUndefOr(z.record(z.string(), z.any())),
 });
 export type ConfirmPaymentFlowRequest = z.infer<typeof ConfirmPaymentFlowRequest>;
 
