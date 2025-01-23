@@ -9,7 +9,7 @@ import {
   performCheckout,
   startPaymentFlow,
 } from '../../cde-client';
-import { CheckoutRequest } from '../../cde_models';
+import { CheckoutRequest, GetProcessorAccountResponse, PaymentFormPrefill } from '../../cde_models';
 import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
 import { findCpmMatchingType } from '../common/common-flow-utils';
 import {
@@ -70,15 +70,43 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
       return { isAvailable: false };
     }
 
+    const anyCdeConnection = context.anyCdeConnection;
+    const prefill = await getPrefill(anyCdeConnection);
+    const isSetupMode = prefill.mode === 'setup';
+    const initialPreview = await getCheckoutPreviewAmount(anyCdeConnection, prefill.token, isSetupMode, undefined);
+
+    // Get processor account details
+    const processorAccount = await getProcessorAccount(context.anyCdeConnection, {
+      checkout_secure_token: context.checkoutSecureToken,
+      checkout_payment_method: applePayCpm,
+    });
+
+    log__('processorAccount', processorAccount);
+
+    if (!processorAccount.id) {
+      throw new Error('No gateway merchant ID found in processor account');
+    }
+
     const onApplePayStartFlow = async () => {
-      OjsFlows.airwallexApplePay.run({
-        context,
-        checkoutPaymentMethod: applePayCpm,
-        nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
-        formCallbacks: formCallbacks,
-        customParams: undefined,
-        initResult: undefined,
-      });
+      try {
+        // This needs to be called directly from a user gesture (click/tap)
+        await OjsFlows.airwallexApplePay.run({
+          context,
+          checkoutPaymentMethod: applePayCpm,
+          nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
+          formCallbacks: formCallbacks,
+          customParams: {
+            initialPreview,
+            processorAccount,
+            isSetupMode,
+            prefill,
+          },
+          initResult: undefined,
+        });
+      } catch (err) {
+        err__('Apple Pay payment error', err);
+        formCallbacks.get.onCheckoutError((err as Error)?.message ?? 'Unknown error');
+      }
     };
 
     return {
@@ -88,7 +116,17 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
   }
 );
 
-export const runAirwallexApplePayFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
+type RunAirwallexApplePayFlowParams = {
+  initialPreview: {
+    currency: string;
+    amountAtom: number;
+  };
+  isSetupMode: boolean;
+  prefill: PaymentFormPrefill;
+  processorAccount: GetProcessorAccountResponse;
+};
+
+export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams> = addBasicCheckoutCallbackHandlers(
   async ({
     context,
     checkoutPaymentMethod,
@@ -96,22 +134,7 @@ export const runAirwallexApplePayFlow: RunOjsFlow = addBasicCheckoutCallbackHand
     customParams,
     formCallbacks,
   }): Promise<SimpleOjsFlowResult> => {
-    const applePayCpm = findCpmMatchingType(context.checkoutPaymentMethods, ApplePayCpm);
-    const anyCdeConnection = context.anyCdeConnection;
-    const prefill = await getPrefill(anyCdeConnection);
-    const isSetupMode = prefill.mode === 'setup';
-    const initialPreview = await getCheckoutPreviewAmount(anyCdeConnection, prefill.token, isSetupMode, undefined);
-
-    log__('Custom params', customParams);
-    // Get processor account details
-    const processorAccount = await getProcessorAccount(context.anyCdeConnection, {
-      checkout_secure_token: context.checkoutSecureToken,
-      checkout_payment_method: applePayCpm,
-    });
-
-    if (!processorAccount.id) {
-      throw new Error('No gateway merchant ID found in processor account');
-    }
+    const { initialPreview, processorAccount, isSetupMode, prefill } = customParams;
 
     const paymentRequest: ApplePayJS.ApplePayPaymentRequest = {
       countryCode: 'US',
@@ -130,16 +153,34 @@ export const runAirwallexApplePayFlow: RunOjsFlow = addBasicCheckoutCallbackHand
       },
     };
 
-    return new Promise((resolve, reject) => {
-      const session = new ApplePaySession(3, paymentRequest);
+    log__('paymentRequest', paymentRequest);
+    const session = new ApplePaySession(3, paymentRequest);
+    log__('session', session);
+    // session.addEventListener('cancel', () => {
+    //   log__('Payment cancelled by user event listener');
+    //   session.abort();
+    //   throw new Error('Payment cancelled by user');
+    // });
+    // session.addEventListener('abort', (event) => {
+    //   log__('Payment aborted', event);
+    //   session.abort();
+    //   throw new Error('Payment aborted');
+    // });
+
+    const promise = new Promise<SimpleOjsFlowResult>((resolve, reject) => {
+      console.log('new Promise');
 
       session.oncancel = () => {
-        throw new Error('Payment cancelled by user');
+        log__('Payment cancelled by user oncancel');
+        // session.abort();
+        reject(new Error('Payment cancelled by user'));
       };
+      const anyCdeConnection = context.anyCdeConnection;
 
       let consentId: string;
 
       session.onvalidatemerchant = async (event) => {
+        log__('onvalidatemerchant', event);
         try {
           const startPaymentFlowResponse = await startPaymentFlow(anyCdeConnection, {
             payment_provider: checkoutPaymentMethod.provider,
@@ -167,7 +208,7 @@ export const runAirwallexApplePayFlow: RunOjsFlow = addBasicCheckoutCallbackHand
           session.completeMerchantValidation(paymentSessionResponse['payment_session']);
         } catch (err) {
           session.abort();
-          reject(err);
+          throw err;
         }
       };
 
@@ -265,12 +306,18 @@ export const runAirwallexApplePayFlow: RunOjsFlow = addBasicCheckoutCallbackHand
           }
         } catch (err) {
           session.completePayment(ApplePaySession.STATUS_FAILURE);
-          reject(err);
+          throw err;
         }
       };
 
       session.begin();
     });
+
+    const result = await promise.catch((e) => {
+      log__('promise error', e);
+      throw e;
+    });
+    return result;
   }
 );
 

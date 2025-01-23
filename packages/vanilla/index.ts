@@ -318,17 +318,10 @@ export class OpenPayForm {
         initResult: undefined,
       });
     } else if (method === 'airwallex-apple-pay') {
-      OjsFlows.airwallexApplePay.run({
-        context,
-        checkoutPaymentMethod: findCheckoutPaymentMethodStrict(
-          context.checkoutPaymentMethods,
-          'apple_pay',
-          'airwallex'
-        ),
-        nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
-        formCallbacks: this.formCallbacks,
-        customParams: undefined,
-        initResult: undefined,
+      this.initFlows.airwallexApplePay.publisher.subscribe((result) => {
+        if (result.isSuccess && result.loadedValue.isAvailable) {
+          result.loadedValue.startFlow();
+        }
       });
     } else {
       assertNever(method);
