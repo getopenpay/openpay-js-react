@@ -1,16 +1,7 @@
 import { z } from 'zod';
-import { createInputsDictFromForm, FieldName, OjsFlows, ThreeDSStatus } from '../../..';
-import { start3dsVerification } from '../../3ds-elements/events';
-import {
-  confirmPaymentFlow,
-  getCheckoutPreviewAmount,
-  getPrefill,
-  getProcessorAccount,
-  performCheckout,
-  startPaymentFlow,
-} from '../../cde-client';
-import { CheckoutRequest, GetProcessorAccountResponse, PaymentFormPrefill } from '../../cde_models';
-import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
+import { createInputsDictFromForm, OjsFlows } from '../../..';
+import { getCheckoutPreviewAmount, getPrefill, getProcessorAccount } from '../../cde-client';
+import { GetProcessorAccountResponse, PaymentFormPrefill } from '../../cde_models';
 import { findCpmMatchingType } from '../common/common-flow-utils';
 import {
   addBasicCheckoutCallbackHandlers,
@@ -21,7 +12,8 @@ import {
   SimpleOjsFlowResult,
 } from '../ojs-flow';
 import { InitApplePayFlowResult } from './types/apple-pay.types';
-import { fillEmptyFormInputsWithApplePay, loadApplePayScript } from './utils/apple-pay.utils';
+import { handlePaymentAuthorized, handleValidateMerchant, SessionContext } from './utils/apple-pay-session-handler';
+import { loadApplePayScript } from './utils/apple-pay.utils';
 
 export type InitAirwallexGPayFlowResult =
   | {
@@ -153,171 +145,59 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
       },
     };
 
-    log__('paymentRequest', paymentRequest);
+    log__('Payment Request', paymentRequest);
     const session = new ApplePaySession(3, paymentRequest);
-    log__('session', session);
-    // session.addEventListener('cancel', () => {
-    //   log__('Payment cancelled by user event listener');
-    //   session.abort();
-    //   throw new Error('Payment cancelled by user');
-    // });
-    // session.addEventListener('abort', (event) => {
-    //   log__('Payment aborted', event);
-    //   session.abort();
-    //   throw new Error('Payment aborted');
-    // });
+    log__('ApplePaySession', session);
 
-    const promise = new Promise<SimpleOjsFlowResult>((resolve, reject) => {
-      console.log('new Promise');
+    const sessionContext: SessionContext = {
+      session,
+      connection: context.anyCdeConnection,
+      checkoutPaymentMethod,
+      nonCdeFormInputs,
+      processorAccount,
+      prefill,
+      isSetupMode,
+      baseUrl: context.baseUrl,
+      formCallbacks,
+    };
 
+    let consentId: string;
+
+    return new Promise<SimpleOjsFlowResult>((resolve, reject) => {
       session.oncancel = () => {
-        log__('Payment cancelled by user oncancel');
-        // session.abort();
+        log__('Payment cancelled by user');
+        session.abort();
         reject(new Error('Payment cancelled by user'));
       };
-      const anyCdeConnection = context.anyCdeConnection;
-
-      let consentId: string;
 
       session.onvalidatemerchant = async (event) => {
-        log__('onvalidatemerchant', event);
         try {
-          const startPaymentFlowResponse = await startPaymentFlow(anyCdeConnection, {
-            payment_provider: checkoutPaymentMethod.provider,
-            checkout_payment_method: checkoutPaymentMethod,
-            new_customer_email: nonCdeFormInputs[FieldName.EMAIL] as string,
-            new_customer_first_name: nonCdeFormInputs[FieldName.FIRST_NAME] as string,
-            new_customer_last_name: nonCdeFormInputs[FieldName.LAST_NAME] as string,
-            payment_session: {
-              validation_url: event.validationURL,
-              initiative_context: window.location.hostname,
-              their_account_id: processorAccount.id,
-            },
-          });
-
-          const paymentSessionResponse = startPaymentFlowResponse.required_user_actions.find(
-            (action) => Object.keys(action)[0] === 'payment_session'
-          );
-          consentId = startPaymentFlowResponse.required_user_actions[0].consent_id;
-          log__('Consent ID:', consentId);
-
-          if (!paymentSessionResponse) {
-            throw new Error('No session data received from payment flow');
-          }
-
-          session.completeMerchantValidation(paymentSessionResponse['payment_session']);
+          consentId = await handleValidateMerchant(event, sessionContext);
         } catch (err) {
-          session.abort();
-          throw err;
+          reject(err);
         }
       };
 
       session.onpaymentmethodselected = (event) => {
         log__('Payment method selected', event.paymentMethod);
-        // @ts-expect-error - no update
-        session.completePaymentMethodSelection({});
+        session.completePaymentMethodSelection({
+          newTotal: paymentRequest.total,
+        });
       };
 
       session.onpaymentauthorized = async (event) => {
         try {
-          const paymentData = event.payment;
-
-          const formInputs = fillEmptyFormInputsWithApplePay(nonCdeFormInputs, paymentData.billingContact);
-          const nonCdeFormFields = validateNonCdeFormFieldsForCC(formInputs, formCallbacks.get.onValidationError);
-
-          const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
-            secure_token: prefill.token,
-            consent_id: consentId,
-            payment_provider: checkoutPaymentMethod.provider,
-            // ApplePay's encrypted_payment_token provided to verify the consent first
-            payment_method_data: {
-              type: 'applepay',
-              applepay: {
-                payment_data_type: 'encrypted_payment_token',
-                encrypted_payment_token: paymentData.token,
-              },
-            },
-          });
-
-          log__('[1st] Confirm payment flow response', confirmResult);
-          // If there's 3DS required, this will be null
-          let ourPmId = confirmResult.payment_methods?.[0]?.id;
-
-          const nextActionMetadata = confirmResult.required_user_actions?.find(
-            (action) => action.type === 'airwallex_payment_consent'
-          );
-
-          if (nextActionMetadata && nextActionMetadata.redirect_url) {
-            log__('3DS Required, starting verification...', nextActionMetadata);
-            const { status } = await start3dsVerification({
-              url: nextActionMetadata.redirect_url,
-              baseUrl: context.baseUrl,
-            });
-            log__(`╰ 3DS verification completed [Status: ${status}]`);
-            if (status === ThreeDSStatus.CANCELLED) {
-              throw new Error('3DS verification cancelled');
-            }
-            if (status === ThreeDSStatus.FAILURE) {
-              throw new Error('3DS verification failed');
-            }
-          }
-
-          if (nextActionMetadata && !ourPmId) {
-            // confirm flow again
-            const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
-              secure_token: prefill.token,
-              consent_id: nextActionMetadata.consent_id,
-              payment_provider: checkoutPaymentMethod.provider,
-              their_pm_id: nextActionMetadata.their_pm_id,
-            });
-
-            log__('[2nd] Confirm payment flow response', confirmResult);
-            ourPmId = confirmResult.payment_methods?.[0]?.id;
-          }
-
-          if (!ourPmId) {
-            throw new Error('No PM ID found');
-          }
-          session.completePayment(ApplePaySession.STATUS_SUCCESS);
-
-          // Return the appropriate result based on mode
-          if (isSetupMode) {
-            resolve({ mode: 'setup', result: { payment_method_id: ourPmId } });
-          } else {
-            const checkoutRequest: CheckoutRequest = {
-              secure_token: prefill.token,
-              payment_input: {
-                provider_type: checkoutPaymentMethod.provider,
-              },
-              do_not_use_legacy_cc_flow: true,
-              use_confirmed_pm_id: ourPmId,
-              line_items: prefill.line_items,
-              total_amount_atom: prefill.amount_total_atom,
-              cancel_at_end: false,
-              checkout_payment_method: checkoutPaymentMethod,
-              customer_email: nonCdeFormFields[FieldName.EMAIL] as string,
-              customer_zip_code: nonCdeFormFields[FieldName.ZIP_CODE] as string,
-              customer_country: nonCdeFormFields[FieldName.COUNTRY] as string,
-              promotion_code: nonCdeFormFields[FieldName.PROMOTION_CODE] as string,
-            };
-
-            const result = await performCheckout(anyCdeConnection, checkoutRequest);
-            resolve({ mode: 'checkout', result });
-          }
+          const result = await handlePaymentAuthorized(event, sessionContext, consentId);
+          resolve(result);
         } catch (err) {
-          session.completePayment(ApplePaySession.STATUS_FAILURE);
-          throw err;
+          reject(err);
         }
       };
-
       session.begin();
+    }).catch((err) => {
+      err__('Apple Pay payment error', err);
+      throw err;
     });
-
-    const result = await promise.catch((e) => {
-      log__('promise error', e);
-      throw e;
-    });
-    return result;
   }
 );
 

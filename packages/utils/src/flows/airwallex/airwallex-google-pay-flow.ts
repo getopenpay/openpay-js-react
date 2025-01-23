@@ -182,7 +182,7 @@ export const runAirwallexGooglePayFlow: RunOjsFlow = addBasicCheckoutCallbackHan
           postal_code: nonCdeFormFields[FieldName.ZIP_CODE],
           country_code: nonCdeFormFields[FieldName.COUNTRY],
         },
-        payment_method_data: {
+        airwallex_payment_method_data: {
           type: 'googlepay',
           googlepay: {
             payment_data_type: 'encrypted_payment_token',

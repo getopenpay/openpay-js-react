@@ -249,14 +249,14 @@ export const NewCustomerFields = z.object({
 export type NewCustomerFields = z.infer<typeof NewCustomerFields>;
 
 // StartPaymentFlowRequest
-export const PaymentMethodData = z.object({
-  payment_method_data: z.record(z.string(), z.any()).optional(),
+export const AirwallexPaymentMethodData = z.object({
+  airwallex_payment_method_data: z.record(z.string(), z.any()).optional(),
 });
-export type PaymentMethodData = z.infer<typeof PaymentMethodData>;
+export type AirwallexPaymentMethodData = z.infer<typeof AirwallexPaymentMethodData>;
 
 // Add PaymentSession type
-export const PaymentSession = z.object({
-  payment_session: z
+export const AirwallexPaymentSession = z.object({
+  airwallex_payment_session: z
     .object({
       validation_url: z.string(),
       initiative_context: z.string(),
@@ -264,7 +264,7 @@ export const PaymentSession = z.object({
     })
     .optional(),
 });
-export type PaymentSession = z.infer<typeof PaymentSession>;
+export type AirwallexPaymentSession = z.infer<typeof AirwallexPaymentSession>;
 
 export const StartPaymentFlowRequest = z
   .object({
@@ -274,8 +274,8 @@ export const StartPaymentFlowRequest = z
     their_existing_pm_id: z.string().optional(),
   })
   .extend(NewCustomerFields.shape)
-  .extend(PaymentMethodData.shape)
-  .extend(PaymentSession.shape);
+  .extend(AirwallexPaymentMethodData.shape)
+  .extend(AirwallexPaymentSession.shape);
 export type StartPaymentFlowRequest = z.infer<typeof StartPaymentFlowRequest>;
 
 // StartPaymentFlowResponse
