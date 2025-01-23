@@ -1,3 +1,4 @@
+// This is to simulate ApplePaySession to get the event `onvalidatemerchant` which is need to verify with server payment session
 // Based on solution by naomik here http://stackoverflow.com/a/24216547
 class Emitter {
   constructor() {
