@@ -23,8 +23,10 @@ export type ElementsFormChildrenProps = {
   applePay: PaymentRequestStatus;
   googlePay: PaymentRequestStatus;
   stripeLink: StripeLinkController | null;
-  airwallexGooglePay: InitGooglePayFlowResult | null;
-  airwallexApplePay: InitApplePayFlowResult | null;
+  airwallex: {
+    googlePay: InitGooglePayFlowResult | null;
+    applePay: InitApplePayFlowResult | null;
+  };
   loaded: boolean;
   preview: DynamicPreview;
 };

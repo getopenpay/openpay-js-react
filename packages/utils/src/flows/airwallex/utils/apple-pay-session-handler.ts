@@ -42,15 +42,16 @@ export async function handleValidateMerchant(
       },
     });
 
-    const paymentSessionResponse = startPaymentFlowResponse.required_user_actions.find(
-      (action) => Object.keys(action)[0] === 'payment_session'
-    );
-    const consentId = startPaymentFlowResponse.required_user_actions[0].consent_id;
+    const requiredUserActions = startPaymentFlowResponse.required_user_actions[0] as CommonNextActionMetadata;
+    const paymentSessionResponse = requiredUserActions.payment_session;
+    const consentId = requiredUserActions.consent_id;
 
     if (!paymentSessionResponse) {
       throw new Error('No session data received from payment flow');
     }
-
+    if (!consentId) {
+      throw new Error('No consent ID received from payment flow');
+    }
     context.session.completeMerchantValidation(paymentSessionResponse['payment_session']);
     return consentId;
   } catch (err) {

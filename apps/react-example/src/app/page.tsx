@@ -112,8 +112,6 @@ const Form: FC<FormProps> = (props) => {
   }, [token]);
 
   const [isMounted, setIsMounted] = useState(true);
-
-  // Inside Form component, add this new section replacing the existing payment buttons code
   const renderPaymentMethods = (paymentMethods: PaymentMethodButton[]) => {
     return (
       <div className="space-y-4 mt-6">
@@ -190,7 +188,7 @@ const Form: FC<FormProps> = (props) => {
             },
           }}
         >
-          {({ submit, submitWith, applePay, googlePay, loaded, stripeLink, airwallexGooglePay, airwallexApplePay }) => (
+          {({ submit, submitWith, applePay, googlePay, loaded, stripeLink, airwallex }) => (
             <FormWrapper error={validationErrors}>
               {loading && (
                 <div data-testid="loading" className="flex items-center">
@@ -269,8 +267,13 @@ const Form: FC<FormProps> = (props) => {
                   toggleShow: async () => {},
                   render: () => (
                     <button
-                      onClick={() => submitWith('airwallex-google-pay')}
-                      disabled={!loaded || loading}
+                      // We can start via submitWith or `airwallex.googlePay.startFlow`
+                      // the availablity check is only available via `airwallex.googlePay`
+                      onClick={() => {
+                        submitWith('airwallex-google-pay');
+                        // airwallex.googlePay?.isAvailable && airwallex.googlePay.startFlow();
+                      }}
+                      disabled={!airwallex.googlePay?.isAvailable || loading}
                       className={classNames(
                         'px-4 py-2 mt-2 w-full rounded-lg',
                         'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold',
@@ -289,8 +292,10 @@ const Form: FC<FormProps> = (props) => {
                   toggleShow: async () => {},
                   render: () => (
                     <button
+                      // We can start via submitWith or `airwallex.googlePay.startFlow`
+                      // the availablity check is only available via `airwallex.googlePay`
                       onClick={() => submitWith('airwallex-apple-pay')}
-                      disabled={!airwallexApplePay?.isAvailable || loading}
+                      disabled={!airwallex.applePay?.isAvailable || loading}
                       className={classNames(
                         'px-4 py-2 mt-2 w-full rounded-lg',
                         'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold',

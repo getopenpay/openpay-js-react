@@ -425,6 +425,7 @@ export const CommonNextActionMetadata = z.object({
   initial_intent_id: nullOrUndefOr(z.string()),
   consent_id: nullOrUndefOr(z.string()),
   their_pm_id: nullOrUndefOr(z.string()),
+  payment_session: nullOrUndefOr(z.record(z.string(), z.any())),
 });
 export type CommonNextActionMetadata = z.infer<typeof CommonNextActionMetadata>;
 
