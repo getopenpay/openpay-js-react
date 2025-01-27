@@ -46,7 +46,6 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
 
     setOpForm(form);
     const value = getElementsContextValue(form);
-    console.log('ElementsContextValue >>>>>> ', value);
     setElementsContextValue(value);
 
     form.initFlows.stripeLink.publisher.subscribe((result) => {
