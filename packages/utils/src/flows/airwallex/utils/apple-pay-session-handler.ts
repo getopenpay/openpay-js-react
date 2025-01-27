@@ -86,7 +86,7 @@ async function handle3DS(
   // confirm flow again
   const confirmResult = await confirmPaymentFlow(context.connection, {
     secure_token: context.prefill.token,
-    processor_specific_confirm_metadata: {
+    processor_specific_metadata: {
       their_pm_id: nextActionMetadata.their_pm_id,
       airwallex_consent_id: nextActionMetadata.consent_id,
       payment_provider: context.checkoutPaymentMethod.provider,
@@ -134,7 +134,7 @@ export async function handlePaymentAuthorized(
 
     const confirmResult = await confirmPaymentFlow(context.connection, {
       secure_token: context.prefill.token,
-      processor_specific_confirm_metadata: {
+      processor_specific_metadata: {
         payment_provider: context.checkoutPaymentMethod.provider,
         airwallex_consent_id: consentId,
         airwallex_payment_method_data: {

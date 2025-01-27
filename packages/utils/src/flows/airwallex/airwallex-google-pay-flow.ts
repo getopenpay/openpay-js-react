@@ -188,7 +188,7 @@ export const runAirwallexGooglePayFlow: RunOjsFlow = addBasicCheckoutCallbackHan
       // Always confirm payment flow, with or without 3DS
       const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
         secure_token: prefill.token,
-        processor_specific_confirm_metadata: {
+        processor_specific_metadata: {
           payment_provider: checkoutPaymentMethod.provider,
           // GooglePay's encrypted_payment_token provided to verify the consent first
           airwallex_consent_id: startFlowNextActions?.consent_id,
@@ -230,7 +230,7 @@ export const runAirwallexGooglePayFlow: RunOjsFlow = addBasicCheckoutCallbackHan
         const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
           secure_token: prefill.token,
           their_pm_id: nextActionMetadata.their_pm_id,
-          processor_specific_confirm_metadata: {
+          processor_specific_metadata: {
             payment_provider: checkoutPaymentMethod.provider,
             airwallex_consent_id: nextActionMetadata.consent_id,
           },
