@@ -337,11 +337,9 @@ export type CheckoutPreviewRequest = z.infer<typeof CheckoutPreviewRequest>;
 // ConfirmPaymentFlowRequest
 export const ConfirmPaymentFlowRequest = z.object({
   secure_token: z.string(),
-  payment_provider: z.string().optional(),
   existing_cc_pm_id: nullOrUndefOr(z.string()),
   their_pm_id: nullOrUndefOr(z.string()),
-  airwallex_consent_id: nullOrUndefOr(z.string()),
-  airwallex_payment_method_data: nullOrUndefOr(z.record(z.string(), z.any())),
+  processor_specific_confirm_metadata: nullOrUndefOr(z.record(z.string(), z.any())),
 });
 export type ConfirmPaymentFlowRequest = z.infer<typeof ConfirmPaymentFlowRequest>;
 

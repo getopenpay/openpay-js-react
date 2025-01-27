@@ -248,17 +248,10 @@ export const NewCustomerFields = z.object({
 });
 export type NewCustomerFields = z.infer<typeof NewCustomerFields>;
 
-// Add PaymentSession type
-export const AirwallexPaymentSession = z.object({
-  airwallex_payment_session: z
-    .object({
-      validation_url: z.string(),
-      initiative_context: z.string(),
-      their_account_id: z.string(),
-    })
-    .optional(),
+export const ProcessorSpecificMetadata = z.object({
+  processor_specific_metadata: nullOrUndefOr(z.record(z.string(), z.any())),
 });
-export type AirwallexPaymentSession = z.infer<typeof AirwallexPaymentSession>;
+export type ProcessorSpecificMetadata = z.infer<typeof ProcessorSpecificMetadata>;
 
 export const StartPaymentFlowRequest = z
   .object({
@@ -268,7 +261,7 @@ export const StartPaymentFlowRequest = z
     their_existing_pm_id: z.string().optional(),
   })
   .extend(NewCustomerFields.shape)
-  .extend(AirwallexPaymentSession.shape);
+  .extend(ProcessorSpecificMetadata.shape);
 export type StartPaymentFlowRequest = z.infer<typeof StartPaymentFlowRequest>;
 
 // StartPaymentFlowResponse

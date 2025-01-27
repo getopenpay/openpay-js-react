@@ -35,10 +35,12 @@ export async function handleValidateMerchant(
       new_customer_email: context.nonCdeFormInputs[FieldName.EMAIL] as string,
       new_customer_first_name: context.nonCdeFormInputs[FieldName.FIRST_NAME] as string,
       new_customer_last_name: context.nonCdeFormInputs[FieldName.LAST_NAME] as string,
-      airwallex_payment_session: {
-        validation_url: event.validationURL,
-        initiative_context: window.location.hostname,
-        their_account_id: context.processorAccount.processor_account_id,
+      processor_specific_metadata: {
+        airwallex_payment_session: {
+          validation_url: event.validationURL,
+          initiative_context: window.location.hostname,
+          their_account_id: context.processorAccount.processor_account_id,
+        },
       },
     });
 
@@ -84,9 +86,11 @@ async function handle3DS(
   // confirm flow again
   const confirmResult = await confirmPaymentFlow(context.connection, {
     secure_token: context.prefill.token,
-    airwallex_consent_id: nextActionMetadata.consent_id,
-    payment_provider: context.checkoutPaymentMethod.provider,
-    their_pm_id: nextActionMetadata.their_pm_id,
+    processor_specific_confirm_metadata: {
+      their_pm_id: nextActionMetadata.their_pm_id,
+      airwallex_consent_id: nextActionMetadata.consent_id,
+      payment_provider: context.checkoutPaymentMethod.provider,
+    },
   });
 
   log__('[2nd] Confirm payment flow response', confirmResult);
@@ -130,13 +134,15 @@ export async function handlePaymentAuthorized(
 
     const confirmResult = await confirmPaymentFlow(context.connection, {
       secure_token: context.prefill.token,
-      payment_provider: context.checkoutPaymentMethod.provider,
-      airwallex_consent_id: consentId,
-      airwallex_payment_method_data: {
-        type: 'applepay',
-        applepay: {
-          payment_data_type: 'encrypted_payment_token',
-          encrypted_payment_token: paymentData.token,
+      processor_specific_confirm_metadata: {
+        payment_provider: context.checkoutPaymentMethod.provider,
+        airwallex_consent_id: consentId,
+        airwallex_payment_method_data: {
+          type: 'applepay',
+          applepay: {
+            payment_data_type: 'encrypted_payment_token',
+            encrypted_payment_token: paymentData.token,
+          },
         },
       },
     });

@@ -188,14 +188,16 @@ export const runAirwallexGooglePayFlow: RunOjsFlow = addBasicCheckoutCallbackHan
       // Always confirm payment flow, with or without 3DS
       const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
         secure_token: prefill.token,
-        payment_provider: checkoutPaymentMethod.provider,
-        // GooglePay's encrypted_payment_token provided to verify the consent first
-        airwallex_consent_id: startFlowNextActions?.consent_id,
-        airwallex_payment_method_data: {
-          type: 'googlepay',
-          googlepay: {
-            payment_data_type: 'encrypted_payment_token',
-            encrypted_payment_token: encryptedPaymentToken,
+        processor_specific_confirm_metadata: {
+          payment_provider: checkoutPaymentMethod.provider,
+          // GooglePay's encrypted_payment_token provided to verify the consent first
+          airwallex_consent_id: startFlowNextActions?.consent_id,
+          airwallex_payment_method_data: {
+            type: 'googlepay',
+            googlepay: {
+              payment_data_type: 'encrypted_payment_token',
+              encrypted_payment_token: encryptedPaymentToken,
+            },
           },
         },
       });
@@ -227,9 +229,11 @@ export const runAirwallexGooglePayFlow: RunOjsFlow = addBasicCheckoutCallbackHan
         // confirm flow again
         const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
           secure_token: prefill.token,
-          payment_provider: checkoutPaymentMethod.provider,
           their_pm_id: nextActionMetadata.their_pm_id,
-          airwallex_consent_id: nextActionMetadata.consent_id,
+          processor_specific_confirm_metadata: {
+            payment_provider: checkoutPaymentMethod.provider,
+            airwallex_consent_id: nextActionMetadata.consent_id,
+          },
         });
 
         log__('[2nd] Confirm payment flow response', confirmResult);
