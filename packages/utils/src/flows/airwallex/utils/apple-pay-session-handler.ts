@@ -156,13 +156,19 @@ export async function handlePaymentAuthorized(
       throw new Error('No PM ID found');
     }
 
-    context.session.completePayment(ApplePaySession.STATUS_SUCCESS);
+    const result: ApplePayJS.ApplePayPaymentAuthorizationResult = {
+      status: ApplePaySession.STATUS_SUCCESS,
+    };
+    context.session.completePayment(result);
 
     return context.isSetupMode
       ? { mode: 'setup', result: { payment_method_id: ourPmId } }
       : await performCheckoutWithPmId(ourPmId, nonCdeFormFields, context);
   } catch (err) {
-    context.session.completePayment(ApplePaySession.STATUS_FAILURE);
+    const result: ApplePayJS.ApplePayPaymentAuthorizationResult = {
+      status: ApplePaySession.STATUS_FAILURE,
+    };
+    context.session.completePayment(result);
     throw err;
   }
 }
