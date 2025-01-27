@@ -9,7 +9,7 @@ import {
 } from '@getopenpay/openpay-js-react';
 import FormWrapper from '@/components/form-wrapper';
 import InputField from '@/components/input-field';
-import BillingDetails from '@/components/billing-details';
+import BillingDetails, { HorizontalRule } from '@/components/billing-details';
 import classNames from 'classnames';
 import { CurrencySymbolMap } from '@/utils/currency';
 import { atomToCurrency } from '@/utils/math';
@@ -22,6 +22,18 @@ interface FormProps {
   onCheckoutSuccess: OnCheckoutSuccess;
   onSetupPaymentMethodSuccess: OnSetupPaymentMethodSuccess;
   baseUrl?: string;
+}
+
+// Add this new interface for payment method buttons
+interface PaymentMethodButton {
+  id: string;
+  label: string;
+  isAvailable?: boolean;
+  isLoading?: boolean;
+  isShown: boolean;
+  toggleShow: () => Promise<void>;
+  startFlow?: () => void;
+  render?: () => React.ReactNode;
 }
 
 const Form: FC<FormProps> = (props) => {
@@ -100,6 +112,54 @@ const Form: FC<FormProps> = (props) => {
   }, [token]);
 
   const [isMounted, setIsMounted] = useState(true);
+  const renderPaymentMethods = (paymentMethods: PaymentMethodButton[]) => {
+    return (
+      <div className="space-y-4 mt-6">
+        {paymentMethods.map((method) => (
+          <div
+            key={method.id}
+            className="rounded-lg bg-emerald-100 dark:bg-emerald-800 shadow-sm border border-emerald-300 dark:border-emerald-700"
+          >
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium">{method.label}</h3>
+                {method.isAvailable && !method.render && (
+                  <button
+                    onClick={method.toggleShow}
+                    className="text-sm px-3 py-1 rounded-md bg-emerald-100 hover:bg-emerald-200 
+                           dark:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors"
+                  >
+                    {method.isShown ? 'Hide' : 'Show'}
+                  </button>
+                )}
+              </div>
+
+              {method.isShown && (
+                <div className="mt-2">
+                  {method.isLoading ? (
+                    <div className="h-12 flex items-center justify-center bg-emerald-50 dark:bg-emerald-900 rounded-md">
+                      <span className="text-sm">Loading...</span>
+                    </div>
+                  ) : !method.isAvailable ? (
+                    <div className="h-12 flex items-center justify-center bg-emerald-300 dark:bg-emerald-900 rounded-md">
+                      <span className="text-sm text-emerald-500">Not available</span>
+                    </div>
+                  ) : method.render ? (
+                    method.render()
+                  ) : (
+                    <div
+                      id={`ojs-${method.id}-btn`}
+                      className={`${method.id}-button [&_#gpay-button-online-api-id]:w-full`}
+                    ></div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -128,7 +188,7 @@ const Form: FC<FormProps> = (props) => {
             },
           }}
         >
-          {({ submit, submitWith, applePay, googlePay, loaded, stripeLink }) => (
+          {({ submit, submitWith, applePay, googlePay, loaded, stripeLink, airwallex }) => (
             <FormWrapper error={validationErrors}>
               {loading && (
                 <div data-testid="loading" className="flex items-center">
@@ -137,15 +197,13 @@ const Form: FC<FormProps> = (props) => {
                 </div>
               )}
               {overlayMessage && (
-                <div className="w-full py-2 my-2 h-full flex items-center justify-center bg-emerald-100/50 dark:bg-emerald-800/50 backdrop-blur rounded-lg cursor-not-allowed">
-                  <pre data-testid="overlay-message" className="block font-bold max-w-md w-full text-wrap my-3">
+                <div className="w-full px-4 py-2 my-2 h-full flex items-center justify-center bg-emerald-100/50 dark:bg-emerald-800/50 backdrop-blur rounded-lg cursor-not-allowed">
+                  <pre data-testid="overlay-message" className="block text-xs max-w-md w-full text-wrap my-3">
                     {JSON.stringify(overlayMessage, null, 2)}
                   </pre>
                 </div>
               )}
-
               <BillingDetails />
-
               {separateFrames ? (
                 <>
                   <InputField hasError={!!validationErrors.card_number}>
@@ -169,82 +227,152 @@ const Form: FC<FormProps> = (props) => {
                   <CardElement />
                 </InputField>
               )}
-
               <button
                 data-testid="submit-button"
                 disabled={!loaded || loading}
                 onClick={submit}
-                className={`px-4 py-2 mt-2 w-full font-bold rounded-lg bg-emerald-500 
+                className={`shadow-lg shadow-emerald-500/50 dark:shadow-emerald-900/50 border border-emerald-600 dark:border-emerald-500 px-4 py-2.5 mt-2 w-full font-bold rounded-lg bg-emerald-500 
                        dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 
-                       active:bg-emerald-600 dark:active:bg-emerald-700
-                       disabled:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-gray-100 disabled:cursor-not-allowed`}
+                       active:bg-emerald-600 dark:active:bg-emerald-700 disabled:opacity-50 disabled:pointer-events-none`}
               >
-                Pay {amount}
+                Pay with Card | {amount}
               </button>
-
-              <button
-                onClick={() => applePay.startFlow(prParams)}
-                disabled={!applePay.isAvailable || loading}
-                className={classNames(
-                  'px-4 py-2 mt-2 w-full rounded-lg',
-                  applePay.isAvailable
-                    ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold'
-                    : 'bg-gray-100 text-gray-300'
-                )}
-              >
-                {applePay.isLoading ? 'Loading' : 'Apple Pay'}
-              </button>
-
-              <button
-                onClick={() => googlePay.startFlow(prParams)}
-                disabled={!googlePay.isAvailable || loading}
-                className={classNames(
-                  'px-4 py-2 mt-2 w-full rounded-lg',
-                  googlePay.isAvailable
-                    ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold'
-                    : 'bg-gray-100 text-gray-300'
-                )}
-              >
-                {googlePay.isLoading ? 'Loading' : 'Google Pay'}
-              </button>
-              <button
-                id="submit-paypal"
-                onClick={() => submitWith('pockyt-paypal')}
-                disabled={!loaded || loading}
-                className={classNames(
-                  'px-4 py-2 mt-2 w-full rounded-lg',
-                  'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold',
-                  'disabled:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-gray-100 disabled:cursor-not-allowed'
-                )}
-              >
-                {loading ? 'Loading' : 'Pay with PayPal'}
-              </button>
-              {stripeLinkShown ? (
-                <div id="ojs-stripe-link-btn" className="stripe-link-button mt-2">
-                  Loading...
-                </div>
-              ) : (
-                <></>
-              )}
-              <div className="grid grid-cols-2 mt-8 bg-gray-100 p-4 rounded-lg drop-shadow">
-                {stripeLink && (
-                  <button
-                    onClick={async () => {
-                      if (stripeLinkShown) {
-                        setStripeLinkShown(false);
-                        stripeLink.dismountButton();
-                      } else {
-                        setStripeLinkShown(true);
-                        await stripeLink.waitForButtonToMount();
-                        stripeLink.mountButton();
-                      }
-                    }}
-                    className="text-white text-sm px-2 py-1 w-full rounded-md bg-gray-600 hover:bg-gray-700 active:bg-gray-800"
-                  >
-                    {stripeLinkShown ? 'Hide' : 'Show'} stripe link
-                  </button>
-                )}
+              <div className="my-5 flex flex-row items-center gap-3">
+                <HorizontalRule className="flex-1" />
+                <p className="text-emerald-800 dark:text-emerald-400 text-xs">Other payment methods</p>
+                <HorizontalRule className="flex-1" />
               </div>
+              {renderPaymentMethods([
+                {
+                  id: 'stripe-link',
+                  label: 'Pay with Link',
+                  isAvailable: true,
+                  isShown: stripeLinkShown,
+                  toggleShow: async () => {
+                    if (stripeLinkShown) {
+                      setStripeLinkShown(false);
+                      stripeLink?.dismountButton();
+                    } else {
+                      setStripeLinkShown(true);
+                      await stripeLink?.waitForButtonToMount();
+                      stripeLink?.mountButton();
+                    }
+                  },
+                },
+                {
+                  id: 'airwallex-gpay',
+                  label: 'Google Pay (Airwallex)',
+                  isAvailable: true,
+                  isShown: true,
+                  toggleShow: async () => {},
+                  render: () => (
+                    <button
+                      // We can start via submitWith or `airwallex.googlePay.startFlow`
+                      // the availablity check is only available via `airwallex.googlePay`
+                      onClick={() => {
+                        submitWith('airwallex-google-pay');
+                        // airwallex.googlePay?.isAvailable && airwallex.googlePay.startFlow();
+                      }}
+                      disabled={!airwallex.googlePay?.isAvailable || loading}
+                      className={classNames(
+                        'px-4 py-2 mt-2 w-full rounded-lg',
+                        'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold',
+                        'disabled:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-gray-100 disabled:cursor-not-allowed'
+                      )}
+                    >
+                      Pay with Google Pay
+                    </button>
+                  ),
+                },
+                {
+                  id: 'airwallex-applepay',
+                  label: 'Apple Pay (Airwallex)',
+                  isAvailable: true,
+                  isShown: true,
+                  toggleShow: async () => {},
+                  render: () => (
+                    <button
+                      // We can start via submitWith or `airwallex.googlePay.startFlow`
+                      // the availablity check is only available via `airwallex.googlePay`
+                      onClick={() => submitWith('airwallex-apple-pay')}
+                      disabled={!airwallex.applePay?.isAvailable || loading}
+                      className={classNames(
+                        'px-4 py-2 mt-2 w-full rounded-lg',
+                        'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold',
+                        'disabled:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-gray-100 disabled:cursor-not-allowed'
+                      )}
+                    >
+                      Pay with Apple Pay
+                    </button>
+                  ),
+                },
+                {
+                  id: 'stripe-applepay',
+                  label: 'Apple Pay (Stripe)',
+                  isAvailable: applePay.isAvailable,
+                  isLoading: applePay.isLoading,
+                  isShown: true,
+                  toggleShow: async () => {},
+                  render: () => (
+                    <button
+                      onClick={() => applePay.startFlow(prParams)}
+                      disabled={!applePay.isAvailable || loading}
+                      className={classNames(
+                        'px-4 py-2 mt-2 w-full rounded-lg',
+                        applePay.isAvailable
+                          ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold'
+                          : 'bg-gray-100 text-gray-300'
+                      )}
+                    >
+                      {applePay.isLoading ? 'Loading' : 'Apple Pay'}
+                    </button>
+                  ),
+                },
+                {
+                  id: 'stripe-googlepay',
+                  label: 'Google Pay (Stripe)',
+                  isAvailable: googlePay.isAvailable,
+                  isLoading: googlePay.isLoading,
+                  isShown: true,
+                  toggleShow: async () => {},
+                  render: () => (
+                    <button
+                      onClick={() => googlePay.startFlow(prParams)}
+                      disabled={!googlePay.isAvailable || loading}
+                      className={classNames(
+                        'px-4 py-2 mt-2 w-full rounded-lg',
+                        googlePay.isAvailable
+                          ? 'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold'
+                          : 'bg-gray-100 text-gray-300'
+                      )}
+                    >
+                      {googlePay.isLoading ? 'Loading' : 'Google Pay'}
+                    </button>
+                  ),
+                },
+                {
+                  id: 'submit-paypal',
+                  label: 'Pay with PayPal',
+                  isAvailable: true,
+                  isLoading: false,
+                  isShown: true,
+                  toggleShow: async () => {},
+                  render: () => (
+                    <button
+                      id="submit-paypal"
+                      onClick={() => submitWith('pockyt-paypal')}
+                      disabled={!loaded || loading}
+                      className={classNames(
+                        'px-4 py-2 mt-2 w-full rounded-lg',
+                        'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold',
+                        'disabled:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-gray-100 disabled:cursor-not-allowed'
+                      )}
+                    >
+                      {loading ? 'Loading' : 'Pay with PayPal'}
+                    </button>
+                  ),
+                },
+              ])}
             </FormWrapper>
           )}
         </ElementsForm>
@@ -280,6 +408,9 @@ const ElementsExample: FC = () => {
 
   const onTokenChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setCheckoutResponse(null);
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.set('token', e.target.value);
+    window.history.pushState({}, '', window.location.pathname + '?' + searchParams.toString());
     setToken(e.target.value === '' ? null : e.target.value);
   }, []);
 
@@ -302,7 +433,7 @@ const ElementsExample: FC = () => {
   }, []);
 
   return (
-    <main className="w-full max-w-5xl p-24 mx-auto">
+    <main className="w-full max-w-3xl p-4 pt-12 mx-auto">
       <div>
         <h1 className="text-2xl font-bold">OpenPay Elements</h1>
         <p className="my-4">Accept payments through OpenPay, right on your site</p>

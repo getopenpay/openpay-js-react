@@ -248,7 +248,11 @@ export const NewCustomerFields = z.object({
 });
 export type NewCustomerFields = z.infer<typeof NewCustomerFields>;
 
-// StartPaymentFlowRequest
+export const ProcessorSpecificMetadata = z.object({
+  processor_specific_metadata: nullOrUndefOr(z.record(z.string(), z.any())),
+});
+export type ProcessorSpecificMetadata = z.infer<typeof ProcessorSpecificMetadata>;
+
 export const StartPaymentFlowRequest = z
   .object({
     payment_provider: z.string(),
@@ -256,7 +260,8 @@ export const StartPaymentFlowRequest = z
     existing_cc_pm_id: z.string().optional(),
     their_existing_pm_id: z.string().optional(),
   })
-  .extend(NewCustomerFields.shape);
+  .extend(NewCustomerFields.shape)
+  .extend(ProcessorSpecificMetadata.shape);
 export type StartPaymentFlowRequest = z.infer<typeof StartPaymentFlowRequest>;
 
 // StartPaymentFlowResponse
