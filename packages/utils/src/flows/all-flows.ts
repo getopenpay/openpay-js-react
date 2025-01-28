@@ -4,6 +4,8 @@ import { initStripeLinkFlow, runStripeLinkFlow } from './stripe/stripe-link-flow
 import { runCommonCcFlow } from './card/common-cc-flow';
 import { initStripePrFlow, runStripePrFlow } from './stripe/stripe-pr-flow';
 import { runPockytPaypalFlow } from './pockyt/pockyt-paypal-flow';
+import { initAirwallexGooglePayFlow, runAirwallexGooglePayFlow } from './airwallex/airwallex-google-pay-flow';
+import { initAirwallexApplePayFlow, runAirwallexApplePayFlow } from './airwallex/airwallex-apple-pay-flow';
 
 export const findCheckoutPaymentMethodStrict = (
   cpms: CheckoutPaymentMethod[],
@@ -48,6 +50,17 @@ export const OjsFlows = {
   // Pockyt
   pockytPaypal: {
     run: runPockytPaypalFlow,
+  },
+
+  // Airwallex
+  airwallexGooglePay: {
+    init: initAirwallexGooglePayFlow,
+    run: runAirwallexGooglePayFlow,
+  },
+
+  airwallexApplePay: {
+    init: initAirwallexApplePayFlow,
+    run: runAirwallexApplePayFlow,
   },
 
   // 👉 Add more flows here

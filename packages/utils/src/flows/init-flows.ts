@@ -74,6 +74,12 @@ export const createInitFlowsPublishers = () => {
     // Stripe Link
     stripeLink: createInitFlowPublisher('Stripe Link', OjsFlows.stripeLink.init),
 
+    // Airwallex GooglePay
+    airwallexGooglePay: createInitFlowPublisher('Airwallex GPay', OjsFlows.airwallexGooglePay.init),
+
+    // Airwallex ApplePay
+    airwallexApplePay: createInitFlowPublisher('Airwallex ApplePay', OjsFlows.airwallexApplePay.init),
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as const satisfies Record<string, InitFlowLoader<any>>;
 };
