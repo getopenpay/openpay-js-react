@@ -128,6 +128,11 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
     const applePayCpm = findCpmMatchingType(context.checkoutPaymentMethods, ApplePayCpm);
     const { initialPreview, isSetupMode, prefill } = customParams;
 
+    const total: ApplePayJS.ApplePayPaymentRequest['total'] = {
+      label: isSetupMode ? 'Setup Payment' : 'Payment Total',
+      amount: isSetupMode ? '0.00' : (initialPreview.amountAtom / 100).toFixed(2),
+      type: 'final',
+    };
     const paymentRequest: ApplePayJS.ApplePayPaymentRequest = {
       countryCode: 'US',
       currencyCode: initialPreview.currency?.toUpperCase() ?? 'USD',
@@ -138,11 +143,7 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
         'supportsDebit',
         'supportsEMV',
       ] as ApplePayJS.ApplePayMerchantCapability[],
-      total: {
-        label: isSetupMode ? 'Setup Payment' : 'Payment Total',
-        amount: isSetupMode ? '0.00' : (initialPreview.amountAtom / 100).toFixed(2),
-        type: 'final',
-      },
+      total,
     };
 
     log__('Payment Request', paymentRequest);
@@ -166,7 +167,6 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
     return new Promise<SimpleOjsFlowResult>((resolve, reject) => {
       session.oncancel = () => {
         log__('Payment cancelled by user');
-        session.abort();
         reject(new Error('Payment cancelled by user'));
       };
 
@@ -198,8 +198,9 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
 
       session.onpaymentmethodselected = (event) => {
         log__('Payment method selected', event.paymentMethod);
-        // @ts-expect-error - No updates or errors are needed, pass an empty object.
-        const update: ApplePayJS.ApplePayPaymentMethodUpdate = {};
+        const update: ApplePayJS.ApplePayPaymentMethodUpdate = {
+          newTotal: { ...total },
+        };
         session.completePaymentMethodSelection(update);
       };
 
@@ -213,7 +214,6 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
       };
       session.begin();
     }).catch((err) => {
-      session.abort();
       err__('Apple Pay payment error', err);
       throw err;
     });
