@@ -54,7 +54,7 @@ export async function handleValidateMerchant(
     if (!consentId) {
       throw new Error('No consent ID received from payment flow');
     }
-    context.session.completeMerchantValidation(paymentSessionResponse['payment_session']);
+    context.session.completeMerchantValidation(paymentSessionResponse);
     return consentId;
   } catch (err) {
     context.session.abort();
@@ -141,7 +141,7 @@ export async function handlePaymentAuthorized(
           type: 'applepay',
           applepay: {
             payment_data_type: 'encrypted_payment_token',
-            encrypted_payment_token: paymentData.token,
+            encrypted_payment_token: JSON.stringify(paymentData.token),
           },
         },
       },
