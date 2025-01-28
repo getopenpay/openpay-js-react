@@ -387,7 +387,6 @@ export const CardElementsCheckoutRequest = z.object({
   non_cde_form_fields: RequiredFormFields,
   do_not_use_legacy_cc_flow: z.boolean().optional(),
   existing_cc_pm_id: nullOrUndefOr(z.string()),
-  is_paid_with_setup_intent: z.boolean().optional().nullable(),
 });
 export type CardElementsCheckoutRequest = z.infer<typeof CardElementsCheckoutRequest>;
 

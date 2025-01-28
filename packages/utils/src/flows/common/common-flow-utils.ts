@@ -100,7 +100,6 @@ export const performSimpleCheckoutOrSetup = async (args: {
       cancel_at_end: false,
       checkout_payment_method: args.checkoutPaymentMethod,
       use_confirmed_pm_id: createdPaymentMethod.payment_method_id,
-      is_paid_with_setup_intent: args.usePayFirstFlow,
     };
     const result = await performCheckout(args.anyCdeConnection, checkoutRequest);
     return { mode: 'checkout', result };

@@ -203,7 +203,6 @@ export const CheckoutRequest = z.object({
   promotion_code: z.string().optional(),
   do_not_use_legacy_cc_flow: z.boolean().optional(),
   use_confirmed_pm_id: nullOrUndefOr(z.string()),
-  is_paid_with_setup_intent: z.boolean().optional().nullable(),
 });
 export type CheckoutRequest = z.infer<typeof CheckoutRequest>;
 
