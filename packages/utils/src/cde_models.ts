@@ -191,6 +191,8 @@ export type FinalizeSetupPaymentMethodRequest = z.infer<typeof FinalizeSetupPaym
 export const CheckoutRequest = z.object({
   secure_token: z.string(),
   payment_input: z.any(), // Should follow AnyPaymentInput from CDE
+  customer_first_name: z.string().optional(),
+  customer_last_name: z.string().optional(),
   customer_email: z.string(),
   customer_zip_code: z.string(),
   customer_country: z.string(),
@@ -254,6 +256,12 @@ export const CartInfo = z.object({
 });
 export type CartInfo = z.infer<typeof CartInfo>;
 
+// ProcessorSpecificMetadata
+export const ProcessorSpecificMetadata = z.object({
+  processor_specific_metadata: nullOrUndefOr(z.record(z.string(), z.any())),
+});
+export type ProcessorSpecificMetadata = z.infer<typeof ProcessorSpecificMetadata>;
+
 // StartPaymentFlowRequest
 export const StartPaymentFlowRequest = z
   .object({
@@ -264,7 +272,8 @@ export const StartPaymentFlowRequest = z
     use_pay_first_flow: z.boolean().optional(),
     pay_first_flow_cart_info: CartInfo.optional(),
   })
-  .extend(NewCustomerFields.shape);
+  .extend(NewCustomerFields.shape)
+  .extend(ProcessorSpecificMetadata.shape);
 export type StartPaymentFlowRequest = z.infer<typeof StartPaymentFlowRequest>;
 
 // StartPaymentFlowResponse

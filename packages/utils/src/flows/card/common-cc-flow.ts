@@ -17,6 +17,7 @@ import { validateNonCdeFormFieldsForCC, validateTokenizeCardResults } from '../c
 import { parseConfirmPaymentFlowResponse } from '../common/common-flow-utils';
 import { addBasicCheckoutCallbackHandlers, createOjsFlowLoggers, RunOjsFlow, SimpleOjsFlowResult } from '../ojs-flow';
 import { checkIfRequiresPockyt3ds, runPockyt3dsFlow } from '../pockyt/pockyt-utils';
+import { checkIfRequiresAirwallex3ds, runAirwallex3dsFlow } from '../airwallex/airwallex-utils';
 
 const { log__, err__ } = createOjsFlowLoggers('common-cc');
 const { log__: stripeLog__ } = createOjsFlowLoggers('stripe-cc');
@@ -66,6 +67,8 @@ export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBas
 
     try {
       log__(`├ Tokenizing card info in CDE [Session: ${context.elementsSessionId}]`);
+
+      // creates partial payment methods in CDE
       const tokenizeCardResults = await tokenizeCardOnAllConnections(customParams.currentCdeConnections, {
         session_id: context.elementsSessionId,
       });
@@ -73,10 +76,21 @@ export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBas
 
       if (prefill.mode === 'setup') {
         log__(`├ Setting up payment method in CDE [Token: ${prefill.token}]`);
+
+        // this hits elements_router in cde /setup
+        // 1. get partial payment method from CDE
+        // 2. create customer for session
+        // 3. partial payment method -> payment intput
+        // 4. create card against all processors
         const result = await setupCheckout(anyCdeConnection, commonCheckoutParams);
         log__(`╰ Setup completed successfully [PM ID: ${result.payment_method_id}]`);
         return { mode: 'setup', result };
       } else {
+        // this hits elements_router in cde /checkout
+        // 1. create checkout subscriptions
+        //   a. creating customer
+        //   b. creating card against all processors
+        //   c. create subscription
         log__(`├ Initial checkout flow. Checking out card info in CDE [Session: ${context.elementsSessionId}]`);
         const result = await checkoutCardElements(anyCdeConnection, commonCheckoutParams);
         log__(`╰ Checkout completed successfully.`);
@@ -96,13 +110,22 @@ export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBas
             commonCheckoutParams.extra_metadata['pockyt'] = pockytMetadataForCheckout;
           }
 
+          const requiresAirwallex3ds = checkIfRequiresAirwallex3ds(error.response.headers);
+          if (requiresAirwallex3ds) {
+            log__(`├ Airwallex 3DS case detected. Going through Airwallex 3DS flow.`);
+            const airwallexMetadataForCheckout = await runAirwallex3dsFlow(context.baseUrl, error.response.headers);
+            commonCheckoutParams.extra_metadata['airwallex'] = airwallexMetadataForCheckout;
+          }
+
           const startPfResult = await startPaymentFlowForCC(anyCdeConnection, commonCheckoutParams);
           log__(`├ Payment flow result:`, startPfResult);
+
+          const preStart3dsComplete = requiresPockyt3ds || requiresAirwallex3ds;
 
           // Post-start-PF 3DS flows
           // TODO: refactor this to handle multiple processor 3DS flows
           const shouldUseStripeFlow = error.response.headers?.['op-should-use-new-flow'] !== 'true';
-          if (!requiresPockyt3ds) {
+          if (!preStart3dsComplete) {
             if (shouldUseStripeFlow) {
               log__(`├ Using stripe 3DS flow`);
               await stripeCC3DSFlow(startPfResult);
@@ -111,7 +134,7 @@ export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBas
               await commonCC3DSFlow(startPfResult, context.baseUrl);
             }
           } else {
-            log__(`├ Pockyt 3DS is successful, other 3DS flows will be skipped.`);
+            log__(`├ Pre-start 3DS is successful, other 3DS flows will be skipped.`);
           }
           const ccPmId = startPfResult.cc_pm_id;
 
@@ -159,7 +182,9 @@ const parseStripe3DSNextActionMetadata = (response: StartPaymentFlowForCCRespons
   return Stripe3DSNextActionMetadata.parse(stripeAction);
 };
 
-const parseCommon3DSNextActionMetadata = (response: StartPaymentFlowForCCResponse): Common3DSNextActionMetadata => {
+export const parseCommon3DSNextActionMetadata = (
+  response: StartPaymentFlowForCCResponse
+): Common3DSNextActionMetadata => {
   // TODO: handle multiple processor 3ds
   const commonAction = response.required_user_actions.find((action) => action.type === 'airwallex_payment_consent');
   if (!commonAction) {

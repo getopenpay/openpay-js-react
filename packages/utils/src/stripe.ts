@@ -82,6 +82,7 @@ export const createStripePaymentRequest = async (
       amount: totalAmountAtom,
       pending: isAmountPending,
     },
+    // requestShipping: true,
     requestPayerName: true,
     requestPayerEmail: true,
     disableWallets: !isLinkOnly ? [] : ['applePay', 'browserCard', 'googlePay'],
@@ -106,7 +107,11 @@ export const waitForUserToAddPaymentMethod = async (
   return new Promise((resolve, reject) => {
     try {
       paymentRequest.on('paymentmethod', async (evt) => {
+        console.log('paymentmethod EVT:: ', evt);
         resolve(evt);
+      });
+      paymentRequest.on('token', async (evt) => {
+        console.log('token EVT:: ', evt);
       });
       paymentRequest.on('cancel', () => {
         reject(new Error(`Payment cancelled, please click Submit again to pay`));

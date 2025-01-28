@@ -230,10 +230,15 @@ export type RequiredFormFields = z.infer<typeof RequiredFormFields>;
 
 // Like RequiredFormFields, but without first and last name
 export const PRFormFields = z.object({
+  [FieldName.FIRST_NAME]: OptionalString,
+  [FieldName.LAST_NAME]: OptionalString,
   [FieldName.EMAIL]: RequiredString,
   [FieldName.ZIP_CODE]: RequiredString,
   [FieldName.COUNTRY]: RequiredString,
   [FieldName.PROMOTION_CODE]: OptionalString,
+  [FieldName.ADDRESS]: OptionalString,
+  [FieldName.CITY]: OptionalString,
+  [FieldName.STATE]: OptionalString,
 });
 export type PRFormFields = z.infer<typeof PRFormFields>;
 
@@ -335,6 +340,7 @@ export const ConfirmPaymentFlowRequest = z.object({
   existing_cc_pm_id: nullOrUndefOr(z.string()),
   their_pm_id: nullOrUndefOr(z.string()),
   checkout_attempt_id: nullOrUndefOr(z.string()),
+  processor_specific_metadata: nullOrUndefOr(z.record(z.string(), z.any())),
 });
 export type ConfirmPaymentFlowRequest = z.infer<typeof ConfirmPaymentFlowRequest>;
 
@@ -345,13 +351,6 @@ export const CheckoutSuccessResponse = z.object({
   customer_id: z.string(),
 });
 export type CheckoutSuccessResponse = z.infer<typeof CheckoutSuccessResponse>;
-
-// ConfirmPaymentFlowResponse
-export const ConfirmPaymentFlowResponse = z.object({
-  payment_methods: z.array(PaymentMethodMinimal),
-  pay_first_success_response: nullOrUndefOr(CheckoutSuccessResponse),
-});
-export type ConfirmPaymentFlowResponse = z.infer<typeof ConfirmPaymentFlowResponse>;
 
 // FieldValidationError
 export const FieldValidationError = z.object({
@@ -424,11 +423,30 @@ export const Common3DSNextActionMetadata = z.object({
   redirect_url: z.string(),
   initial_intent_id: z.string(),
   consent_id: z.string(),
+  their_pm_id: z.string().optional(),
 });
 export type Common3DSNextActionMetadata = z.infer<typeof Common3DSNextActionMetadata>;
+
+export const CommonNextActionMetadata = z.object({
+  type: z.string(),
+  redirect_url: nullOrUndefOr(z.string()),
+  initial_intent_id: nullOrUndefOr(z.string()),
+  consent_id: nullOrUndefOr(z.string()),
+  their_pm_id: nullOrUndefOr(z.string()),
+  payment_session: nullOrUndefOr(z.record(z.string(), z.any())),
+});
+export type CommonNextActionMetadata = z.infer<typeof CommonNextActionMetadata>;
 
 export const CheckIfPopupWindowVerifiedResponse = z.discriminatedUnion('present', [
   z.object({ present: z.literal(true), href: z.string() }),
   z.object({ present: z.literal(false) }),
 ]);
 export type CheckIfPopupWindowVerifiedResponse = z.infer<typeof CheckIfPopupWindowVerifiedResponse>;
+
+// ConfirmPaymentFlowResponse
+export const ConfirmPaymentFlowResponse = z.object({
+  payment_methods: z.array(PaymentMethodMinimal),
+  pay_first_success_response: nullOrUndefOr(CheckoutSuccessResponse),
+  required_user_actions: nullOrUndefOr(z.array(CommonNextActionMetadata)),
+});
+export type ConfirmPaymentFlowResponse = z.infer<typeof ConfirmPaymentFlowResponse>;
