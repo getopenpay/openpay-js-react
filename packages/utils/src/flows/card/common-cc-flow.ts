@@ -17,6 +17,7 @@ import { validateNonCdeFormFieldsForCC, validateTokenizeCardResults } from '../c
 import { parseConfirmPaymentFlowResponse } from '../common/common-flow-utils';
 import { addBasicCheckoutCallbackHandlers, createOjsFlowLoggers, RunOjsFlow, SimpleOjsFlowResult } from '../ojs-flow';
 import { checkIfRequiresPockyt3ds, runPockyt3dsFlow } from '../pockyt/pockyt-utils';
+import { checkIfRequiresAirwallex3ds, runAirwallex3dsFlow } from '../airwallex/airwallex-utils';
 
 const { log__, err__ } = createOjsFlowLoggers('common-cc');
 const { log__: stripeLog__ } = createOjsFlowLoggers('stripe-cc');
@@ -109,13 +110,22 @@ export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBas
             commonCheckoutParams.extra_metadata['pockyt'] = pockytMetadataForCheckout;
           }
 
+          const requiresAirwallex3ds = checkIfRequiresAirwallex3ds(error.response.headers);
+          if (requiresAirwallex3ds) {
+            log__(`├ Airwallex 3DS case detected. Going through Airwallex 3DS flow.`);
+            const airwallexMetadataForCheckout = await runAirwallex3dsFlow(context.baseUrl, error.response.headers);
+            commonCheckoutParams.extra_metadata['airwallex'] = airwallexMetadataForCheckout;
+          }
+
           const startPfResult = await startPaymentFlowForCC(anyCdeConnection, commonCheckoutParams);
           log__(`├ Payment flow result:`, startPfResult);
+
+          const preStart3dsComplete = requiresPockyt3ds || requiresAirwallex3ds;
 
           // Post-start-PF 3DS flows
           // TODO: refactor this to handle multiple processor 3DS flows
           const shouldUseStripeFlow = error.response.headers?.['op-should-use-new-flow'] !== 'true';
-          if (!requiresPockyt3ds) {
+          if (!preStart3dsComplete) {
             if (shouldUseStripeFlow) {
               log__(`├ Using stripe 3DS flow`);
               await stripeCC3DSFlow(startPfResult);
@@ -124,7 +134,7 @@ export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBas
               await commonCC3DSFlow(startPfResult, context.baseUrl);
             }
           } else {
-            log__(`├ Pockyt 3DS is successful, other 3DS flows will be skipped.`);
+            log__(`├ Pre-start 3DS is successful, other 3DS flows will be skipped.`);
           }
           const ccPmId = startPfResult.cc_pm_id;
 
