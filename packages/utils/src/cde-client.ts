@@ -5,6 +5,7 @@ import {
   CardElementsCheckoutRequest,
   CheckIfPopupWindowVerifiedResponse,
   CheckoutPreviewRequest,
+  CheckoutSuccessResponse,
   ConfirmPaymentFlowRequest,
   ConfirmPaymentFlowResponse,
   ElementType,
@@ -17,7 +18,6 @@ import {
 import {
   CDEResponseError,
   CheckoutRequest,
-  CheckoutSuccessResponse,
   FinalizeSetupPaymentMethodRequest,
   PaymentFormPrefill,
   PreviewCheckoutResponse,

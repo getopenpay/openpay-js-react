@@ -1,13 +1,12 @@
 import { z } from 'zod';
 import { confirmPaymentFlow, getPrefill, startPaymentFlow } from '../../cde-client';
 import { addBasicCheckoutCallbackHandlers, createOjsFlowLoggers, RunOjsFlow, SimpleOjsFlowResult } from '../ojs-flow';
-import { createCustomerFieldsFromForm, performSimpleCheckoutOrSetup } from '../common/common-flow-utils';
+import { createCustomerFieldsFromForm } from '../common/common-flow-utils';
 import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
 import { startPopupWindowVerificationStrict } from '../../3ds-elements/events';
 import { parseVaultIdFrom3dsHref } from './pockyt-utils';
-import { PayFirstFlowParams } from '../../cde_models';
 
-const { log__ } = createOjsFlowLoggers('pockyt-paypal');
+const { log__, err__ } = createOjsFlowLoggers('pockyt-paypal');
 
 // 👉 For convenience, you can use zod to define which CPMs are accepted by this flow
 export const PockytPaypalCpm = z.object({
@@ -43,21 +42,27 @@ export const runPockytPaypalFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
     const nonCdeFormFields = validateNonCdeFormFieldsForCC(nonCdeFormInputs, formCallbacks.get.onValidationError);
     const newCustomerFields = createCustomerFieldsFromForm(nonCdeFormFields);
 
-    log__(`Starting payment flow...`);
-    const pay_first_flow: PayFirstFlowParams | undefined =
-      prefill.mode === 'setup'
-        ? undefined
-        : {
-            // TODO add coupon and cart adjusted line items later
-            line_items: prefill.line_items,
-          };
+    log__(`Starting payment flow... Mode: ${prefill.mode}`);
+    // We use pay-first flow on checkout, and setup-only flow on setup
+    const isPayFirstFlow = prefill.mode !== 'setup';
     const startPaymentFlowResponse = await startPaymentFlow(anyCdeConnection, {
       payment_provider: cpm.provider,
       checkout_payment_method: cpm,
-      pay_first_flow,
+      use_pay_first_flow: isPayFirstFlow,
+      pay_first_flow_cart_info: isPayFirstFlow
+        ? {
+            // TODO add coupon and cart adjusted line items later
+            line_items: prefill.line_items,
+            displayed_total_amount_atom: prefill.amount_total_atom,
+          }
+        : undefined,
       ...newCustomerFields,
     });
     log__('Start payment flow response', startPaymentFlowResponse);
+    if (!startPaymentFlowResponse.checkout_attempt_id) {
+      err__('Checkout attempt ID not found in response:', startPaymentFlowResponse);
+      throw new Error('An error occurred during checkout, please try again with another payment method.');
+    }
     const nextActionMetadata = PockytPaypalRequiredUserActions.parse(startPaymentFlowResponse.required_user_actions)[0];
 
     log__(`Opening paypal iframe...`);
@@ -74,16 +79,26 @@ export const runPockytPaypalFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
     const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
       secure_token: prefill.token,
       their_pm_id: vaultId,
+      checkout_attempt_id: isPayFirstFlow ? startPaymentFlowResponse.checkout_attempt_id : undefined,
     });
     log__('Confirm payment flow result', confirmResult);
 
-    return await performSimpleCheckoutOrSetup({
-      logPrefix: 'pockyt-paypal',
-      anyCdeConnection,
-      checkoutPaymentMethod: cpm,
-      requiredFormFields: nonCdeFormFields,
-      confirmResult,
-      usePayFirstFlow: true,
-    });
+    if (prefill.mode === 'setup') {
+      return {
+        mode: 'setup',
+        result: {
+          payment_method_id: confirmResult.payment_methods[0].id,
+        },
+      } satisfies SimpleOjsFlowResult;
+    } else {
+      if (!confirmResult.pay_first_success_response) {
+        err__('Checkout failed, no pay-first success response:', confirmResult);
+        throw new Error('Checkout failed, please try again with another payment method.');
+      }
+      return {
+        mode: 'checkout',
+        result: confirmResult.pay_first_success_response,
+      } satisfies SimpleOjsFlowResult;
+    }
   }
 );

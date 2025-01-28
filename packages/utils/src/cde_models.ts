@@ -180,14 +180,6 @@ export const Theme = z.object({
 });
 export type Theme = z.infer<typeof Theme>;
 
-// CheckoutSuccessResponse
-export const CheckoutSuccessResponse = z.object({
-  invoice_urls: z.array(z.string()),
-  subscription_ids: z.array(z.string()),
-  customer_id: z.string(),
-});
-export type CheckoutSuccessResponse = z.infer<typeof CheckoutSuccessResponse>;
-
 // FinalizeSetupPaymentMethodRequest
 export const FinalizeSetupPaymentMethodRequest = z.object({
   secure_token: z.string(),
@@ -247,12 +239,20 @@ export const NewCustomerFields = z.object({
 });
 export type NewCustomerFields = z.infer<typeof NewCustomerFields>;
 
-// PayFirstFlowParams
-export const PayFirstFlowParams = z.object({
-  line_items: z.array(LineItem),
-  coupon_id: z.string().optional(),
+// PriceQty
+export const PriceQty = z.object({
+  price_id: z.string(),
+  quantity: z.number().int(),
 });
-export type PayFirstFlowParams = z.infer<typeof PayFirstFlowParams>;
+export type PriceQty = z.infer<typeof PriceQty>;
+
+// CartInfo
+export const CartInfo = z.object({
+  line_items: z.array(PriceQty),
+  promotion_code: z.string().optional(),
+  displayed_total_amount_atom: z.number().int(),
+});
+export type CartInfo = z.infer<typeof CartInfo>;
 
 // StartPaymentFlowRequest
 export const StartPaymentFlowRequest = z
@@ -261,7 +261,8 @@ export const StartPaymentFlowRequest = z
     checkout_payment_method: CheckoutPaymentMethod,
     existing_cc_pm_id: z.string().optional(),
     their_existing_pm_id: z.string().optional(),
-    pay_first_flow: PayFirstFlowParams.optional(),
+    use_pay_first_flow: z.boolean().optional(),
+    pay_first_flow_cart_info: CartInfo.optional(),
   })
   .extend(NewCustomerFields.shape);
 export type StartPaymentFlowRequest = z.infer<typeof StartPaymentFlowRequest>;
@@ -269,6 +270,7 @@ export type StartPaymentFlowRequest = z.infer<typeof StartPaymentFlowRequest>;
 // StartPaymentFlowResponse
 export const StartPaymentFlowResponse = z.object({
   required_user_actions: z.array(z.record(z.string(), z.any())),
+  checkout_attempt_id: nullOrUndefOr(z.string()),
 });
 export type StartPaymentFlowResponse = z.infer<typeof StartPaymentFlowResponse>;
 
