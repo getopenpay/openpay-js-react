@@ -339,9 +339,18 @@ export const ConfirmPaymentFlowRequest = z.object({
   secure_token: z.string(),
   existing_cc_pm_id: nullOrUndefOr(z.string()),
   their_pm_id: nullOrUndefOr(z.string()),
+  checkout_attempt_id: nullOrUndefOr(z.string()),
   processor_specific_metadata: nullOrUndefOr(z.record(z.string(), z.any())),
 });
 export type ConfirmPaymentFlowRequest = z.infer<typeof ConfirmPaymentFlowRequest>;
+
+// CheckoutSuccessResponse
+export const CheckoutSuccessResponse = z.object({
+  invoice_urls: z.array(z.string()),
+  subscription_ids: z.array(z.string()),
+  customer_id: z.string(),
+});
+export type CheckoutSuccessResponse = z.infer<typeof CheckoutSuccessResponse>;
 
 // FieldValidationError
 export const FieldValidationError = z.object({
@@ -436,6 +445,7 @@ export type CheckIfPopupWindowVerifiedResponse = z.infer<typeof CheckIfPopupWind
 // ConfirmPaymentFlowResponse
 export const ConfirmPaymentFlowResponse = z.object({
   payment_methods: z.array(PaymentMethodMinimal),
+  pay_first_success_response: nullOrUndefOr(CheckoutSuccessResponse),
   required_user_actions: nullOrUndefOr(z.array(CommonNextActionMetadata)),
 });
 export type ConfirmPaymentFlowResponse = z.infer<typeof ConfirmPaymentFlowResponse>;

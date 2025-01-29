@@ -1,8 +1,8 @@
 import { CdeConnection } from '../cde-connection';
-import { CheckoutSuccessResponse, SetupCheckoutResponse } from '../cde_models';
+import { SetupCheckoutResponse } from '../cde_models';
 import { getErrorMessage } from '../errors';
 import { FormCallbacks } from '../form-callbacks';
-import { CheckoutPaymentMethod } from '../shared-models';
+import { CheckoutPaymentMethod, CheckoutSuccessResponse } from '../shared-models';
 import chalk from 'chalk';
 
 export type OjsFlowParams<T_PARAMS = void, T_INIT_RESULT = void> = {

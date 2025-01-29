@@ -63,22 +63,23 @@ export const createCustomerFieldsFromForm = (fields: RequiredFormFields): NewCus
   };
 };
 
-export const performSimpleCheckoutOrSetup = async (
-  logPrefix: string,
-  anyCdeConnection: CdeConnection,
-  checkoutPaymentMethod: CheckoutPaymentMethod,
-  requiredFormFields: RequiredFormFields,
-  confirmResult: ConfirmPaymentFlowResponse
-): Promise<SimpleOjsFlowResult> => {
-  const { log__ } = createOjsFlowLoggers(logPrefix);
-  const prefill = await getPrefill(anyCdeConnection);
+export const performSimpleCheckoutOrSetup = async (args: {
+  logPrefix: string;
+  anyCdeConnection: CdeConnection;
+  checkoutPaymentMethod: CheckoutPaymentMethod;
+  requiredFormFields: RequiredFormFields;
+  confirmResult: ConfirmPaymentFlowResponse;
+  usePayFirstFlow: boolean;
+}): Promise<SimpleOjsFlowResult> => {
+  const { log__ } = createOjsFlowLoggers(args.logPrefix);
+  const prefill = await getPrefill(args.anyCdeConnection);
 
-  const createdPaymentMethod = parseConfirmPaymentFlowResponse(confirmResult);
+  const createdPaymentMethod = parseConfirmPaymentFlowResponse(args.confirmResult);
 
   if (prefill.mode === 'setup') {
     log__(`Setting up payment method...`);
 
-    const setupResult = await finalizeSetupPaymentMethod(anyCdeConnection, {
+    const setupResult = await finalizeSetupPaymentMethod(args.anyCdeConnection, {
       secure_token: prefill.token,
       pm_id: createdPaymentMethod.payment_method_id,
     });
@@ -88,19 +89,19 @@ export const performSimpleCheckoutOrSetup = async (
     const checkoutRequest: CheckoutRequest = {
       secure_token: prefill.token,
       payment_input: {
-        provider_type: checkoutPaymentMethod.provider,
+        provider_type: args.checkoutPaymentMethod.provider,
       },
-      customer_email: requiredFormFields[FieldName.EMAIL],
-      customer_zip_code: requiredFormFields[FieldName.ZIP_CODE],
-      customer_country: requiredFormFields[FieldName.COUNTRY],
-      promotion_code: requiredFormFields[FieldName.PROMOTION_CODE],
+      customer_email: args.requiredFormFields[FieldName.EMAIL],
+      customer_zip_code: args.requiredFormFields[FieldName.ZIP_CODE],
+      customer_country: args.requiredFormFields[FieldName.COUNTRY],
+      promotion_code: args.requiredFormFields[FieldName.PROMOTION_CODE],
       line_items: prefill.line_items,
       total_amount_atom: prefill.amount_total_atom,
       cancel_at_end: false,
-      checkout_payment_method: checkoutPaymentMethod,
+      checkout_payment_method: args.checkoutPaymentMethod,
       use_confirmed_pm_id: createdPaymentMethod.payment_method_id,
     };
-    const result = await performCheckout(anyCdeConnection, checkoutRequest);
+    const result = await performCheckout(args.anyCdeConnection, checkoutRequest);
     return { mode: 'checkout', result };
   }
 };
