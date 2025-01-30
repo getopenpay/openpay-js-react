@@ -6,6 +6,14 @@ const token = urlParams.get('token');
 const baseUrl = urlParams.get('baseUrl') || import.meta.env.VITE_BASE_URL;
 const separateFrames = urlParams.get('separateFrames')?.toLowerCase() === 'true';
 
+const PAYPAL_DEFAULT_VALUES = {
+  email: 'PAYPAL_PAYMENT@email.com',
+  firstName: 'PAYPAL_PAYMENT_FIRST_NAME',
+  lastName: 'PAYPAL_PAYMENT_LAST_NAME',
+  zipCode: '12345',
+  country: 'US',
+};
+
 let previousFormInstance: OpenPayForm | null = null;
 let validationErrors: Record<string, string[]> = {};
 let secureToken = token;
@@ -181,7 +189,7 @@ function initializeForm(token: string) {
   });
 
   document.querySelector('#submit-paypal')?.addEventListener('click', () => {
-    formInstance.generalSubmit('pockyt-paypal');
+    formInstance.generalSubmit('pockyt-paypal', { defaultFieldValues: PAYPAL_DEFAULT_VALUES });
   });
 
   function showLoading() {

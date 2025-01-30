@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AllFieldNames, Amount, type ElementsStyle, PaymentRequestStatus } from './shared-models';
+import { AllFieldNames, Amount, type ElementsStyle, FieldNameEnum, PaymentRequestStatus } from './shared-models';
 import { CustomInitParams } from './flows/ojs-flow';
 import { StripeLinkController } from './flows/stripe/stripe-link-flow';
 import { InitGooglePayFlowResult } from './flows/airwallex/types/google-pay.types';
@@ -17,9 +17,15 @@ export type ElementProps<PlaceholderType extends z.ZodTypeAny = z.ZodString> = {
 
 export type SubmitMethod = 'pockyt-paypal' | 'airwallex-google-pay' | 'airwallex-apple-pay';
 
+export type DefaultFieldValues = Partial<Record<FieldNameEnum, string>>;
+
+export type SubmitSettings = {
+  defaultFieldValues?: DefaultFieldValues;
+};
+
 export type ElementsFormChildrenProps = {
   submit: () => void;
-  submitWith: (method: SubmitMethod) => void;
+  submitWith: (method: SubmitMethod, settings?: SubmitSettings) => void;
   applePay: PaymentRequestStatus;
   googlePay: PaymentRequestStatus;
   stripeLink: StripeLinkController | null;

@@ -5,6 +5,7 @@ import { createCustomerFieldsFromForm } from '../common/common-flow-utils';
 import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
 import { startPopupWindowVerificationStrict } from '../../3ds-elements/events';
 import { parseVaultIdFrom3dsHref } from './pockyt-utils';
+import { SubmitSettings } from '../../models';
 
 const { log__, err__ } = createOjsFlowLoggers('pockyt-paypal');
 
@@ -29,8 +30,14 @@ export type PockytPaypalRequiredUserActions = z.infer<typeof PockytPaypalRequire
 /*
  * Runs the main Pockyt Paypal flow
  */
-export const runPockytPaypalFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
-  async ({ context, checkoutPaymentMethod, nonCdeFormInputs, formCallbacks }): Promise<SimpleOjsFlowResult> => {
+export const runPockytPaypalFlow: RunOjsFlow<{ settings?: SubmitSettings }> = addBasicCheckoutCallbackHandlers(
+  async ({
+    context,
+    checkoutPaymentMethod,
+    nonCdeFormInputs,
+    formCallbacks,
+    customParams,
+  }): Promise<SimpleOjsFlowResult> => {
     log__(`Running Pockyt Paypal flow...`);
     const anyCdeConnection = context.anyCdeConnection;
     const prefill = await getPrefill(anyCdeConnection);
@@ -39,7 +46,12 @@ export const runPockytPaypalFlow: RunOjsFlow = addBasicCheckoutCallbackHandlers(
     const cpm = PockytPaypalCpm.parse(checkoutPaymentMethod);
 
     log__(`├ Validating non-CDE form fields`);
-    const nonCdeFormFields = validateNonCdeFormFieldsForCC(nonCdeFormInputs, formCallbacks.get.onValidationError);
+    const settings = customParams?.settings;
+    const nonCdeFormFields = validateNonCdeFormFieldsForCC(
+      nonCdeFormInputs,
+      formCallbacks.get.onValidationError,
+      settings?.defaultFieldValues
+    );
     const newCustomerFields = createCustomerFieldsFromForm(nonCdeFormFields);
 
     log__(`Starting payment flow... Mode: ${prefill.mode}`);

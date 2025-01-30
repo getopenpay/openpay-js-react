@@ -1,4 +1,5 @@
 import { OnValidationError } from '../../form-callbacks';
+import { DefaultFieldValues } from '../../models';
 import { AllFieldNames, FieldName, RequiredFormFields, TokenizeCardResponse } from '../../shared-models';
 import { extractIssuesPerField } from '../../zod-errors';
 import { createOjsFlowLoggers } from '../ojs-flow';
@@ -10,8 +11,17 @@ const { log__, err__ } = createOjsFlowLoggers('common-cc');
  */
 export const validateNonCdeFormFieldsForCC = (
   nonCdeFormInputs: Record<string, unknown>,
-  onValidationError: OnValidationError
+  onValidationError: OnValidationError,
+  defaultFieldValues?: DefaultFieldValues
 ): RequiredFormFields => {
+  if (defaultFieldValues) {
+    log__(`Received default field values: ${JSON.stringify(defaultFieldValues)}`);
+    for (const [key, value] of Object.entries(defaultFieldValues)) {
+      if (!nonCdeFormInputs[key]) {
+        nonCdeFormInputs[key] = value;
+      }
+    }
+  }
   const payload = RequiredFormFields.safeParse(nonCdeFormInputs);
   if (!payload.success) {
     const formatted = payload.error.format();
