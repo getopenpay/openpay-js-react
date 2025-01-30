@@ -1,17 +1,25 @@
+import { Amount } from '../../../..';
+
 declare global {
   interface Window {
     ApplePaySession?: typeof ApplePaySession;
   }
 }
 
-export type InitApplePayFlowResult =
-  | {
-      isAvailable: true;
-      startFlow: () => Promise<void>;
-    }
-  | {
-      isAvailable: false;
-    };
+export type AirwallexApplePayFlowCustomParams = {
+  overridePaymentRequest?: {
+    amount: Amount;
+    pending?: boolean;
+    label?: string;
+    applePayPaymentRequest?: ApplePayJS.ApplePayPaymentRequest;
+  };
+};
+
+export type InitAirwallexApplePayFlowResult = {
+  isAvailable: boolean;
+  isLoading: boolean;
+  startFlow: (customParams?: AirwallexApplePayFlowCustomParams) => Promise<void>;
+};
 
 export interface ApplePaymentRequest {
   countryCode: string;

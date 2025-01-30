@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { start3dsVerificationStrict } from '../../3ds-elements/events';
 import { getErrorMessage } from '../../errors';
 import { createOjsFlowLoggers } from '../ojs-flow';
+import { InitAirwallexGooglePayFlowResult } from './types/google-pay.types';
+import { InitAirwallexApplePayFlowResult } from './types/apple-pay.types';
 
 const { log__, err__ } = createOjsFlowLoggers('airwallex-cc');
 
@@ -64,4 +66,10 @@ export const runAirwallex3dsFlow = async (baseUrl: string, errorResponseHeaders?
   };
 
   return extraMetadataForCheckout;
+};
+
+export const AWX_LOADING: InitAirwallexGooglePayFlowResult | InitAirwallexApplePayFlowResult = {
+  isAvailable: false,
+  isLoading: true,
+  startFlow: async () => {},
 };

@@ -15,3 +15,5 @@ export * from './src/flows/all-flows';
 export * from './src/flows/init-flows';
 export * from './src/flows/common/pr-flow-utils';
 export * from './src/form-callbacks';
+export * from './src/flows/airwallex/types/google-pay.types';
+export * from './src/flows/airwallex/types/apple-pay.types';
