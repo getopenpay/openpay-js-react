@@ -304,6 +304,9 @@ export type ElementEvent = z.infer<typeof ElementEvent>;
 
 export const Amount = z.object({
   amountAtom: z.number(),
+  /**
+   * The three-letter ISO 4217 currency code for the payment.
+   */
   currency: RequiredString,
 });
 export type Amount = z.infer<typeof Amount>;

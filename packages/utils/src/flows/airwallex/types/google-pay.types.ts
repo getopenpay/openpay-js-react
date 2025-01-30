@@ -1,73 +1,24 @@
-declare global {
-  interface Window {
-    google?: {
-      payments: {
-        api: {
-          PaymentsClient: new (config: PaymentClientConfig) => PaymentsClient;
-          ButtonOptions: {
-            onClick: () => void;
-            buttonType?: string;
-            buttonColor?: string;
-          };
-        };
-      };
-    };
-  }
-}
+import { Amount } from '../../../..';
 
-export interface PaymentClientConfig {
-  environment: 'TEST' | 'PRODUCTION';
-  merchantInfo?: {
-    merchantId?: string;
-    merchantName?: string;
+export type AirwallexGooglePayFlowCustomParams = {
+  overridePaymentRequest?: {
+    amount: Amount;
+    pending?: boolean;
+    googlePayPaymentRequest?: google.payments.api.PaymentDataRequest;
   };
-}
+};
 
-export interface PaymentsClient {
-  createButton: (options: Window['google']) => HTMLElement;
-  isReadyToPay: (request: PaymentDataRequest) => Promise<{ result: boolean }>;
-  loadPaymentData: (request: PaymentDataRequest) => Promise<google.payments.api.PaymentData>;
-}
+export type InitAirwallexGooglePayFlowResult = {
+  isAvailable: boolean;
+  isLoading: boolean;
+  startFlow: (customParams?: AirwallexGooglePayFlowCustomParams) => Promise<void>;
+};
 
-export interface PaymentDataRequest {
-  apiVersion: number;
-  apiVersionMinor: number;
-  allowedPaymentMethods: AllowedPaymentMethod[];
-  merchantInfo: {
-    merchantId?: string;
-    merchantName?: string;
-  };
-  transactionInfo?: {
-    countryCode: string;
-    currencyCode: string;
-    totalPriceStatus: string;
-    totalPrice: string;
-  };
-}
+export type PaymentsClient = google.payments.api.PaymentsClient;
 
-export interface AllowedPaymentMethod {
-  type: string;
-  parameters: {
-    allowedAuthMethods: string[];
-    allowedCardNetworks: string[];
-  };
-  tokenizationSpecification: {
-    type: string;
-    parameters: {
-      gateway: string;
-      gatewayMerchantId: string;
-    };
-  };
-}
+export type PaymentDataRequest = google.payments.api.PaymentDataRequest;
 
-export type InitGooglePayFlowResult =
-  | {
-      isAvailable: true;
-      startFlow: () => Promise<void>;
-    }
-  | {
-      isAvailable: false;
-    };
+export type AllowedPaymentMethod = google.payments.api.PaymentMethodData;
 
 export type RunGooglePayFlowParams = {
   paymentData: google.payments.api.PaymentData;

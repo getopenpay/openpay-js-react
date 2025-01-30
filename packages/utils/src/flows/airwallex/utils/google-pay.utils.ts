@@ -1,6 +1,6 @@
 import { StartPaymentFlowResponse } from '../../../cde_models';
 import { Amount, Common3DSNextActionMetadata, CommonNextActionMetadata, FieldName } from '../../../shared-models';
-import { PaymentDataRequest } from '../types/google-pay.types';
+import { AirwallexGooglePayFlowCustomParams, PaymentDataRequest } from '../types/google-pay.types';
 
 export const getPaymentDataRequest = ({
   gateway,
@@ -8,14 +8,22 @@ export const getPaymentDataRequest = ({
   merchantName,
   merchantId,
   initialPreview,
+  overridePaymentRequest,
 }: {
   gateway: string;
   gatewayMerchantId: string;
   merchantName: string;
   merchantId?: string;
   initialPreview?: Amount;
+  overridePaymentRequest?: AirwallexGooglePayFlowCustomParams['overridePaymentRequest'];
 }): PaymentDataRequest => {
-  const baseRequest = {
+  const totalPrice = overridePaymentRequest?.amount
+    ? Math.max(overridePaymentRequest.amount.amountAtom / 100, 0)
+    : Math.max(initialPreview?.amountAtom ?? 0 / 100, 0);
+
+  const currencyCode = (overridePaymentRequest?.amount?.currency ?? initialPreview?.currency ?? 'USD').toUpperCase();
+
+  const baseRequest: Partial<PaymentDataRequest> = {
     apiVersion: 2,
     apiVersionMinor: 0,
     allowedPaymentMethods: [
@@ -44,26 +52,22 @@ export const getPaymentDataRequest = ({
     merchantInfo: {
       // TODO: asap for prod - airwallex has no docs for this
       // https://developers.google.com/pay/api/web/reference/request-objects#MerchantInfo
-      merchantId: merchantId,
+      merchantId: merchantId ?? '', // BCR2DN4TX7I3FRRJ
       merchantName: merchantName,
     },
-  };
-
-  if (!initialPreview) {
-    return baseRequest;
-  }
-
-  const totalPrice = Math.max(initialPreview.amountAtom / 100, 0);
-
-  return {
-    ...baseRequest,
     transactionInfo: {
       countryCode: 'US',
-      currencyCode: initialPreview.currency?.toUpperCase() ?? 'USD',
-      totalPriceStatus: 'FINAL',
+      currencyCode,
+      totalPriceStatus: overridePaymentRequest?.pending ? 'ESTIMATED' : 'FINAL',
       totalPrice: totalPrice.toFixed(2),
     },
   };
+
+  if (overridePaymentRequest?.googlePayPaymentRequest) {
+    return { ...baseRequest, ...overridePaymentRequest.googlePayPaymentRequest };
+  }
+
+  return baseRequest as PaymentDataRequest;
 };
 
 export const loadGooglePayScript = (): Promise<void> => {

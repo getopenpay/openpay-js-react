@@ -13,6 +13,8 @@ import {
   Amount,
   FieldName,
   PaymentRequestStartParams,
+  InitAirwallexGooglePayFlowResult,
+  InitAirwallexApplePayFlowResult,
 } from '@getopenpay/utils';
 
 export {
@@ -30,4 +32,6 @@ export {
   type PaymentRequestStatus,
   type PaymentRequestStartParams,
   type Amount,
+  type InitAirwallexGooglePayFlowResult,
+  type InitAirwallexApplePayFlowResult,
 };

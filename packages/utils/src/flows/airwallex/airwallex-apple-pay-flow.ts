@@ -11,18 +11,9 @@ import {
   RunOjsFlow,
   SimpleOjsFlowResult,
 } from '../ojs-flow';
-import { InitApplePayFlowResult } from './types/apple-pay.types';
 import { handlePaymentAuthorized, handleValidateMerchant, SessionContext } from './utils/apple-pay-session-handler';
 import { loadApplePayScript } from './utils/apple-pay.utils';
-
-export type InitAirwallexGPayFlowResult =
-  | {
-      isAvailable: true;
-      startFlow: () => Promise<void>;
-    }
-  | {
-      isAvailable: false;
-    };
+import { AirwallexApplePayFlowCustomParams, InitAirwallexApplePayFlowResult } from './types/apple-pay.types';
 
 const { log__, err__ } = createOjsFlowLoggers('applepay');
 
@@ -36,12 +27,12 @@ export const ApplePayCpm = z.object({
 });
 export type ApplePayCpm = z.infer<typeof ApplePayCpm>;
 
-export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = addErrorCatcherForInit(
-  async ({ context, formCallbacks }): Promise<InitApplePayFlowResult> => {
+export const initAirwallexApplePayFlow: InitOjsFlow<InitAirwallexApplePayFlowResult> = addErrorCatcherForInit(
+  async ({ context, formCallbacks }): Promise<InitAirwallexApplePayFlowResult> => {
     const applePayCpm = findCpmMatchingType(context.checkoutPaymentMethods, ApplePayCpm);
 
     if (!applePayCpm) {
-      return { isAvailable: false };
+      return { isAvailable: false, isLoading: false, startFlow: async () => {} };
     }
 
     log__(`Loading Apple Pay SDK...`);
@@ -50,12 +41,12 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
       log__('Apple Pay SDK loaded successfully');
     } catch (err) {
       err__('Failed to load Apple Pay SDK', err);
-      return { isAvailable: false };
+      return { isAvailable: false, isLoading: false, startFlow: async () => {} };
     }
 
     if (!window.ApplePaySession || !ApplePaySession.canMakePayments()) {
       log__('Apple Pay is not available on this device/browser');
-      return { isAvailable: false };
+      return { isAvailable: false, isLoading: false, startFlow: async () => {} };
     }
     log__('Apple Pay Loaded');
 
@@ -63,7 +54,7 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
     const canMakePayments = await ApplePaySession.canMakePayments();
     if (!canMakePayments) {
       log__('No active cards available for Apple Pay');
-      return { isAvailable: false };
+      return { isAvailable: false, isLoading: false, startFlow: async () => {} };
     }
 
     const anyCdeConnection = context.anyCdeConnection;
@@ -80,7 +71,7 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
       throw new Error('No gateway merchant ID found in processor account');
     }
 
-    const onApplePayStartFlow = async () => {
+    const onApplePayStartFlow = async (customParams?: AirwallexApplePayFlowCustomParams) => {
       try {
         // This needs to be called directly from a user gesture (click/tap)
         await OjsFlows.airwallexApplePay.run({
@@ -89,9 +80,10 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
           nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
           formCallbacks: formCallbacks,
           customParams: {
-            initialPreview,
             isSetupMode,
             prefill,
+            initialPreview: customParams?.overridePaymentRequest?.amount ?? initialPreview,
+            overridePaymentRequest: customParams?.overridePaymentRequest,
           },
           initResult: undefined,
         });
@@ -103,6 +95,7 @@ export const initAirwallexApplePayFlow: InitOjsFlow<InitApplePayFlowResult> = ad
 
     return {
       isAvailable: true,
+      isLoading: false,
       startFlow: onApplePayStartFlow,
     };
   }
@@ -115,7 +108,7 @@ type RunAirwallexApplePayFlowParams = {
   };
   isSetupMode: boolean;
   prefill: PaymentFormPrefill;
-};
+} & AirwallexApplePayFlowCustomParams;
 
 export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams> = addBasicCheckoutCallbackHandlers(
   async ({
@@ -126,16 +119,22 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
     formCallbacks,
   }): Promise<SimpleOjsFlowResult> => {
     const applePayCpm = findCpmMatchingType(context.checkoutPaymentMethods, ApplePayCpm);
-    const { initialPreview, isSetupMode, prefill } = customParams;
+    const { initialPreview, isSetupMode, prefill, overridePaymentRequest } = customParams;
+
+    const currencyCode = (overridePaymentRequest?.amount?.currency ?? initialPreview.currency ?? 'USD').toUpperCase();
+    const amount = overridePaymentRequest?.amount?.amountAtom
+      ? (overridePaymentRequest.amount.amountAtom / 100).toFixed(2)
+      : Math.max(initialPreview.amountAtom / 100, 0.0).toFixed(2);
 
     const total: ApplePayJS.ApplePayPaymentRequest['total'] = {
-      label: isSetupMode ? 'Setup Payment' : 'Payment Total',
-      amount: isSetupMode ? '0.00' : (initialPreview.amountAtom / 100).toFixed(2),
-      type: 'final',
+      label: overridePaymentRequest?.label ?? (isSetupMode ? 'Setup Payment' : 'Payment Total'),
+      type: overridePaymentRequest?.pending ? 'pending' : 'final',
+      amount,
     };
+
     const paymentRequest: ApplePayJS.ApplePayPaymentRequest = {
       countryCode: 'US',
-      currencyCode: initialPreview.currency?.toUpperCase() ?? 'USD',
+      currencyCode,
       supportedNetworks: ['visa', 'masterCard', 'amex', 'discover'],
       merchantCapabilities: [
         'supports3DS',
@@ -144,6 +143,7 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
         'supportsEMV',
       ] as ApplePayJS.ApplePayMerchantCapability[],
       total,
+      ...(overridePaymentRequest?.applePayPaymentRequest ?? {}),
     };
 
     log__('Payment Request', paymentRequest);

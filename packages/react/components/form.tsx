@@ -5,8 +5,9 @@ import { ElementsFormChildrenProps, StripeLinkController } from '@getopenpay/uti
 import { ElementsFormPropsReact } from '../types';
 import { useReactiveFormCallbacks } from '../hooks/use-form-callbacks';
 import { usePaymentRequests } from '../hooks/use-payment-requests';
-import { InitGooglePayFlowResult } from '@getopenpay/utils/src/flows/airwallex/types/google-pay.types';
-import { InitApplePayFlowResult } from '@getopenpay/utils/src/flows/airwallex/types/apple-pay.types';
+import { InitAirwallexGooglePayFlowResult } from '@getopenpay/utils/src/flows/airwallex/types/google-pay.types';
+import { InitAirwallexApplePayFlowResult } from '@getopenpay/utils/src/flows/airwallex/types/apple-pay.types';
+import { AWX_LOADING } from '@getopenpay/utils/src/flows/airwallex/airwallex-utils';
 const FORM_TARGET = 'op_ojs_form';
 
 const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
@@ -16,9 +17,12 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
   const [loaded, setLoaded] = useState(false);
   const [stripeLinkCtrl, setStripeLinkCtrl] = useState<StripeLinkController | null>(null);
   const [airwallex, setAirwallex] = useState<{
-    googlePay: InitGooglePayFlowResult | null;
-    applePay: InitApplePayFlowResult | null;
-  }>({ googlePay: null, applePay: null });
+    googlePay: InitAirwallexGooglePayFlowResult;
+    applePay: InitAirwallexApplePayFlowResult;
+  }>({
+    googlePay: AWX_LOADING,
+    applePay: AWX_LOADING,
+  });
 
   // TODO ASAP: make sure stripe link is not visible while not yet loaded
   // TODO ASAP: make sure formCallbacks are called
@@ -57,8 +61,8 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
     form.initFlows.airwallexGooglePay.publisher.subscribe((result) => {
       if (result.isSuccess && result.loadedValue.isAvailable) {
         setAirwallex((prev) => ({
+          applePay: prev.applePay,
           googlePay: result.loadedValue,
-          applePay: prev?.applePay,
         }));
       }
     });
@@ -66,8 +70,11 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
     form.initFlows.airwallexApplePay.publisher.subscribe((result) => {
       if (result.isSuccess && result.loadedValue.isAvailable) {
         setAirwallex((prev) => ({
-          googlePay: prev?.googlePay,
-          applePay: result.loadedValue,
+          googlePay: prev.googlePay,
+          applePay: {
+            ...result.loadedValue,
+            isLoading: false,
+          },
         }));
       }
     });

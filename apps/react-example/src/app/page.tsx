@@ -279,8 +279,7 @@ const Form: FC<FormProps> = (props) => {
                       // We can start via submitWith or `airwallex.googlePay.startFlow`
                       // the availablity check is only available via `airwallex.googlePay`
                       onClick={() => {
-                        submitWith('airwallex-google-pay');
-                        // airwallex.googlePay?.isAvailable && airwallex.googlePay.startFlow();
+                        airwallex.googlePay?.startFlow();
                       }}
                       disabled={!airwallex.googlePay?.isAvailable || loading}
                       className={classNames(
