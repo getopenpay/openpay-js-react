@@ -18,6 +18,7 @@ export const fillEmptyFormInputsWithApplePay = (
 ): Record<string, unknown> => {
   const pmBillingContact = applePayPayment.token.paymentMethod.billingContact;
   const billingContact = applePayPayment.billingContact;
+  const shippingContact = applePayPayment.shippingContact;
 
   const inputs = { ...formInputs };
 
@@ -26,19 +27,36 @@ export const fillEmptyFormInputsWithApplePay = (
       inputs[FieldName.EMAIL] ||
       pmBillingContact?.emailAddress ||
       billingContact?.emailAddress ||
+      shippingContact?.emailAddress ||
       'op_unfilled@email.com';
 
     inputs[FieldName.COUNTRY] =
-      inputs[FieldName.COUNTRY] || pmBillingContact?.countryCode || billingContact?.countryCode || 'US';
+      inputs[FieldName.COUNTRY] ||
+      pmBillingContact?.countryCode ||
+      billingContact?.countryCode ||
+      shippingContact?.countryCode ||
+      'US';
 
     inputs[FieldName.ZIP_CODE] =
-      inputs[FieldName.ZIP_CODE] || pmBillingContact?.postalCode || billingContact?.postalCode || '00000';
+      inputs[FieldName.ZIP_CODE] ||
+      pmBillingContact?.postalCode ||
+      billingContact?.postalCode ||
+      shippingContact?.postalCode ||
+      '00000';
 
     inputs[FieldName.FIRST_NAME] =
-      inputs[FieldName.FIRST_NAME] || pmBillingContact?.givenName || billingContact?.givenName || '_OP_UNKNOWN';
+      inputs[FieldName.FIRST_NAME] ||
+      pmBillingContact?.givenName ||
+      billingContact?.givenName ||
+      shippingContact?.givenName ||
+      '_OP_UNKNOWN';
 
     inputs[FieldName.LAST_NAME] =
-      inputs[FieldName.LAST_NAME] || pmBillingContact?.familyName || billingContact?.familyName || '_OP_UNKNOWN';
+      inputs[FieldName.LAST_NAME] ||
+      pmBillingContact?.familyName ||
+      billingContact?.familyName ||
+      shippingContact?.familyName ||
+      '_OP_UNKNOWN';
   }
 
   return inputs;

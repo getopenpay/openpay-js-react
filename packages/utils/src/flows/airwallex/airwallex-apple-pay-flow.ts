@@ -179,26 +179,7 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
         }
       };
 
-      session.onshippingmethodselected = (event) => {
-        log__('Shipping method selected', event.shippingMethod);
-      };
-
-      session.onshippingmethodselected = (event) => {
-        log__('Shipping method selected', event.shippingMethod);
-        // @ts-expect-error - No updates or errors are needed, pass an empty object.
-        const update: ApplePayJS.ApplePayShippingMethodUpdate = {};
-        session.completeShippingMethodSelection(update);
-      };
-
-      session.onshippingcontactselected = (event) => {
-        log__('Shipping contact selected', event.shippingContact);
-        // @ts-expect-error - No updates or errors are needed, pass an empty object.
-        const update: ApplePayJS.ApplePayShippingContactUpdate = {};
-        session.completeShippingContactSelection(update);
-      };
-
-      session.onpaymentmethodselected = (event) => {
-        log__('Payment method selected', event.paymentMethod);
+      session.onpaymentmethodselected = () => {
         const update: ApplePayJS.ApplePayPaymentMethodUpdate = {
           newTotal: { ...total },
         };

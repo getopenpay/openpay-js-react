@@ -135,9 +135,13 @@ export async function handlePaymentAuthorized(
     const confirmResult = await confirmPaymentFlow(context.connection, {
       secure_token: context.prefill.token,
       customer_to_update: {
-        email: nonCdeFormFields[FieldName.EMAIL] as string,
-        first_name: nonCdeFormFields[FieldName.FIRST_NAME] as string,
-        last_name: nonCdeFormFields[FieldName.LAST_NAME] as string,
+        email: nonCdeFormFields[FieldName.EMAIL],
+        first_name: nonCdeFormFields[FieldName.FIRST_NAME],
+        last_name: nonCdeFormFields[FieldName.LAST_NAME],
+        address: {
+          zip_code: nonCdeFormFields[FieldName.ZIP_CODE],
+          country: nonCdeFormFields[FieldName.COUNTRY],
+        },
       },
       processor_specific_metadata: {
         payment_provider: context.checkoutPaymentMethod.provider,
