@@ -135,7 +135,8 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
     const paymentRequest: ApplePayJS.ApplePayPaymentRequest = {
       countryCode: 'US',
       currencyCode,
-      requiredBillingContactFields: ['email', 'name', 'postalAddress'],
+      requiredBillingContactFields: ['email', 'postalAddress', 'name'],
+      requiredShippingContactFields: ['email'],
       supportedNetworks: ['visa', 'masterCard', 'amex', 'discover'],
       merchantCapabilities: [
         'supports3DS',
