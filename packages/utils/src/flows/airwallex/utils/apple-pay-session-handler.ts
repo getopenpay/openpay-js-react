@@ -1,5 +1,5 @@
 import { CheckoutPaymentMethod, PaymentFormPrefill } from '../../../cde_models';
-import { startPaymentFlow, confirmPaymentFlow, performCheckout } from '../../../cde-client';
+import { startPaymentFlow, confirmPaymentFlow, performCheckout, updateCheckoutCustomer } from '../../../cde-client';
 import { start3dsVerification } from '../../../3ds-elements/events';
 import { validateNonCdeFormFieldsForCC } from '../../common/cc-flow-utils';
 import { fillEmptyFormInputsWithApplePay } from './apple-pay.utils';
@@ -132,17 +132,16 @@ export async function handlePaymentAuthorized(
     const formInputs = fillEmptyFormInputsWithApplePay(context.nonCdeFormInputs, paymentData);
     const nonCdeFormFields = validateNonCdeFormFieldsForCC(formInputs, context.formCallbacks.get.onValidationError);
 
+    await updateCheckoutCustomer(context.connection, {
+      email: nonCdeFormFields[FieldName.EMAIL],
+      first_name: nonCdeFormFields[FieldName.FIRST_NAME],
+      last_name: nonCdeFormFields[FieldName.LAST_NAME],
+      zip_code: nonCdeFormFields[FieldName.ZIP_CODE],
+      country: nonCdeFormFields[FieldName.COUNTRY],
+    });
+
     const confirmResult = await confirmPaymentFlow(context.connection, {
       secure_token: context.prefill.token,
-      customer_to_update: {
-        email: nonCdeFormFields[FieldName.EMAIL],
-        first_name: nonCdeFormFields[FieldName.FIRST_NAME],
-        last_name: nonCdeFormFields[FieldName.LAST_NAME],
-        address: {
-          zip_code: nonCdeFormFields[FieldName.ZIP_CODE],
-          country: nonCdeFormFields[FieldName.COUNTRY],
-        },
-      },
       processor_specific_metadata: {
         payment_provider: context.checkoutPaymentMethod.provider,
         airwallex_consent_id: consentId,

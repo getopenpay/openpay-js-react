@@ -308,3 +308,30 @@ export type StartPaymentFlowForCCResponse = z.infer<typeof StartPaymentFlowForCC
 // GenericNextActionMetadata
 export const GenericNextActionMetadata = z.record(z.any());
 export type GenericNextActionMetadata = z.infer<typeof GenericNextActionMetadata>;
+
+export const UpdateCheckoutCustomerRequest = z.object({
+  first_name: nullOrUndefOr(z.string()),
+  last_name: nullOrUndefOr(z.string()),
+  line1: nullOrUndefOr(z.string()),
+  line2: nullOrUndefOr(z.string()),
+  line3: nullOrUndefOr(z.string()),
+  city: nullOrUndefOr(z.string()),
+  state: nullOrUndefOr(z.string()),
+  country: nullOrUndefOr(z.string()),
+  zip_code: nullOrUndefOr(z.string()),
+  email: nullOrUndefOr(z.string()),
+  billing_email: nullOrUndefOr(z.string()),
+  phone_number: nullOrUndefOr(z.string()),
+});
+export type UpdateCheckoutCustomerRequest = z.infer<typeof UpdateCheckoutCustomerRequest>;
+
+export const UpdateCheckoutCustomerResponse = z.object({
+  id: z.string(),
+  email: nullOrUndefOr(z.string()),
+  first_name: nullOrUndefOr(z.string()),
+  last_name: nullOrUndefOr(z.string()),
+  phone_number: nullOrUndefOr(z.string()),
+  billing_email: nullOrUndefOr(z.string()),
+  address: nullOrUndefOr(z.record(z.string(), z.any())),
+});
+export type UpdateCheckoutCustomerResponse = z.infer<typeof UpdateCheckoutCustomerResponse>;

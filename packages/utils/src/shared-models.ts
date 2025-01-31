@@ -343,7 +343,6 @@ export const ConfirmPaymentFlowRequest = z.object({
   existing_cc_pm_id: nullOrUndefOr(z.string()),
   their_pm_id: nullOrUndefOr(z.string()),
   checkout_attempt_id: nullOrUndefOr(z.string()),
-  customer_to_update: nullOrUndefOr(z.record(z.string(), z.any())),
   processor_specific_metadata: nullOrUndefOr(z.record(z.string(), z.any())),
 });
 export type ConfirmPaymentFlowRequest = z.infer<typeof ConfirmPaymentFlowRequest>;
