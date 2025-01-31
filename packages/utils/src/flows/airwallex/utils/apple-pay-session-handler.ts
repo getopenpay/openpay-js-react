@@ -129,11 +129,16 @@ export async function handlePaymentAuthorized(
 ): Promise<SimpleOjsFlowResult> {
   try {
     const paymentData = event.payment;
-    const formInputs = fillEmptyFormInputsWithApplePay(context.nonCdeFormInputs, paymentData.billingContact);
+    const formInputs = fillEmptyFormInputsWithApplePay(context.nonCdeFormInputs, paymentData);
     const nonCdeFormFields = validateNonCdeFormFieldsForCC(formInputs, context.formCallbacks.get.onValidationError);
 
     const confirmResult = await confirmPaymentFlow(context.connection, {
       secure_token: context.prefill.token,
+      customer_to_update: {
+        email: nonCdeFormFields[FieldName.EMAIL] as string,
+        first_name: nonCdeFormFields[FieldName.FIRST_NAME] as string,
+        last_name: nonCdeFormFields[FieldName.LAST_NAME] as string,
+      },
       processor_specific_metadata: {
         payment_provider: context.checkoutPaymentMethod.provider,
         airwallex_consent_id: consentId,
