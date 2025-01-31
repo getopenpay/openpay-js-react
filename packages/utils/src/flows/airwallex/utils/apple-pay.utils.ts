@@ -22,7 +22,7 @@ export const fillEmptyFormInputsWithApplePay = (
 
   const inputs = { ...formInputs };
 
-  if (pmBillingContact || billingContact) {
+  if (pmBillingContact || billingContact || shippingContact) {
     inputs[FieldName.EMAIL] =
       inputs[FieldName.EMAIL] ||
       pmBillingContact?.emailAddress ||
