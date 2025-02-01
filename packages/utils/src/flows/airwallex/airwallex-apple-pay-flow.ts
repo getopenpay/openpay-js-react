@@ -127,7 +127,7 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
       : Math.max(initialPreview.amountAtom / 100, 0.0).toFixed(2);
 
     const total: ApplePayJS.ApplePayPaymentRequest['total'] = {
-      label: overridePaymentRequest?.label ?? (isSetupMode ? 'Setup Payment' : 'Payment Total'),
+      label: overridePaymentRequest?.label ?? 'Total',
       type: overridePaymentRequest?.pending ? 'pending' : 'final',
       amount,
     };
