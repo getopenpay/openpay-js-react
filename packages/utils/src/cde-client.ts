@@ -27,6 +27,8 @@ import {
   StartPaymentFlowForPRRequest,
   StartPaymentFlowRequest,
   StartPaymentFlowResponse,
+  UpdateCheckoutCustomerRequest,
+  UpdateCheckoutCustomerResponse,
 } from './cde_models';
 import { sleep } from './stripe';
 import { sum } from './math';
@@ -260,4 +262,11 @@ export const pingCdeFor3dsStatus = async (iframe: HTMLIFrameElement, childOrigin
   const result = await queryCDE(connectionObj, { type: 'ping-3ds-status' }, Ping3DSStatusResponse);
   console.log('🟢 CDE connection successful! Stopping polling... Result:', result);
   return result;
+};
+
+export const updateCheckoutCustomer = async (
+  cdeConn: CdeConnection,
+  payload: UpdateCheckoutCustomerRequest
+): Promise<UpdateCheckoutCustomerResponse> => {
+  return await queryCDE(cdeConn, { type: 'update_checkout_customer', payload }, UpdateCheckoutCustomerResponse);
 };

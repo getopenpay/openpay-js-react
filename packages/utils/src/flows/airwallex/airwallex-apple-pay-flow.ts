@@ -127,7 +127,7 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
       : Math.max(initialPreview.amountAtom / 100, 0.0).toFixed(2);
 
     const total: ApplePayJS.ApplePayPaymentRequest['total'] = {
-      label: overridePaymentRequest?.label ?? (isSetupMode ? 'Setup Payment' : 'Payment Total'),
+      label: overridePaymentRequest?.label ?? 'Total',
       type: overridePaymentRequest?.pending ? 'pending' : 'final',
       amount,
     };
@@ -135,6 +135,8 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
     const paymentRequest: ApplePayJS.ApplePayPaymentRequest = {
       countryCode: 'US',
       currencyCode,
+      requiredBillingContactFields: ['email', 'postalAddress', 'name'],
+      requiredShippingContactFields: ['email'],
       supportedNetworks: ['visa', 'masterCard', 'amex', 'discover'],
       merchantCapabilities: [
         'supports3DS',
@@ -178,26 +180,7 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
         }
       };
 
-      session.onshippingmethodselected = (event) => {
-        log__('Shipping method selected', event.shippingMethod);
-      };
-
-      session.onshippingmethodselected = (event) => {
-        log__('Shipping method selected', event.shippingMethod);
-        // @ts-expect-error - No updates or errors are needed, pass an empty object.
-        const update: ApplePayJS.ApplePayShippingMethodUpdate = {};
-        session.completeShippingMethodSelection(update);
-      };
-
-      session.onshippingcontactselected = (event) => {
-        log__('Shipping contact selected', event.shippingContact);
-        // @ts-expect-error - No updates or errors are needed, pass an empty object.
-        const update: ApplePayJS.ApplePayShippingContactUpdate = {};
-        session.completeShippingContactSelection(update);
-      };
-
-      session.onpaymentmethodselected = (event) => {
-        log__('Payment method selected', event.paymentMethod);
+      session.onpaymentmethodselected = () => {
         const update: ApplePayJS.ApplePayPaymentMethodUpdate = {
           newTotal: { ...total },
         };
