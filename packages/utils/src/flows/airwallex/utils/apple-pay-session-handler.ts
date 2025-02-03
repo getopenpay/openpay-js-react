@@ -138,6 +138,7 @@ export async function handlePaymentAuthorized(
       last_name: nonCdeFormFields[FieldName.LAST_NAME],
       zip_code: nonCdeFormFields[FieldName.ZIP_CODE],
       country: nonCdeFormFields[FieldName.COUNTRY],
+      update_processor_customer: true,
     });
 
     const confirmResult = await confirmPaymentFlow(context.connection, {

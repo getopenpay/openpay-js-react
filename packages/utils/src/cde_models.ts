@@ -322,6 +322,7 @@ export const UpdateCheckoutCustomerRequest = z.object({
   email: nullOrUndefOr(z.string()),
   billing_email: nullOrUndefOr(z.string()),
   phone_number: nullOrUndefOr(z.string()),
+  update_processor_customer: nullOrUndefOr(z.boolean()),
 });
 export type UpdateCheckoutCustomerRequest = z.infer<typeof UpdateCheckoutCustomerRequest>;
 
