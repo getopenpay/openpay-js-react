@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { FieldName } from '../../../shared-models';
 
 export const loadApplePayScript = (): Promise<void> => {
@@ -60,4 +61,20 @@ export const fillEmptyFormInputsWithApplePay = (
   }
 
   return inputs;
+};
+
+const ApplePayEventSchema = z.object({
+  data: z.object({
+    messageHeaders: z.record(z.string(), z.any()),
+    errors: z.array(z.any()),
+    messageType: z.string(),
+    messageBody: z.record(z.string(), z.any()),
+  }),
+  origin: z.literal('https://applepay.cdn-apple.com'),
+});
+type ApplePayEvent = z.infer<typeof ApplePayEventSchema>;
+
+export const parseApplePayEvent = (event: MessageEvent): ApplePayEvent | undefined => {
+  const parsed = ApplePayEventSchema.safeParse(event);
+  return parsed.data;
 };

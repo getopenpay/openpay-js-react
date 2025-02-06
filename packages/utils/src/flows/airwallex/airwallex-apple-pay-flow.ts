@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createInputsDictFromForm, OjsFlows, parseApplePayEvent } from '../../..';
+import { createInputsDictFromForm, OjsFlows } from '../../..';
 import { getCheckoutPreviewAmount, getPrefill } from '../../cde-client';
 import { PaymentFormPrefill } from '../../cde_models';
 import { findCpmMatchingType } from '../common/common-flow-utils';
@@ -12,7 +12,7 @@ import {
   SimpleOjsFlowResult,
 } from '../ojs-flow';
 import { handlePaymentAuthorized, handleValidateMerchant, SessionContext } from './utils/apple-pay-session-handler';
-import { loadApplePayScript } from './utils/apple-pay.utils';
+import { loadApplePayScript, parseApplePayEvent } from './utils/apple-pay.utils';
 import { AirwallexApplePayFlowCustomParams, InitAirwallexApplePayFlowResult } from './types/apple-pay.types';
 
 const { log__, err__ } = createOjsFlowLoggers('awx-apple-pay');
@@ -170,6 +170,8 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
     const abortController = new AbortController();
 
     return new Promise<SimpleOjsFlowResult>((resolve, reject) => {
+      // ApplePay does not fire `oncancel` for QR popup in non-Safari browsers
+      // This is special case to handle close event for QR Popup
       window.addEventListener(
         'message',
         (event) => {
