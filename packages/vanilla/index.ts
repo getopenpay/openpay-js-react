@@ -324,7 +324,9 @@ export class OpenPayForm {
           if (result.isSuccess && result.loadedValue.isAvailable) {
             result.loadedValue.startFlow(settings);
           } else {
-            this.formCallbacks.get.onCheckoutError('Google Pay is not available');
+            err__(
+              `airwallex-google-pay is not available. Please check the availability using 'getAvailablePaymentMethods()'`
+            );
           }
         });
       case 'airwallex-apple-pay':
@@ -332,7 +334,9 @@ export class OpenPayForm {
           if (result.isSuccess && result.loadedValue.isAvailable) {
             result.loadedValue.startFlow(settings);
           } else {
-            this.formCallbacks.get.onCheckoutError('Apple Pay is not available');
+            err__(
+              `airwallex-apple-pay is not available. Please check the availability using 'getAvailablePaymentMethods()'`
+            );
           }
         });
       default:
