@@ -12,7 +12,7 @@ import {
   SimpleOjsFlowResult,
 } from '../ojs-flow';
 import { handlePaymentAuthorized, handleValidateMerchant, SessionContext } from './utils/apple-pay-session-handler';
-import { loadApplePayScript, parseApplePayEvent } from './utils/apple-pay.utils';
+import { loadApplePayScript, handleApplePayQRPopupClose } from './utils/apple-pay.utils';
 import { AirwallexApplePayFlowCustomParams, InitAirwallexApplePayFlowResult } from './types/apple-pay.types';
 
 const { log__, err__ } = createOjsFlowLoggers('awx-apple-pay');
@@ -167,29 +167,15 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
 
     let consentId: string;
 
-    const abortController = new AbortController();
-
     return new Promise<SimpleOjsFlowResult>((resolve, reject) => {
-      // ApplePay does not fire `oncancel` for QR popup in non-Safari browsers
-      // This is special case to handle close event for QR Popup
-      window.addEventListener(
-        'message',
-        (event) => {
-          const mayBeApplePayEvent = parseApplePayEvent(event);
-          if (mayBeApplePayEvent?.data?.messageType === 'windowclosing') {
-            log__('Payment cancelled by user');
-            reject(new Error('Payment cancelled by user'));
-          }
-        },
-        {
-          signal: abortController.signal,
-        }
-      );
-
-      session.oncancel = () => {
+      const handleCancel = () => {
         log__('Payment cancelled by user');
         reject(new Error('Payment cancelled by user'));
       };
+
+      const { cleanupCancelListener } = handleApplePayQRPopupClose(handleCancel);
+
+      session.oncancel = handleCancel;
 
       session.onvalidatemerchant = async (event) => {
         try {
@@ -209,7 +195,7 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
       session.onpaymentauthorized = async (event) => {
         try {
           const result = await handlePaymentAuthorized(event, sessionContext, consentId);
-          abortController.abort();
+          cleanupCancelListener();
           resolve(result);
         } catch (err) {
           reject(err);
@@ -218,7 +204,6 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
       session.begin();
     }).catch((err) => {
       err__('Apple Pay payment error', err);
-      abortController.abort();
       throw err;
     });
   }
