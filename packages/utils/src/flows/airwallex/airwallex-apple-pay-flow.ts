@@ -12,10 +12,10 @@ import {
   SimpleOjsFlowResult,
 } from '../ojs-flow';
 import { handlePaymentAuthorized, handleValidateMerchant, SessionContext } from './utils/apple-pay-session-handler';
-import { loadApplePayScript } from './utils/apple-pay.utils';
+import { loadApplePayScript, handleApplePayQRPopupClose } from './utils/apple-pay.utils';
 import { AirwallexApplePayFlowCustomParams, InitAirwallexApplePayFlowResult } from './types/apple-pay.types';
 
-const { log__, err__ } = createOjsFlowLoggers('applepay');
+const { log__, err__ } = createOjsFlowLoggers('awx-apple-pay');
 
 export const ApplePayCpm = z.object({
   provider: z.literal('apple_pay'),
@@ -122,9 +122,9 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
     const { initialPreview, isSetupMode, prefill, overridePaymentRequest } = customParams;
 
     const currencyCode = (overridePaymentRequest?.amount?.currency ?? initialPreview.currency ?? 'USD').toUpperCase();
-    const amount = overridePaymentRequest?.amount?.amountAtom
-      ? (overridePaymentRequest.amount.amountAtom / 100).toFixed(2)
-      : Math.max(initialPreview.amountAtom / 100, 0.0).toFixed(2);
+
+    const amountAtom = overridePaymentRequest?.amount?.amountAtom ?? initialPreview.amountAtom ?? 0;
+    const amount = (amountAtom / 100).toFixed(2);
 
     const total: ApplePayJS.ApplePayPaymentRequest['total'] = {
       label: overridePaymentRequest?.label ?? 'Total',
@@ -162,15 +162,20 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
       isSetupMode,
       baseUrl: context.baseUrl,
       formCallbacks,
+      defaultFieldValues: customParams?.defaultFieldValues,
     };
 
     let consentId: string;
 
     return new Promise<SimpleOjsFlowResult>((resolve, reject) => {
-      session.oncancel = () => {
+      const handleCancel = () => {
         log__('Payment cancelled by user');
         reject(new Error('Payment cancelled by user'));
       };
+
+      const { cleanupCancelListener } = handleApplePayQRPopupClose(handleCancel);
+
+      session.oncancel = handleCancel;
 
       session.onvalidatemerchant = async (event) => {
         try {
@@ -190,6 +195,7 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
       session.onpaymentauthorized = async (event) => {
         try {
           const result = await handlePaymentAuthorized(event, sessionContext, consentId);
+          cleanupCancelListener();
           resolve(result);
         } catch (err) {
           reject(err);
@@ -202,20 +208,3 @@ export const runAirwallexApplePayFlow: RunOjsFlow<RunAirwallexApplePayFlowParams
     });
   }
 );
-
-// Apply pay PM example:
-//   {
-//     "target": {
-//         "onshippingcontactselected": null,
-//         "onshippingmethodselected": null,
-//         "oncouponcodechanged": null
-//     },
-//     "srcElement": {
-//         "onshippingcontactselected": null,
-//         "onshippingmethodselected": null,
-//         "oncouponcodechanged": null
-//     },
-//     "paymentMethod": {
-//         "type": "credit"
-//     }
-// }

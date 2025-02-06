@@ -2,8 +2,14 @@ import { z } from 'zod';
 import { AllFieldNames, Amount, type ElementsStyle, FieldNameEnum, PaymentRequestStatus } from './shared-models';
 import { CustomInitParams } from './flows/ojs-flow';
 import { StripeLinkController } from './flows/stripe/stripe-link-flow';
-import { InitAirwallexGooglePayFlowResult } from './flows/airwallex/types/google-pay.types';
-import { InitAirwallexApplePayFlowResult } from './flows/airwallex/types/apple-pay.types';
+import {
+  AirwallexGooglePayFlowCustomParams,
+  InitAirwallexGooglePayFlowResult,
+} from './flows/airwallex/types/google-pay.types';
+import {
+  AirwallexApplePayFlowCustomParams,
+  InitAirwallexApplePayFlowResult,
+} from './flows/airwallex/types/apple-pay.types';
 
 export type DynamicPreview = {
   amount: Amount | null;
@@ -18,14 +24,15 @@ export type ElementProps<PlaceholderType extends z.ZodTypeAny = z.ZodString> = {
 export type SubmitMethod = 'pockyt-paypal' | 'airwallex-google-pay' | 'airwallex-apple-pay';
 
 export type DefaultFieldValues = Partial<Record<FieldNameEnum, string>>;
-
-export type SubmitSettings = {
-  defaultFieldValues?: DefaultFieldValues;
-};
+export type SubmitSettings<T extends SubmitMethod = SubmitMethod> = {
+  'pockyt-paypal': { defaultFieldValues?: DefaultFieldValues };
+  'airwallex-google-pay': AirwallexGooglePayFlowCustomParams;
+  'airwallex-apple-pay': AirwallexApplePayFlowCustomParams;
+}[T];
 
 export type ElementsFormChildrenProps = {
   submit: () => void;
-  submitWith: (method: SubmitMethod, settings?: SubmitSettings) => void;
+  submitWith: <T extends SubmitMethod>(method: T, settings?: SubmitSettings<T>) => void;
   applePay: PaymentRequestStatus;
   googlePay: PaymentRequestStatus;
   stripeLink: StripeLinkController | null;
