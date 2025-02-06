@@ -44,6 +44,9 @@ function initializeForm(token: string) {
       hideLoading();
       hideError();
       clearValidationError();
+
+      const availablePaymentMethods = formInstance.getAvailablePaymentMethods();
+      console.log('availablePaymentMethods', availablePaymentMethods);
     },
     onLoadError: (message) => {
       console.log('Load error', message);
@@ -189,7 +192,21 @@ function initializeForm(token: string) {
   });
 
   document.querySelector('#submit-paypal')?.addEventListener('click', () => {
-    formInstance.generalSubmit('pockyt-paypal', { defaultFieldValues: PAYPAL_DEFAULT_VALUES });
+    formInstance.generalSubmit('pockyt-paypal', {
+      defaultFieldValues: PAYPAL_DEFAULT_VALUES,
+    });
+  });
+
+  document.querySelector('#submit-awx-google-pay')?.addEventListener('click', () => {
+    formInstance.generalSubmit('airwallex-google-pay', {
+      defaultFieldValues: PAYPAL_DEFAULT_VALUES,
+    });
+  });
+
+  document.querySelector('#submit-awx-apple-pay')?.addEventListener('click', () => {
+    formInstance.generalSubmit('airwallex-apple-pay', {
+      defaultFieldValues: PAYPAL_DEFAULT_VALUES,
+    });
   });
 
   function showLoading() {

@@ -22,6 +22,7 @@ import {
 import {
   AirwallexGooglePayFlowCustomParams,
   InitAirwallexGooglePayFlowResult,
+  PaymentDataRequest,
   PaymentsClient,
 } from './types/google-pay.types';
 import {
@@ -31,20 +32,23 @@ import {
   parseAirwallexStartPaymentFlowResponse,
 } from './utils/google-pay.utils';
 
-const { log__, err__ } = createOjsFlowLoggers('gpay');
+const { log__, err__ } = createOjsFlowLoggers('awx-google-pay');
 
 let paymentsClient: PaymentsClient | null = null;
 
-const getGooglePaymentsClient = (baseUrl: string): PaymentsClient => {
-  const environment = baseUrl === FRAME_BASE_URL ? 'PRODUCTION' : 'TEST';
+const getGooglePayEnvironment = (baseUrl: string) => {
+  // OpenPay Hosted Checkout page origin and OJS base URL is the same
+  const isProduction = baseUrl === FRAME_BASE_URL || baseUrl === window.location.origin;
+  return isProduction ? 'PRODUCTION' : 'TEST';
+};
+
+const getGooglePaymentsClient = (baseUrl: string, paymentDataRequest: PaymentDataRequest): PaymentsClient => {
+  const environment = getGooglePayEnvironment(baseUrl);
+
   if (paymentsClient === null) {
     paymentsClient = new window.google!.payments.api.PaymentsClient({
       environment,
-      merchantInfo: getPaymentDataRequest({
-        gateway: 'airwallex',
-        gatewayMerchantId: '',
-        merchantName: '',
-      }).merchantInfo,
+      merchantInfo: paymentDataRequest.merchantInfo,
     });
   }
   return paymentsClient!;
@@ -86,19 +90,27 @@ export const initAirwallexGooglePayFlow: InitOjsFlow<InitAirwallexGooglePayFlowR
       return { isAvailable: false, isLoading: false, startFlow: async () => {} };
     }
 
+    const environment = getGooglePayEnvironment(context.baseUrl);
+    if (environment === 'PRODUCTION' && !processorAccount.google_pay_merchant_id) {
+      err__('Google Pay merchant ID is required for production environment');
+      return { isAvailable: false, isLoading: false, startFlow: async () => {} };
+    }
+
     log__('Google Pay SDK loaded', window.google.payments);
 
     // Check if Google Pay is available for the user
     try {
-      const { result: isReadyToPay } = await getGooglePaymentsClient(context.baseUrl).isReadyToPay(
-        getPaymentDataRequest({
-          gateway: 'airwallex',
-          gatewayMerchantId: processorAccount.processor_account_id,
-          merchantName: processorAccount.processor_account_name,
-          merchantId: processorAccount.google_pay_merchant_id ?? '',
-          initialPreview: undefined,
-        })
+      const paymentDataRequest = getPaymentDataRequest({
+        gateway: 'airwallex',
+        gatewayMerchantId: processorAccount.processor_account_id,
+        merchantName: processorAccount.processor_account_name,
+        merchantId: processorAccount.google_pay_merchant_id ?? '',
+        initialPreview: undefined,
+      });
+      const { result: isReadyToPay } = await getGooglePaymentsClient(context.baseUrl, paymentDataRequest).isReadyToPay(
+        paymentDataRequest
       );
+
       if (!isReadyToPay) {
         log__('Google Pay is not available for this user');
         return { isAvailable: false, isLoading: false, startFlow: async () => {} };
@@ -143,8 +155,7 @@ export const runAirwallexGooglePayFlow: RunOjsFlow<AirwallexGooglePayFlowCustomP
     }): Promise<SimpleOjsFlowResult> => {
       log__('Starting Google Pay flow...');
       const googlePayCpm = findCpmMatchingType(context.checkoutPaymentMethods, GooglePayCpm);
-      // Get Google Pay client
-      const client = getGooglePaymentsClient(context.baseUrl);
+
       const anyCdeConnection = context.anyCdeConnection;
       const prefill = await getPrefill(anyCdeConnection);
       // Get processor account details
@@ -158,7 +169,7 @@ export const runAirwallexGooglePayFlow: RunOjsFlow<AirwallexGooglePayFlowCustomP
         gateway: 'airwallex',
         gatewayMerchantId: processorAccount.processor_account_id,
         merchantName: processorAccount.processor_account_name,
-        merchantId: '', // TODO: for prod mode
+        merchantId: processorAccount.google_pay_merchant_id ?? '',
         initialPreview: await getCheckoutPreviewAmount(
           anyCdeConnection,
           prefill.token,
@@ -168,13 +179,19 @@ export const runAirwallexGooglePayFlow: RunOjsFlow<AirwallexGooglePayFlowCustomP
         overridePaymentRequest: customParams?.overridePaymentRequest,
       });
 
+      const client = getGooglePaymentsClient(context.baseUrl, paymentDataRequest);
+
       try {
         const paymentData = await client.loadPaymentData(paymentDataRequest);
         log__('Google Pay Payment data', paymentData);
 
         // Merge form inputs with Google Pay data
         const mergedInputs = fillEmptyFormInputsWithGooglePay(nonCdeFormInputs, paymentData);
-        const nonCdeFormFields = validateNonCdeFormFieldsForCC(mergedInputs, formCallbacks.get.onValidationError);
+        const nonCdeFormFields = validateNonCdeFormFieldsForCC(
+          mergedInputs,
+          formCallbacks.get.onValidationError,
+          customParams?.defaultFieldValues
+        );
 
         // Extract encrypted payment token
         const encryptedPaymentToken = paymentData.paymentMethodData?.tokenizationData?.token;

@@ -1,4 +1,4 @@
-import { Amount } from '../../../..';
+import { Amount, DefaultFieldValues } from '../../../..';
 
 declare global {
   interface Window {
@@ -13,6 +13,7 @@ export type AirwallexApplePayFlowCustomParams = {
     label?: string;
     applePayPaymentRequest?: ApplePayJS.ApplePayPaymentRequest;
   };
+  defaultFieldValues?: DefaultFieldValues;
 };
 
 export type InitAirwallexApplePayFlowResult = {

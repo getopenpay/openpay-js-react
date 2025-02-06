@@ -17,9 +17,8 @@ export const getPaymentDataRequest = ({
   initialPreview?: Amount;
   overridePaymentRequest?: AirwallexGooglePayFlowCustomParams['overridePaymentRequest'];
 }): PaymentDataRequest => {
-  const totalPrice = overridePaymentRequest?.amount
-    ? Math.max(overridePaymentRequest.amount.amountAtom / 100, 0)
-    : Math.max(initialPreview?.amountAtom ?? 0 / 100, 0);
+  const amountAtom = overridePaymentRequest?.amount?.amountAtom ?? initialPreview?.amountAtom ?? 0;
+  const totalPrice = Math.max(amountAtom / 100, 0);
 
   const currencyCode = (overridePaymentRequest?.amount?.currency ?? initialPreview?.currency ?? 'USD').toUpperCase();
 

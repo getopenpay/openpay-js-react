@@ -6,17 +6,18 @@ import { fillEmptyFormInputsWithApplePay } from './apple-pay.utils';
 import { createOjsFlowLoggers } from '../../ojs-flow';
 import { SimpleOjsFlowResult } from '../../ojs-flow';
 import { FormCallbacks } from '../../../form-callbacks';
-import { CdeConnection, CommonNextActionMetadata, FieldName } from '../../../..';
+import { CdeConnection, CommonNextActionMetadata, DefaultFieldValues, FieldName } from '../../../..';
 import { ThreeDSStatus } from '../../../..';
 import { AirwallexProcessorMetadata } from '../types/google-pay.types';
 
-const { log__ } = createOjsFlowLoggers('applepay-session');
+const { log__ } = createOjsFlowLoggers('awx-apple-pay');
 
 export type SessionContext = {
   session: ApplePaySession;
   connection: CdeConnection;
   checkoutPaymentMethod: CheckoutPaymentMethod;
   nonCdeFormInputs: Record<string, unknown>;
+  defaultFieldValues?: DefaultFieldValues;
   processorAccount: AirwallexProcessorMetadata;
   prefill: PaymentFormPrefill;
   isSetupMode: boolean;
@@ -130,7 +131,11 @@ export async function handlePaymentAuthorized(
   try {
     const paymentData = event.payment;
     const formInputs = fillEmptyFormInputsWithApplePay(context.nonCdeFormInputs, paymentData);
-    const nonCdeFormFields = validateNonCdeFormFieldsForCC(formInputs, context.formCallbacks.get.onValidationError);
+    const nonCdeFormFields = validateNonCdeFormFieldsForCC(
+      formInputs,
+      context.formCallbacks.get.onValidationError,
+      context.defaultFieldValues
+    );
 
     await updateCheckoutCustomer(context.connection, {
       email: nonCdeFormFields[FieldName.EMAIL],

@@ -290,7 +290,20 @@ export class OpenPayForm {
     });
   };
 
-  generalSubmit = (method: SubmitMethod, settings?: SubmitSettings) => {
+  // TODO: add proper typing for this method
+  getAvailablePaymentMethods = () => {
+    const context = this.context.getValueIfLoadedElse(null);
+    if (!context) {
+      err__('Please wait for the form to finish loading before getting available payment methods.');
+      return;
+    }
+    return Object.entries(this.initFlows).map(([key, flow]) => ({
+      name: key,
+      ...flow.publisher.getValueIfLoadedElse(null),
+    }));
+  };
+
+  generalSubmit = <T extends SubmitMethod>(method: T, settings?: SubmitSettings<T>) => {
     const context = this.context.getValueIfLoadedElse(null);
     if (!context) {
       err__('Please wait for the form to finish loading before submitting.');
@@ -307,17 +320,19 @@ export class OpenPayForm {
           initResult: undefined,
         });
       case 'airwallex-google-pay':
-        // TODO: add submit settings here
         return this.initFlows.airwallexGooglePay.publisher.subscribe((result) => {
           if (result.isSuccess && result.loadedValue.isAvailable) {
-            result.loadedValue.startFlow();
+            result.loadedValue.startFlow(settings);
+          } else {
+            this.formCallbacks.get.onCheckoutError('Google Pay is not available');
           }
         });
       case 'airwallex-apple-pay':
-        // TODO: add submit settings here
         return this.initFlows.airwallexApplePay.publisher.subscribe((result) => {
           if (result.isSuccess && result.loadedValue.isAvailable) {
-            result.loadedValue.startFlow();
+            result.loadedValue.startFlow(settings);
+          } else {
+            this.formCallbacks.get.onCheckoutError('Apple Pay is not available');
           }
         });
       default:
@@ -331,6 +346,7 @@ export class OpenPayForm {
   submit = this.submitCard;
 
   destroy = () => {
+    log__('Destroying OpenPay form...');
     for (const element of Object.values(this.registeredElements ?? {})) {
       if (!element) continue;
       element.node.remove();

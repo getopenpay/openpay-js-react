@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { ElementEvent, FieldName, EventPayload, SubmitEventPayload, CheckoutPaymentMethod } from './shared-models';
 import { extractIssuesPerField } from './zod-errors';
+import { z } from 'zod';
 
 // TODO remove initialDict later, bad pattern
 export const createInputsDictFromForm = (
@@ -89,4 +90,20 @@ export const emitEvent = (
   console.log(`[form ${formId}] Sending event to child ${elementId}:`, event);
   // @ts-expect-error postMessage typing error?
   target.postMessage(JSON.stringify(event), baseUrl);
+};
+
+const ApplePayEventSchema = z.object({
+  data: z.object({
+    messageHeaders: z.record(z.string(), z.any()),
+    errors: z.array(z.any()),
+    messageType: z.string(),
+    messageBody: z.record(z.string(), z.any()),
+  }),
+  origin: z.literal('https://applepay.cdn-apple.com'),
+});
+type ApplePayEvent = z.infer<typeof ApplePayEventSchema>;
+
+export const parseApplePayEvent = (event: MessageEvent): ApplePayEvent | undefined => {
+  const parsed = ApplePayEventSchema.safeParse(event);
+  return parsed.data;
 };

@@ -121,6 +121,7 @@ const Form: FC<FormProps> = (props) => {
   }, [token]);
 
   const [isMounted, setIsMounted] = useState(true);
+
   const renderPaymentMethods = (paymentMethods: PaymentMethodButton[]) => {
     return (
       <div className="space-y-4 mt-6">
