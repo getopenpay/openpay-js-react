@@ -37,7 +37,8 @@ const { log__, err__ } = createOjsFlowLoggers('awx-google-pay');
 let paymentsClient: PaymentsClient | null = null;
 
 const getGooglePayEnvironment = (baseUrl: string) => {
-  // OpenPay Hosted Checkout page origin and OJS base URL is the same
+  // In OpenPay hosted checkout pages (with or without custom domain), origin and OJS base URL is the same
+  // TODO: exempt our staging checkout page from this
   const isProduction = baseUrl === FRAME_BASE_URL || baseUrl === window.location.origin;
   return isProduction ? 'PRODUCTION' : 'TEST';
 };
