@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { createInputsDictFromForm, OjsFlows } from '../../..';
 import { getCheckoutPreviewAmount, getPrefill } from '../../cde-client';
 import { PaymentFormPrefill } from '../../cde_models';
@@ -12,20 +11,10 @@ import {
   SimpleOjsFlowResult,
 } from '../ojs-flow';
 import { handlePaymentAuthorized, handleValidateMerchant, SessionContext } from './utils/apple-pay-session-handler';
-import { loadApplePayScript, handleApplePayQRPopupClose } from './utils/apple-pay.utils';
-import { AirwallexApplePayFlowCustomParams, InitAirwallexApplePayFlowResult } from './types/apple-pay.types';
+import { handleApplePayQRPopupClose, loadApplePayScript } from '../common/apple-pay-utils';
+import { AirwallexApplePayFlowCustomParams, ApplePayCpm, InitAirwallexApplePayFlowResult } from './airwallex-utils';
 
 const { log__, err__ } = createOjsFlowLoggers('awx-apple-pay');
-
-export const ApplePayCpm = z.object({
-  provider: z.literal('apple_pay'),
-  processor_name: z.literal('airwallex'),
-  metadata: z.object({
-    processor_account_id: z.string(),
-    processor_account_name: z.string(),
-  }),
-});
-export type ApplePayCpm = z.infer<typeof ApplePayCpm>;
 
 export const initAirwallexApplePayFlow: InitOjsFlow<InitAirwallexApplePayFlowResult> = addErrorCatcherForInit(
   async ({ context, formCallbacks }): Promise<InitAirwallexApplePayFlowResult> => {

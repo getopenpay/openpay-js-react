@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FieldName } from '../../../shared-models';
+import { FieldName } from '../../shared-models';
 
 export const loadApplePayScript = (): Promise<void> => {
   return new Promise((resolve, reject) => {

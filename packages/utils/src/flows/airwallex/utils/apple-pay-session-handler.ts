@@ -2,13 +2,13 @@ import { CheckoutPaymentMethod, PaymentFormPrefill } from '../../../cde_models';
 import { startPaymentFlow, confirmPaymentFlow, performCheckout, updateCheckoutCustomer } from '../../../cde-client';
 import { start3dsVerification } from '../../../3ds-elements/events';
 import { validateNonCdeFormFieldsForCC } from '../../common/cc-flow-utils';
-import { fillEmptyFormInputsWithApplePay } from './apple-pay.utils';
+import { fillEmptyFormInputsWithApplePay } from '../../common/apple-pay-utils';
 import { createOjsFlowLoggers } from '../../ojs-flow';
 import { SimpleOjsFlowResult } from '../../ojs-flow';
 import { FormCallbacks } from '../../../form-callbacks';
 import { CdeConnection, CommonNextActionMetadata, DefaultFieldValues, FieldName } from '../../../..';
 import { ThreeDSStatus } from '../../../..';
-import { AirwallexProcessorMetadata } from '../types/google-pay.types';
+import { ApplePayCpm } from '../airwallex-utils';
 
 const { log__ } = createOjsFlowLoggers('awx-apple-pay');
 
@@ -18,7 +18,7 @@ export type SessionContext = {
   checkoutPaymentMethod: CheckoutPaymentMethod;
   nonCdeFormInputs: Record<string, unknown>;
   defaultFieldValues?: DefaultFieldValues;
-  processorAccount: AirwallexProcessorMetadata;
+  processorAccount: ApplePayCpm['metadata'];
   prefill: PaymentFormPrefill;
   isSetupMode: boolean;
   baseUrl: string;

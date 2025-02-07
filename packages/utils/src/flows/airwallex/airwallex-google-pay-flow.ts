@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { createInputsDictFromForm, FieldName, FRAME_BASE_URL, OjsFlows, ThreeDSStatus } from '../../..';
 import { start3dsVerification } from '../../3ds-elements/events';
 import {
@@ -20,17 +19,14 @@ import {
   SimpleOjsFlowResult,
 } from '../ojs-flow';
 import {
-  AirwallexGooglePayFlowCustomParams,
-  InitAirwallexGooglePayFlowResult,
-  PaymentDataRequest,
-  PaymentsClient,
-} from './types/google-pay.types';
-import {
   fillEmptyFormInputsWithGooglePay,
   getPaymentDataRequest,
   loadGooglePayScript,
   parseAirwallexStartPaymentFlowResponse,
-} from './utils/google-pay.utils';
+  PaymentDataRequest,
+  PaymentsClient,
+} from '../common/google-pay-utils';
+import { AirwallexGooglePayFlowCustomParams, GooglePayCpm, InitAirwallexGooglePayFlowResult } from './airwallex-utils';
 
 const { log__, err__ } = createOjsFlowLoggers('awx-google-pay');
 
@@ -54,17 +50,6 @@ const getGooglePaymentsClient = (baseUrl: string, paymentDataRequest: PaymentDat
   }
   return paymentsClient!;
 };
-
-export const GooglePayCpm = z.object({
-  provider: z.literal('google_pay'),
-  processor_name: z.literal('airwallex'),
-  metadata: z.object({
-    processor_account_id: z.string(),
-    processor_account_name: z.string(),
-    google_pay_merchant_id: z.string().nullish(),
-  }),
-});
-export type GooglePayCpm = z.infer<typeof GooglePayCpm>;
 
 export const initAirwallexGooglePayFlow: InitOjsFlow<InitAirwallexGooglePayFlowResult> = addErrorCatcherForInit(
   async ({ context, formCallbacks }): Promise<InitAirwallexGooglePayFlowResult> => {

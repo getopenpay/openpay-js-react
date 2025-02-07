@@ -1,6 +1,17 @@
-import { StartPaymentFlowResponse } from '../../../cde_models';
-import { Amount, Common3DSNextActionMetadata, CommonNextActionMetadata, FieldName } from '../../../shared-models';
-import { AirwallexGooglePayFlowCustomParams, PaymentDataRequest } from '../types/google-pay.types';
+import { StartPaymentFlowResponse } from '../../cde_models';
+import { Amount, Common3DSNextActionMetadata, CommonNextActionMetadata, FieldName } from '../../shared-models';
+
+export type PaymentsClient = google.payments.api.PaymentsClient;
+
+export type PaymentDataRequest = google.payments.api.PaymentDataRequest;
+
+export type CommonGooglePayFlowCustomParams = {
+  overridePaymentRequest?: {
+    amount: Amount;
+    pending?: boolean;
+    googlePayPaymentRequest?: google.payments.api.PaymentDataRequest;
+  };
+};
 
 export const getPaymentDataRequest = ({
   gateway,
@@ -10,12 +21,26 @@ export const getPaymentDataRequest = ({
   initialPreview,
   overridePaymentRequest,
 }: {
+  /**
+   * The name identifier of the payment processor/gateway
+   * @example `airwallex`, `authorize_net`
+   */
   gateway: string;
+  /**
+   * The merchant identifier of the merchant on the payment processor/gateway
+   * @example `acct_xxxx` for airwallex
+   */
   gatewayMerchantId: string;
   merchantName: string;
+  /**
+   * GooglePay's merchant identifier.
+   * PROD env will need this
+   * https://developers.google.com/pay/api/web/reference/request-objects#MerchantInfo
+   * @example `BCR2DN4TX7I3FRIU`
+   */
   merchantId?: string;
   initialPreview?: Amount;
-  overridePaymentRequest?: AirwallexGooglePayFlowCustomParams['overridePaymentRequest'];
+  overridePaymentRequest?: CommonGooglePayFlowCustomParams['overridePaymentRequest'];
 }): PaymentDataRequest => {
   const amountAtom = overridePaymentRequest?.amount?.amountAtom ?? initialPreview?.amountAtom ?? 0;
   const totalPrice = Math.max(amountAtom / 100, 0);
@@ -49,9 +74,9 @@ export const getPaymentDataRequest = ({
     ],
     emailRequired: true,
     merchantInfo: {
-      // TODO: asap for prod - airwallex has no docs for this
+      // PROD env will need this
       // https://developers.google.com/pay/api/web/reference/request-objects#MerchantInfo
-      merchantId: merchantId ?? '', // BCR2DN4TX7I3FRRJ
+      merchantId: merchantId ?? '',
       merchantName: merchantName,
     },
     transactionInfo: {

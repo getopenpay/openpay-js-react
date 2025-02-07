@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { start3dsVerificationStrict } from '../../3ds-elements/events';
 import { getErrorMessage } from '../../errors';
 import { createOjsFlowLoggers } from '../ojs-flow';
-import { InitAirwallexGooglePayFlowResult } from './types/google-pay.types';
-import { InitAirwallexApplePayFlowResult } from './types/apple-pay.types';
+import { Amount } from '../../shared-models';
+import { DefaultFieldValues } from '../../models';
 
 const { log__, err__ } = createOjsFlowLoggers('airwallex-cc');
 
@@ -66,6 +66,58 @@ export const runAirwallex3dsFlow = async (baseUrl: string, errorResponseHeaders?
   };
 
   return extraMetadataForCheckout;
+};
+
+export const ApplePayCpm = z.object({
+  provider: z.literal('apple_pay'),
+  processor_name: z.literal('airwallex'),
+  metadata: z.object({
+    processor_account_id: z.string(),
+    processor_account_name: z.string(),
+  }),
+});
+export type ApplePayCpm = z.infer<typeof ApplePayCpm>;
+
+export const GooglePayCpm = z.object({
+  provider: z.literal('google_pay'),
+  processor_name: z.literal('airwallex'),
+  metadata: z.object({
+    processor_account_id: z.string(),
+    processor_account_name: z.string(),
+    google_pay_merchant_id: z.string().nullish(),
+  }),
+});
+export type GooglePayCpm = z.infer<typeof GooglePayCpm>;
+
+export type AirwallexGooglePayFlowCustomParams = {
+  overridePaymentRequest?: {
+    amount: Amount;
+    pending?: boolean;
+    googlePayPaymentRequest?: google.payments.api.PaymentDataRequest;
+  };
+  defaultFieldValues?: DefaultFieldValues;
+};
+
+export type InitAirwallexGooglePayFlowResult = {
+  isAvailable: boolean;
+  isLoading: boolean;
+  startFlow: (customParams?: AirwallexGooglePayFlowCustomParams) => Promise<void>;
+};
+
+export type AirwallexApplePayFlowCustomParams = {
+  overridePaymentRequest?: {
+    amount: Amount;
+    pending?: boolean;
+    label?: string;
+    applePayPaymentRequest?: ApplePayJS.ApplePayPaymentRequest;
+  };
+  defaultFieldValues?: DefaultFieldValues;
+};
+
+export type InitAirwallexApplePayFlowResult = {
+  isAvailable: boolean;
+  isLoading: boolean;
+  startFlow: (customParams?: AirwallexApplePayFlowCustomParams) => Promise<void>;
 };
 
 export const AWX_LOADING: InitAirwallexGooglePayFlowResult | InitAirwallexApplePayFlowResult = {
