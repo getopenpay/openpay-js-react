@@ -5,8 +5,7 @@ import { ElementsFormChildrenProps, StripeLinkController } from '@getopenpay/uti
 import { ElementsFormPropsReact } from '../types';
 import { useReactiveFormCallbacks } from '../hooks/use-form-callbacks';
 import { usePaymentRequests } from '../hooks/use-payment-requests';
-import { InitAirwallexGooglePayFlowResult } from '@getopenpay/utils/src/flows/airwallex/types/google-pay.types';
-import { InitAirwallexApplePayFlowResult } from '@getopenpay/utils/src/flows/airwallex/types/apple-pay.types';
+import { InitAirwallexGooglePayFlowResult, InitAirwallexApplePayFlowResult } from '@getopenpay/utils';
 import { AWX_LOADING } from '@getopenpay/utils/src/flows/airwallex/airwallex-utils';
 const FORM_TARGET = 'op_ojs_form';
 

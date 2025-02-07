@@ -3,13 +3,11 @@ import { AllFieldNames, Amount, type ElementsStyle, FieldNameEnum, PaymentReques
 import { CustomInitParams } from './flows/ojs-flow';
 import { StripeLinkController } from './flows/stripe/stripe-link-flow';
 import {
-  AirwallexGooglePayFlowCustomParams,
-  InitAirwallexGooglePayFlowResult,
-} from './flows/airwallex/types/google-pay.types';
-import {
   AirwallexApplePayFlowCustomParams,
+  AirwallexGooglePayFlowCustomParams,
   InitAirwallexApplePayFlowResult,
-} from './flows/airwallex/types/apple-pay.types';
+  InitAirwallexGooglePayFlowResult,
+} from './flows/airwallex/airwallex-utils';
 
 export type DynamicPreview = {
   amount: Amount | null;

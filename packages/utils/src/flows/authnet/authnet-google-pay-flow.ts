@@ -23,6 +23,8 @@ import {
   loadGooglePayScript,
   PaymentsClient,
 } from '../common/google-pay-utils';
+import { InitMobileWalletFlowResult, MobileWalletFlowCustomParams } from '../common/mobile-wallet-utils';
+import { GooglePayCpm } from './authnet-utils';
 
 const { log__, err__ } = createOjsFlowLoggers('authnet-gpay');
 
@@ -43,77 +45,79 @@ const getGooglePaymentsClient = (baseUrl: string): PaymentsClient => {
   return paymentsClient!;
 };
 
-export const initAuthNetGooglePayFlow: InitOjsFlow<any> = addErrorCatcherForInit(async ({ context, formCallbacks }) => {
-  const googlePayCpm = findCpmMatchingType(context.checkoutPaymentMethods, 'google_pay');
-  if (!googlePayCpm) {
-    return { isAvailable: false, isLoading: false, startFlow: async () => {} };
-  }
-
-  log__('Google Pay CPM', googlePayCpm);
-
-  const processorAccount = googlePayCpm.metadata;
-  if (!processorAccount.processor_account_id) {
-    err__('No gateway merchant ID found in processor account');
-    return { isAvailable: false, isLoading: false, startFlow: async () => {} };
-  }
-
-  log__(`Loading Google Pay SDK...`);
-  await loadGooglePayScript();
-
-  if (!window.google?.payments?.api) {
-    err__('Google Pay SDK not loaded properly');
-    return { isAvailable: false, isLoading: false, startFlow: async () => {} };
-  }
-
-  try {
-    const { result: isReadyToPay } = await getGooglePaymentsClient(context.baseUrl).isReadyToPay(
-      getPaymentDataRequest({
-        gateway: 'authorizenet',
-        gatewayMerchantId: processorAccount.processor_account_id,
-        merchantName: processorAccount.processor_account_name,
-        merchantId: processorAccount.google_pay_merchant_id ?? '',
-      })
-    );
-
-    if (!isReadyToPay) {
-      log__('Google Pay is not available for this user');
+export const initAuthnetGooglePayFlow: InitOjsFlow<InitMobileWalletFlowResult> = addErrorCatcherForInit(
+  async ({ context, formCallbacks }) => {
+    const googlePayCpm = findCpmMatchingType(context.checkoutPaymentMethods, GooglePayCpm);
+    if (!googlePayCpm) {
       return { isAvailable: false, isLoading: false, startFlow: async () => {} };
     }
-  } catch (err) {
-    err__('Error checking Google Pay availability', err);
-    return { isAvailable: false, isLoading: false, startFlow: async () => {} };
-  }
 
-  const onGooglePayStartFlow = async (customParams?: any) => {
-    try {
-      OjsFlows.authNetGooglePay.run({
-        context,
-        checkoutPaymentMethod: googlePayCpm,
-        nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
-        formCallbacks,
-        initResult: undefined,
-        customParams: customParams ?? {},
-      });
-    } catch (err) {
-      err__('Google Pay payment error', err);
-      formCallbacks.get.onCheckoutError((err as Error)?.message ?? 'Unknown error');
+    log__('Google Pay CPM', googlePayCpm);
+
+    const processorAccount = googlePayCpm.metadata;
+    if (!processorAccount.processor_account_id) {
+      err__('No gateway merchant ID found in processor account');
+      return { isAvailable: false, isLoading: false, startFlow: async () => {} };
     }
-  };
 
-  return {
-    isAvailable: true,
-    isLoading: false,
-    startFlow: onGooglePayStartFlow,
-  };
-});
+    log__(`Loading Google Pay SDK...`);
+    await loadGooglePayScript();
 
-export const runAuthNetGooglePayFlow: RunOjsFlow<any> = addBasicCheckoutCallbackHandlers(
-  async ({ context, checkoutPaymentMethod, nonCdeFormInputs, formCallbacks }): Promise<SimpleOjsFlowResult> => {
+    if (!window.google?.payments?.api) {
+      err__('Google Pay SDK not loaded properly');
+      return { isAvailable: false, isLoading: false, startFlow: async () => {} };
+    }
+
+    try {
+      const { result: isReadyToPay } = await getGooglePaymentsClient(context.baseUrl).isReadyToPay(
+        getPaymentDataRequest({
+          gateway: 'authorizenet',
+          gatewayMerchantId: processorAccount.processor_account_id,
+          merchantName: processorAccount.processor_account_name,
+          merchantId: processorAccount.google_pay_merchant_id ?? '',
+        })
+      );
+
+      if (!isReadyToPay) {
+        log__('Google Pay is not available for this user');
+        return { isAvailable: false, isLoading: false, startFlow: async () => {} };
+      }
+    } catch (err) {
+      err__('Error checking Google Pay availability', err);
+      return { isAvailable: false, isLoading: false, startFlow: async () => {} };
+    }
+
+    const onGooglePayStartFlow = async (customParams?: MobileWalletFlowCustomParams) => {
+      try {
+        OjsFlows.authnetGooglePay.run({
+          context,
+          checkoutPaymentMethod: googlePayCpm,
+          nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
+          formCallbacks,
+          initResult: undefined,
+          customParams: customParams ?? {},
+        });
+      } catch (err) {
+        err__('Google Pay payment error', err);
+        formCallbacks.get.onCheckoutError((err as Error)?.message ?? 'Unknown error');
+      }
+    };
+
+    return {
+      isAvailable: true,
+      isLoading: false,
+      startFlow: onGooglePayStartFlow,
+    };
+  }
+);
+
+export const runAuthnetGooglePayFlow: RunOjsFlow<MobileWalletFlowCustomParams> = addBasicCheckoutCallbackHandlers(
+  async ({ context, nonCdeFormInputs, checkoutPaymentMethod, formCallbacks }): Promise<SimpleOjsFlowResult> => {
     const client = getGooglePaymentsClient(context.baseUrl);
     const anyCdeConnection = context.anyCdeConnection;
     const prefill = await getPrefill(anyCdeConnection);
-    const processorAccount = checkoutPaymentMethod.metadata;
-
+    const googlePayCpm = findCpmMatchingType(context.checkoutPaymentMethods, GooglePayCpm);
+    const processorAccount = googlePayCpm.metadata;
     const paymentDataRequest = getPaymentDataRequest({
       gateway: 'authorizenet',
       gatewayMerchantId: processorAccount.processor_account_id,
@@ -150,6 +154,8 @@ export const runAuthNetGooglePayFlow: RunOjsFlow<any> = addBasicCheckoutCallback
           country_code: nonCdeFormFields[FieldName.COUNTRY],
         },
       });
+
+      log__('Start payment flow response', startPaymentFlowResponse);
 
       const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
         secure_token: prefill.token,

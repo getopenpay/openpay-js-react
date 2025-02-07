@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { FieldName } from '../../shared-models';
 
+declare global {
+  interface Window {
+    ApplePaySession?: typeof ApplePaySession;
+  }
+}
+
 export const loadApplePayScript = (): Promise<void> => {
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');

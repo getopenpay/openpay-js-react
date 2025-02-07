@@ -6,6 +6,8 @@ import { initStripePrFlow, runStripePrFlow } from './stripe/stripe-pr-flow';
 import { runPockytPaypalFlow } from './pockyt/pockyt-paypal-flow';
 import { initAirwallexGooglePayFlow, runAirwallexGooglePayFlow } from './airwallex/airwallex-google-pay-flow';
 import { initAirwallexApplePayFlow, runAirwallexApplePayFlow } from './airwallex/airwallex-apple-pay-flow';
+import { initAuthnetApplePayFlow, runAuthnetApplePayFlow } from './authnet/authnet-apple-pay-flow';
+import { initAuthnetGooglePayFlow, runAuthnetGooglePayFlow } from './authnet/authnet-google-pay-flow';
 
 export const findCheckoutPaymentMethodStrict = (
   cpms: CheckoutPaymentMethod[],
@@ -63,6 +65,15 @@ export const OjsFlows = {
     run: runAirwallexApplePayFlow,
   },
 
+  authnetApplePay: {
+    init: initAuthnetApplePayFlow,
+    run: runAuthnetApplePayFlow,
+  },
+
+  authnetGooglePay: {
+    init: initAuthnetGooglePayFlow,
+    run: runAuthnetGooglePayFlow,
+  },
   // 👉 Add more flows here
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

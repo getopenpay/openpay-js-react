@@ -12,72 +12,76 @@ import {
 } from '../ojs-flow';
 import { loadApplePayScript } from '../common/apple-pay-utils';
 import { handlePaymentAuthorized, handleValidateMerchant } from './utils/apple-pay-session-handler';
+import { ApplePayCpm } from '../airwallex/airwallex-utils';
+import { InitMobileWalletFlowResult, MobileWalletFlowCustomParams } from '../common/mobile-wallet-utils';
 
 const { log__, err__ } = createOjsFlowLoggers('authnet-applepay');
 
-export const initAuthNetApplePayFlow: InitOjsFlow<any> = addErrorCatcherForInit(async ({ context, formCallbacks }) => {
-  const applePayCpm = findCpmMatchingType(context.checkoutPaymentMethods, 'apple_pay');
-  if (!applePayCpm) {
-    return { isAvailable: false, isLoading: false, startFlow: async () => {} };
-  }
-
-  log__(`Loading Apple Pay SDK...`);
-  try {
-    await loadApplePayScript();
-    log__('Apple Pay SDK loaded successfully');
-  } catch (err) {
-    err__('Failed to load Apple Pay SDK', err);
-    return { isAvailable: false, isLoading: false, startFlow: async () => {} };
-  }
-
-  if (!window.ApplePaySession || !ApplePaySession.canMakePayments()) {
-    log__('Apple Pay is not available on this device/browser');
-    return { isAvailable: false, isLoading: false, startFlow: async () => {} };
-  }
-
-  const canMakePayments = await ApplePaySession.canMakePayments();
-  if (!canMakePayments) {
-    log__('No active cards available for Apple Pay');
-    return { isAvailable: false, isLoading: false, startFlow: async () => {} };
-  }
-
-  const anyCdeConnection = context.anyCdeConnection;
-  const prefill = await getPrefill(anyCdeConnection);
-  const isSetupMode = prefill.mode === 'setup';
-  const initialPreview = await getCheckoutPreviewAmount(anyCdeConnection, prefill.token, isSetupMode, undefined);
-
-  const processorAccount = applePayCpm.metadata;
-  if (!processorAccount.processor_account_id) {
-    throw new Error('No gateway merchant ID found in processor account');
-  }
-
-  const onApplePayStartFlow = async (customParams?: any) => {
-    try {
-      await OjsFlows.authNetApplePay.run({
-        context,
-        checkoutPaymentMethod: applePayCpm,
-        nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
-        formCallbacks,
-        customParams: {
-          isSetupMode,
-          prefill,
-          initialPreview,
-          ...customParams,
-        },
-        initResult: undefined,
-      });
-    } catch (err) {
-      err__('Apple Pay payment error', err);
-      formCallbacks.get.onCheckoutError((err as Error)?.message ?? 'Unknown error');
+export const initAuthnetApplePayFlow: InitOjsFlow<InitMobileWalletFlowResult> = addErrorCatcherForInit(
+  async ({ context, formCallbacks }) => {
+    const applePayCpm = findCpmMatchingType(context.checkoutPaymentMethods, ApplePayCpm);
+    if (!applePayCpm) {
+      return { isAvailable: false, isLoading: false, startFlow: async () => {} };
     }
-  };
 
-  return {
-    isAvailable: true,
-    isLoading: false,
-    startFlow: onApplePayStartFlow,
-  };
-});
+    log__(`Loading Apple Pay SDK...`);
+    try {
+      await loadApplePayScript();
+      log__('Apple Pay SDK loaded successfully');
+    } catch (err) {
+      err__('Failed to load Apple Pay SDK', err);
+      return { isAvailable: false, isLoading: false, startFlow: async () => {} };
+    }
+
+    if (!window.ApplePaySession || !ApplePaySession.canMakePayments()) {
+      log__('Apple Pay is not available on this device/browser');
+      return { isAvailable: false, isLoading: false, startFlow: async () => {} };
+    }
+
+    const canMakePayments = await ApplePaySession.canMakePayments();
+    if (!canMakePayments) {
+      log__('No active cards available for Apple Pay');
+      return { isAvailable: false, isLoading: false, startFlow: async () => {} };
+    }
+
+    const anyCdeConnection = context.anyCdeConnection;
+    const prefill = await getPrefill(anyCdeConnection);
+    const isSetupMode = prefill.mode === 'setup';
+    const initialPreview = await getCheckoutPreviewAmount(anyCdeConnection, prefill.token, isSetupMode, undefined);
+
+    const processorAccount = applePayCpm.metadata;
+    if (!processorAccount.processor_account_id) {
+      throw new Error('No gateway merchant ID found in processor account');
+    }
+
+    const onApplePayStartFlow = async (customParams?: MobileWalletFlowCustomParams) => {
+      try {
+        await OjsFlows.authnetApplePay.run({
+          context,
+          checkoutPaymentMethod: applePayCpm,
+          nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
+          formCallbacks,
+          customParams: {
+            isSetupMode,
+            prefill,
+            initialPreview,
+            ...customParams,
+          },
+          initResult: undefined,
+        });
+      } catch (err) {
+        err__('Apple Pay payment error', err);
+        formCallbacks.get.onCheckoutError((err as Error)?.message ?? 'Unknown error');
+      }
+    };
+
+    return {
+      isAvailable: true,
+      isLoading: false,
+      startFlow: onApplePayStartFlow,
+    };
+  }
+);
 
 type RunAuthNetApplePayFlowParams = {
   initialPreview: {
@@ -88,7 +92,7 @@ type RunAuthNetApplePayFlowParams = {
   prefill: PaymentFormPrefill;
 };
 
-export const runAuthNetApplePayFlow: RunOjsFlow<RunAuthNetApplePayFlowParams> = addBasicCheckoutCallbackHandlers(
+export const runAuthnetApplePayFlow: RunOjsFlow<RunAuthNetApplePayFlowParams> = addBasicCheckoutCallbackHandlers(
   async ({
     context,
     checkoutPaymentMethod,
