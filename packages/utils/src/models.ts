@@ -21,6 +21,11 @@ export type DefaultFieldValues = Partial<Record<FieldNameEnum, string>>;
 
 export type SubmitSettings = {
   defaultFieldValues?: DefaultFieldValues;
+  paypal?: {
+    pockyt?: {
+      useRedirectFlow?: boolean;
+    };
+  };
 };
 
 export type ElementsFormChildrenProps = {

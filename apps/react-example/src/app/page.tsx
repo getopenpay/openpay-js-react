@@ -13,7 +13,6 @@ import BillingDetails, { HorizontalRule } from '@/components/billing-details';
 import classNames from 'classnames';
 import { CurrencySymbolMap } from '@/utils/currency';
 import { atomToCurrency } from '@/utils/math';
-import { DefaultFieldValues } from '@getopenpay/utils';
 
 type OnCheckoutSuccess = (invoiceUrls: string[], subscriptionIds: string[], customerId: string) => void;
 type OnSetupPaymentMethodSuccess = (paymentMethodId: string) => void;
@@ -368,7 +367,14 @@ const Form: FC<FormProps> = (props) => {
                   render: () => (
                     <button
                       id="submit-paypal"
-                      onClick={() => submitWith('pockyt-paypal', { defaultFieldValues: PAYPAL_DEFAULT_VALUES })}
+                      onClick={() =>
+                        submitWith('pockyt-paypal', {
+                          defaultFieldValues: PAYPAL_DEFAULT_VALUES,
+                          paypal: {
+                            pockyt: { useRedirectFlow: true },
+                          },
+                        })
+                      }
                       disabled={!loaded || loading}
                       className={classNames(
                         'px-4 py-2 mt-2 w-full rounded-lg',

@@ -189,9 +189,15 @@ function initializeForm(token: string) {
   });
 
   document.querySelector('#submit-paypal')?.addEventListener('click', () => {
-    formInstance.generalSubmit('pockyt-paypal', { defaultFieldValues: PAYPAL_DEFAULT_VALUES });
+    formInstance.generalSubmit('pockyt-paypal', {
+      defaultFieldValues: PAYPAL_DEFAULT_VALUES,
+      paypal: {
+        pockyt: {
+          useRedirectFlow: true,
+        },
+      },
+    });
   });
-
   function showLoading() {
     const loadingElement = document.querySelector('#loading') as HTMLElement;
     if (loadingElement) {

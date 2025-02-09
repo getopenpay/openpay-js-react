@@ -6,8 +6,13 @@ import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
 import { startPopupWindowVerificationStrict } from '../../3ds-elements/events';
 import { parseVaultIdFrom3dsHref } from './pockyt-utils';
 import { SubmitSettings } from '../../models';
+import { sleep } from '../../..';
 
 const { log__, err__ } = createOjsFlowLoggers('pockyt-paypal');
+
+type PockytPaypalParams = {
+  settings?: SubmitSettings;
+};
 
 // 👉 For convenience, you can use zod to define which CPMs are accepted by this flow
 export const PockytPaypalCpm = z.object({
@@ -30,7 +35,7 @@ export type PockytPaypalRequiredUserActions = z.infer<typeof PockytPaypalRequire
 /*
  * Runs the main Pockyt Paypal flow
  */
-export const runPockytPaypalFlow: RunOjsFlow<{ settings?: SubmitSettings }> = addBasicCheckoutCallbackHandlers(
+export const runPockytPaypalFlow: RunOjsFlow<PockytPaypalParams> = addBasicCheckoutCallbackHandlers(
   async ({
     context,
     checkoutPaymentMethod,
@@ -68,6 +73,9 @@ export const runPockytPaypalFlow: RunOjsFlow<{ settings?: SubmitSettings }> = ad
             displayed_total_amount_atom: prefill.amount_total_atom,
           }
         : undefined,
+      processor_specific_metadata: {
+        use_paypal_redirect_flow: !!customParams?.settings?.paypal?.pockyt?.useRedirectFlow,
+      },
       ...newCustomerFields,
     });
     log__('Start payment flow response', startPaymentFlowResponse);
@@ -77,40 +85,46 @@ export const runPockytPaypalFlow: RunOjsFlow<{ settings?: SubmitSettings }> = ad
     }
     const nextActionMetadata = PockytPaypalRequiredUserActions.parse(startPaymentFlowResponse.required_user_actions)[0];
 
-    log__(`Opening paypal iframe...`);
-    const paypalFlowResult = await startPopupWindowVerificationStrict(
-      'PayPal',
-      anyCdeConnection,
-      nextActionMetadata.verify_token,
-      nextActionMetadata.paypal_iframe_url
-    );
-    log__('Paypal flow result', paypalFlowResult);
-    const vaultId = parseVaultIdFrom3dsHref(paypalFlowResult.href);
-
-    log__(`Confirming payment flow using vault ID ${vaultId}`);
-    const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
-      secure_token: prefill.token,
-      their_pm_id: vaultId,
-      checkout_attempt_id: isPayFirstFlow ? startPaymentFlowResponse.checkout_attempt_id : undefined,
-    });
-    log__('Confirm payment flow result', confirmResult);
-
-    if (prefill.mode === 'setup') {
-      return {
-        mode: 'setup',
-        result: {
-          payment_method_id: confirmResult.payment_methods[0].id,
-        },
-      } satisfies SimpleOjsFlowResult;
+    if (customParams?.settings?.paypal?.pockyt?.useRedirectFlow) {
+      window.location.href = nextActionMetadata.paypal_iframe_url;
+      await sleep(20 * 1000);
+      throw new Error('Paypal flow timed out, please try again with another payment method.');
     } else {
-      if (!confirmResult.pay_first_success_response) {
-        err__('Checkout failed, no pay-first success response:', confirmResult);
-        throw new Error('Checkout failed, please try again with another payment method.');
+      log__(`Opening paypal iframe...`);
+      const paypalFlowResult = await startPopupWindowVerificationStrict(
+        'PayPal',
+        anyCdeConnection,
+        nextActionMetadata.verify_token,
+        nextActionMetadata.paypal_iframe_url
+      );
+      log__('Paypal flow result', paypalFlowResult);
+      const vaultId = parseVaultIdFrom3dsHref(paypalFlowResult.href);
+
+      log__(`Confirming payment flow using vault ID ${vaultId}`);
+      const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
+        secure_token: prefill.token,
+        their_pm_id: vaultId,
+        checkout_attempt_id: isPayFirstFlow ? startPaymentFlowResponse.checkout_attempt_id : undefined,
+      });
+      log__('Confirm payment flow result', confirmResult);
+
+      if (prefill.mode === 'setup') {
+        return {
+          mode: 'setup',
+          result: {
+            payment_method_id: confirmResult.payment_methods[0].id,
+          },
+        } satisfies SimpleOjsFlowResult;
+      } else {
+        if (!confirmResult.pay_first_success_response) {
+          err__('Checkout failed, no pay-first success response:', confirmResult);
+          throw new Error('Checkout failed, please try again with another payment method.');
+        }
+        return {
+          mode: 'checkout',
+          result: confirmResult.pay_first_success_response,
+        } satisfies SimpleOjsFlowResult;
       }
-      return {
-        mode: 'checkout',
-        result: confirmResult.pay_first_success_response,
-      } satisfies SimpleOjsFlowResult;
     }
   }
 );
