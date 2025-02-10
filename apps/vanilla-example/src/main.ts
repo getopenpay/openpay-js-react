@@ -202,6 +202,12 @@ function initializeForm(token: string) {
   document.querySelector('#submit-paypal')?.addEventListener('click', () => {
     formInstance.generalSubmit('pockyt-paypal', {
       defaultFieldValues: PAYPAL_DEFAULT_VALUES,
+    });
+  });
+
+  document.querySelector('#submit-paypal-redirect')?.addEventListener('click', () => {
+    formInstance.generalSubmit('pockyt-paypal', {
+      defaultFieldValues: PAYPAL_DEFAULT_VALUES,
       useRedirectFlow: true,
     });
   });
