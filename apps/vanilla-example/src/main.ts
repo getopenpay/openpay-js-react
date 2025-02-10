@@ -205,6 +205,13 @@ function initializeForm(token: string) {
     });
   });
 
+  document.querySelector('#submit-paypal-redirect')?.addEventListener('click', () => {
+    formInstance.generalSubmit('pockyt-paypal', {
+      defaultFieldValues: PAYPAL_DEFAULT_VALUES,
+      useRedirectFlow: true,
+    });
+  });
+
   document.querySelector('#submit-awx-google-pay')?.addEventListener('click', () => {
     formInstance.generalSubmit('airwallex-google-pay');
   });
@@ -212,7 +219,6 @@ function initializeForm(token: string) {
   document.querySelector('#submit-awx-apple-pay')?.addEventListener('click', () => {
     formInstance.generalSubmit('airwallex-apple-pay');
   });
-
   function showLoading() {
     const loadingElement = document.querySelector('#loading') as HTMLElement;
     if (loadingElement) {

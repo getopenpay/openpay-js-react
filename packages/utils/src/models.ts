@@ -24,11 +24,19 @@ export type ElementProps<PlaceholderType extends z.ZodTypeAny = z.ZodString> = {
 export type SubmitMethod = 'pockyt-paypal' | 'airwallex-google-pay' | 'airwallex-apple-pay';
 
 export type DefaultFieldValues = Partial<Record<FieldNameEnum, string>>;
-export type SubmitSettings<T extends SubmitMethod = SubmitMethod> = {
-  'pockyt-paypal': { defaultFieldValues?: DefaultFieldValues };
+
+export type CommonSubmitSettings = {
+  defaultFieldValues?: DefaultFieldValues;
+};
+
+export type ProcessorSpecificSubmitSettings<T extends SubmitMethod = SubmitMethod> = {
+  'pockyt-paypal': { useRedirectFlow?: boolean };
   'airwallex-google-pay': AirwallexGooglePayFlowCustomParams;
   'airwallex-apple-pay': AirwallexApplePayFlowCustomParams;
 }[T];
+
+export type SubmitSettings<T extends SubmitMethod = SubmitMethod> = ProcessorSpecificSubmitSettings<T> &
+  CommonSubmitSettings;
 
 export type ElementsFormChildrenProps = {
   submit: () => void;

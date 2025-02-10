@@ -13,7 +13,6 @@ import BillingDetails, { HorizontalRule } from '@/components/billing-details';
 import classNames from 'classnames';
 import { CurrencySymbolMap } from '@/utils/currency';
 import { atomToCurrency } from '@/utils/math';
-import { DefaultFieldValues } from '@getopenpay/utils';
 
 type OnCheckoutSuccess = (invoiceUrls: string[], subscriptionIds: string[], customerId: string) => void;
 type OnSetupPaymentMethodSuccess = (paymentMethodId: string) => void;
@@ -361,15 +360,20 @@ const Form: FC<FormProps> = (props) => {
                 },
                 {
                   id: 'submit-paypal',
-                  label: 'Pay with PayPal',
+                  label: 'Pay with PayPal (Popup Mode)',
                   isAvailable: true,
                   isLoading: false,
                   isShown: true,
                   toggleShow: async () => {},
                   render: () => (
+                    <>
                     <button
                       id="submit-paypal"
-                      onClick={() => submitWith('pockyt-paypal', { defaultFieldValues: PAYPAL_DEFAULT_VALUES })}
+                      onClick={() =>
+                        submitWith('pockyt-paypal', {
+                          defaultFieldValues: PAYPAL_DEFAULT_VALUES,
+                        })
+                      }
                       disabled={!loaded || loading}
                       className={classNames(
                         'px-4 py-2 mt-2 w-full rounded-lg',
@@ -377,8 +381,26 @@ const Form: FC<FormProps> = (props) => {
                         'disabled:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-gray-100 disabled:cursor-not-allowed'
                       )}
                     >
-                      {loading ? 'Loading' : 'Pay with PayPal'}
+                      {loading ? 'Loading' : 'Pay with PayPal (Popup Mode)'}
                     </button>
+                    <button
+                      id="submit-paypal-redirect"
+                      onClick={() =>
+                        submitWith('pockyt-paypal', {
+                          defaultFieldValues: PAYPAL_DEFAULT_VALUES,
+                          useRedirectFlow: true,
+                        })
+                      }
+                      disabled={!loaded || loading}
+                      className={classNames(
+                        'px-4 py-2 mt-2 w-full rounded-lg',
+                        'bg-emerald-500 dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 active:bg-emerald-600 dark:active:bg-emerald-700 font-bold',
+                        'disabled:bg-gray-100 disabled:text-gray-300 disabled:hover:bg-gray-100 disabled:cursor-not-allowed'
+                      )}
+                    >
+                      {loading ? 'Loading' : 'Pay with PayPal (Redirect Mode)'}
+                    </button>
+                    </>
                   ),
                 },
               ])}
