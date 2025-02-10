@@ -26,6 +26,7 @@ import { AllCallbacks, FormCallbacks } from '@getopenpay/utils/src/form-callback
 import { LoadedOncePublisher } from '@getopenpay/utils/src/loaded-once-publisher';
 import { setupPaymentRequestHandlers } from './utils/payment-request';
 import { v4 as uuid } from 'uuid';
+import { MobileWalletFlowCustomParams } from '@getopenpay/utils/src/flows/common/mobile-wallet-utils';
 export { FieldName };
 
 export type ElementsFormProps = {
@@ -337,6 +338,18 @@ export class OpenPayForm {
             err__(
               `airwallex-apple-pay is not available. Please check the availability using 'getAvailablePaymentMethods()'`
             );
+          }
+        });
+      case 'authorize-net-google-pay':
+        return this.initFlows.authorizeNetGooglePay.publisher.subscribe((result) => {
+          if (result.isSuccess && result.loadedValue.isAvailable) {
+            result.loadedValue.startFlow(settings as MobileWalletFlowCustomParams);
+          }
+        });
+      case 'authorize-net-apple-pay':
+        return this.initFlows.authorizeNetApplePay.publisher.subscribe((result) => {
+          if (result.isSuccess && result.loadedValue.isAvailable) {
+            result.loadedValue.startFlow(settings as MobileWalletFlowCustomParams);
           }
         });
       default:

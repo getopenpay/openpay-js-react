@@ -26,7 +26,7 @@ import {
 import { InitMobileWalletFlowResult, MobileWalletFlowCustomParams } from '../common/mobile-wallet-utils';
 import { GooglePayCpm } from './authnet-utils';
 
-const { log__, err__ } = createOjsFlowLoggers('authnet-gpay');
+const { log__, err__ } = createOjsFlowLoggers('authnet-googlepay');
 
 let paymentsClient: PaymentsClient | null = null;
 
@@ -47,6 +47,7 @@ const getGooglePaymentsClient = (baseUrl: string): PaymentsClient => {
 
 export const initAuthnetGooglePayFlow: InitOjsFlow<InitMobileWalletFlowResult> = addErrorCatcherForInit(
   async ({ context, formCallbacks }) => {
+    log__('Initializing Authnet GooglePay flow');
     const googlePayCpm = findCpmMatchingType(context.checkoutPaymentMethods, GooglePayCpm);
     if (!googlePayCpm) {
       return { isAvailable: false, isLoading: false, startFlow: async () => {} };
@@ -89,7 +90,7 @@ export const initAuthnetGooglePayFlow: InitOjsFlow<InitMobileWalletFlowResult> =
 
     const onGooglePayStartFlow = async (customParams?: MobileWalletFlowCustomParams) => {
       try {
-        OjsFlows.authnetGooglePay.run({
+        OjsFlows.authorizeNetGooglePay.run({
           context,
           checkoutPaymentMethod: googlePayCpm,
           nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
@@ -163,7 +164,7 @@ export const runAuthnetGooglePayFlow: RunOjsFlow<MobileWalletFlowCustomParams> =
           payment_provider: checkoutPaymentMethod.provider,
           authnet_payment_data: {
             payment_type: 'google_pay',
-            payment_token: encryptedPaymentToken,
+            payment_token: window.btoa(encryptedPaymentToken),
           },
         },
       });

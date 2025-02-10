@@ -54,6 +54,12 @@ function initializeForm(token: string) {
         if (method.name === 'airwallexGooglePay' && 'isAvailable' in method && method.isAvailable) {
           document.querySelector('#submit-awx-google-pay')?.removeAttribute('disabled');
         }
+        if (method.name === 'authorizeNetApplePay' && 'isAvailable' in method && method.isAvailable) {
+          document.querySelector('#submit-authnet-apple-pay')?.removeAttribute('disabled');
+        }
+        if (method.name === 'authorizeNetGooglePay' && 'isAvailable' in method && method.isAvailable) {
+          document.querySelector('#submit-authnet-google-pay')?.removeAttribute('disabled');
+        }
       });
     },
     onLoadError: (message) => {
@@ -211,6 +217,14 @@ function initializeForm(token: string) {
 
   document.querySelector('#submit-awx-apple-pay')?.addEventListener('click', () => {
     formInstance.generalSubmit('airwallex-apple-pay');
+  });
+
+  document.querySelector('#submit-authnet-google-pay')?.addEventListener('click', () => {
+    formInstance.generalSubmit('authorize-net-google-pay');
+  });
+
+  document.querySelector('#submit-authnet-apple-pay')?.addEventListener('click', () => {
+    formInstance.generalSubmit('authorize-net-apple-pay');
   });
 
   function showLoading() {

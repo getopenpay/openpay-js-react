@@ -75,10 +75,16 @@ export const createInitFlowsPublishers = () => {
     stripeLink: createInitFlowPublisher('Stripe Link', OjsFlows.stripeLink.init),
 
     // Airwallex GooglePay
-    airwallexGooglePay: createInitFlowPublisher('Airwallex GPay', OjsFlows.airwallexGooglePay.init),
+    airwallexGooglePay: createInitFlowPublisher('Airwallex GooglePay', OjsFlows.airwallexGooglePay.init),
 
     // Airwallex ApplePay
     airwallexApplePay: createInitFlowPublisher('Airwallex ApplePay', OjsFlows.airwallexApplePay.init),
+
+    // Authnet GooglePay
+    authorizeNetGooglePay: createInitFlowPublisher('Authnet GooglePay', OjsFlows.authorizeNetGooglePay.init),
+
+    // Authnet ApplePay
+    authorizeNetApplePay: createInitFlowPublisher('Authnet ApplePay', OjsFlows.authorizeNetApplePay.init),
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as const satisfies Record<string, InitFlowLoader<any>>;

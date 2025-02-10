@@ -12,8 +12,8 @@ import {
 } from '../ojs-flow';
 import { loadApplePayScript } from '../common/apple-pay-utils';
 import { handlePaymentAuthorized, handleValidateMerchant } from './utils/apple-pay-session-handler';
-import { ApplePayCpm } from '../airwallex/airwallex-utils';
 import { InitMobileWalletFlowResult, MobileWalletFlowCustomParams } from '../common/mobile-wallet-utils';
+import { ApplePayCpm } from './authnet-utils';
 
 const { log__, err__ } = createOjsFlowLoggers('authnet-applepay');
 
@@ -56,7 +56,7 @@ export const initAuthnetApplePayFlow: InitOjsFlow<InitMobileWalletFlowResult> = 
 
     const onApplePayStartFlow = async (customParams?: MobileWalletFlowCustomParams) => {
       try {
-        await OjsFlows.authnetApplePay.run({
+        await OjsFlows.authorizeNetApplePay.run({
           context,
           checkoutPaymentMethod: applePayCpm,
           nonCdeFormInputs: createInputsDictFromForm(context.formDiv),

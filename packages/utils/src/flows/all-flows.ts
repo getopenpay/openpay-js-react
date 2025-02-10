@@ -65,12 +65,12 @@ export const OjsFlows = {
     run: runAirwallexApplePayFlow,
   },
 
-  authnetApplePay: {
+  authorizeNetApplePay: {
     init: initAuthnetApplePayFlow,
     run: runAuthnetApplePayFlow,
   },
 
-  authnetGooglePay: {
+  authorizeNetGooglePay: {
     init: initAuthnetGooglePayFlow,
     run: runAuthnetGooglePayFlow,
   },

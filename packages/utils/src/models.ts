@@ -8,6 +8,7 @@ import {
   InitAirwallexApplePayFlowResult,
   InitAirwallexGooglePayFlowResult,
 } from './flows/airwallex/airwallex-utils';
+import { MobileWalletFlowCustomParams } from './flows/common/mobile-wallet-utils';
 
 export type DynamicPreview = {
   amount: Amount | null;
@@ -19,13 +20,20 @@ export type ElementProps<PlaceholderType extends z.ZodTypeAny = z.ZodString> = {
   styles?: ElementsStyle<z.ZodOptional<PlaceholderType>>;
 };
 
-export type SubmitMethod = 'pockyt-paypal' | 'airwallex-google-pay' | 'airwallex-apple-pay';
+export type SubmitMethod =
+  | 'pockyt-paypal'
+  | 'airwallex-google-pay'
+  | 'airwallex-apple-pay'
+  | 'authorize-net-google-pay'
+  | 'authorize-net-apple-pay';
 
 export type DefaultFieldValues = Partial<Record<FieldNameEnum, string>>;
 export type SubmitSettings<T extends SubmitMethod = SubmitMethod> = {
   'pockyt-paypal': { defaultFieldValues?: DefaultFieldValues };
   'airwallex-google-pay': AirwallexGooglePayFlowCustomParams;
   'airwallex-apple-pay': AirwallexApplePayFlowCustomParams;
+  'authorize-net-google-pay': MobileWalletFlowCustomParams;
+  'authorize-net-apple-pay': MobileWalletFlowCustomParams;
 }[T];
 
 export type ElementsFormChildrenProps = {
