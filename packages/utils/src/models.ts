@@ -52,15 +52,6 @@ export type ElementsFormChildrenProps = {
   preview: DynamicPreview;
 };
 
-// @ts-expect-error for testing only
-const props: ElementsFormChildrenProps = {};
-
-props.submitWith('airwallex-apple-pay', {
-  defaultFieldValues: {
-    email: 'test@test.com',
-  },
-});
-
 export type ElementsFormProps = {
   className?: string;
   checkoutSecureToken: string;
