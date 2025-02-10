@@ -339,6 +339,17 @@ export class OpenPayForm {
             );
           }
         });
+      // can call this from the react widget
+      case 'loop':
+        // copy the airwallex-apple-pay code here where we subscribe to the init function and then call this
+        return OjsFlows.loop.run({
+          context,
+          checkoutPaymentMethod: findCheckoutPaymentMethodStrict(context.checkoutPaymentMethods, 'loop'),
+          nonCdeFormInputs: createInputsDictFromForm(context.formDiv),
+          formCallbacks: this.formCallbacks,
+          customParams: undefined,
+          initResult: undefined,
+        });
       default:
         assertNever(method);
     }

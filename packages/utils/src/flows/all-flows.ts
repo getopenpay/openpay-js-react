@@ -63,6 +63,12 @@ export const OjsFlows = {
     run: runAirwallexApplePayFlow,
   },
 
+  // Loop
+  loop: {
+    init: initLoopFlow,
+    run: runLoopFlow,
+  },
+
   // 👉 Add more flows here
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
