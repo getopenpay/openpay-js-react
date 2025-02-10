@@ -120,12 +120,10 @@ export const runCommonCcFlow: RunOjsFlow<CommonCcFlowParams, undefined> = addBas
           const startPfResult = await startPaymentFlowForCC(anyCdeConnection, commonCheckoutParams);
           log__(`├ Payment flow result:`, startPfResult);
 
-          const preStart3dsComplete = requiresPockyt3ds || requiresAirwallex3ds;
-
           // Post-start-PF 3DS flows
           // TODO: refactor this to handle multiple processor 3DS flows
           const shouldUseStripeFlow = error.response.headers?.['op-should-use-new-flow'] !== 'true';
-          if (!preStart3dsComplete) {
+          if (!requiresPockyt3ds) {
             if (shouldUseStripeFlow) {
               log__(`├ Using stripe 3DS flow`);
               await stripeCC3DSFlow(startPfResult);
@@ -195,6 +193,12 @@ export const parseCommon3DSNextActionMetadata = (
 
 const commonCC3DSFlow = async (startPfResult: StartPaymentFlowForCCResponse, baseUrl: string) => {
   const nextActionMetadata = parseCommon3DSNextActionMetadata(startPfResult);
+
+  if (nextActionMetadata.type === 'airwallex_payment_consent' && nextActionMetadata.redirect_url === '3DS_COMPLETE') {
+    log__(`├ Airwallex 3DS flow completed successfully`);
+    return;
+  }
+
   log__(`├ Using common 3DS flow [URL: ${nextActionMetadata.redirect_url}]`);
 
   const { status } = await start3dsVerification({ url: nextActionMetadata.redirect_url, baseUrl });

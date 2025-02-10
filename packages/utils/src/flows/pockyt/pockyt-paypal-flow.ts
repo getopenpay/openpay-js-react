@@ -11,7 +11,7 @@ import { sleep } from '../../..';
 const { log__, err__ } = createOjsFlowLoggers('pockyt-paypal');
 
 type PockytPaypalParams = {
-  settings?: SubmitSettings;
+  settings?: SubmitSettings<'pockyt-paypal'>;
 };
 
 // 👉 For convenience, you can use zod to define which CPMs are accepted by this flow
@@ -74,7 +74,7 @@ export const runPockytPaypalFlow: RunOjsFlow<PockytPaypalParams> = addBasicCheck
           }
         : undefined,
       processor_specific_metadata: {
-        use_paypal_redirect_flow: !!customParams?.settings?.paypal?.pockyt?.useRedirectFlow,
+        use_paypal_redirect_flow: !!customParams?.settings?.useRedirectFlow,
       },
       ...newCustomerFields,
     });
@@ -85,7 +85,7 @@ export const runPockytPaypalFlow: RunOjsFlow<PockytPaypalParams> = addBasicCheck
     }
     const nextActionMetadata = PockytPaypalRequiredUserActions.parse(startPaymentFlowResponse.required_user_actions)[0];
 
-    if (customParams?.settings?.paypal?.pockyt?.useRedirectFlow) {
+    if (customParams?.settings?.useRedirectFlow) {
       window.location.href = nextActionMetadata.paypal_iframe_url;
       await sleep(20 * 1000);
       throw new Error('Paypal flow timed out, please try again with another payment method.');

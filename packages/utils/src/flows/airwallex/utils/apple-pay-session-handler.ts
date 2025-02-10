@@ -1,22 +1,23 @@
 import { CheckoutPaymentMethod, PaymentFormPrefill } from '../../../cde_models';
-import { startPaymentFlow, confirmPaymentFlow, performCheckout } from '../../../cde-client';
+import { startPaymentFlow, confirmPaymentFlow, performCheckout, updateCheckoutCustomer } from '../../../cde-client';
 import { start3dsVerification } from '../../../3ds-elements/events';
 import { validateNonCdeFormFieldsForCC } from '../../common/cc-flow-utils';
 import { fillEmptyFormInputsWithApplePay } from './apple-pay.utils';
 import { createOjsFlowLoggers } from '../../ojs-flow';
 import { SimpleOjsFlowResult } from '../../ojs-flow';
 import { FormCallbacks } from '../../../form-callbacks';
-import { CdeConnection, CommonNextActionMetadata, FieldName } from '../../../..';
+import { CdeConnection, CommonNextActionMetadata, DefaultFieldValues, FieldName } from '../../../..';
 import { ThreeDSStatus } from '../../../..';
 import { AirwallexProcessorMetadata } from '../types/google-pay.types';
 
-const { log__ } = createOjsFlowLoggers('applepay-session');
+const { log__ } = createOjsFlowLoggers('awx-apple-pay');
 
 export type SessionContext = {
   session: ApplePaySession;
   connection: CdeConnection;
   checkoutPaymentMethod: CheckoutPaymentMethod;
   nonCdeFormInputs: Record<string, unknown>;
+  defaultFieldValues?: DefaultFieldValues;
   processorAccount: AirwallexProcessorMetadata;
   prefill: PaymentFormPrefill;
   isSetupMode: boolean;
@@ -129,8 +130,21 @@ export async function handlePaymentAuthorized(
 ): Promise<SimpleOjsFlowResult> {
   try {
     const paymentData = event.payment;
-    const formInputs = fillEmptyFormInputsWithApplePay(context.nonCdeFormInputs, paymentData.billingContact);
-    const nonCdeFormFields = validateNonCdeFormFieldsForCC(formInputs, context.formCallbacks.get.onValidationError);
+    const formInputs = fillEmptyFormInputsWithApplePay(context.nonCdeFormInputs, paymentData);
+    const nonCdeFormFields = validateNonCdeFormFieldsForCC(
+      formInputs,
+      context.formCallbacks.get.onValidationError,
+      context.defaultFieldValues
+    );
+
+    await updateCheckoutCustomer(context.connection, {
+      email: nonCdeFormFields[FieldName.EMAIL],
+      first_name: nonCdeFormFields[FieldName.FIRST_NAME],
+      last_name: nonCdeFormFields[FieldName.LAST_NAME],
+      zip_code: nonCdeFormFields[FieldName.ZIP_CODE],
+      country: nonCdeFormFields[FieldName.COUNTRY],
+      update_processor_customer: true,
+    });
 
     const confirmResult = await confirmPaymentFlow(context.connection, {
       secure_token: context.prefill.token,

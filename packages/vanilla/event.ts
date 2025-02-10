@@ -37,7 +37,15 @@ export class OpenPayFormEventHandler {
       return;
     }
 
-    const eventData = parseEventPayload(JSON.parse(event.data));
+    let eventData = null;
+    // Events from third party often produce invalid json
+    try {
+      eventData = parseEventPayload(JSON.parse(event.data));
+    } catch (e) {
+      console.warn('[OJS] Unknown event. Ignoring:', e);
+      return;
+    }
+
     const isValid = this.validateEvent(eventData);
     if (!isValid) return;
 

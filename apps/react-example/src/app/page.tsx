@@ -120,6 +120,7 @@ const Form: FC<FormProps> = (props) => {
   }, [token]);
 
   const [isMounted, setIsMounted] = useState(true);
+
   const renderPaymentMethods = (paymentMethods: PaymentMethodButton[]) => {
     return (
       <div className="space-y-4 mt-6">
@@ -370,9 +371,7 @@ const Form: FC<FormProps> = (props) => {
                       onClick={() =>
                         submitWith('pockyt-paypal', {
                           defaultFieldValues: PAYPAL_DEFAULT_VALUES,
-                          paypal: {
-                            pockyt: { useRedirectFlow: true },
-                          },
+                          useRedirectFlow: true,
                         })
                       }
                       disabled={!loaded || loading}

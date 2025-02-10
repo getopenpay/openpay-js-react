@@ -1,30 +1,5 @@
-import { Amount, FieldName } from '../../../shared-models';
-import { ApplePaymentRequest } from '../types/apple-pay.types';
-
-export const getApplePaymentRequest = ({
-  isSetupMode,
-  initialPreview,
-}: {
-  isSetupMode: boolean;
-  initialPreview: Amount;
-}): ApplePaymentRequest => {
-  return {
-    countryCode: 'US',
-    currencyCode: initialPreview.currency?.toUpperCase() ?? 'USD',
-    supportedNetworks: ['visa', 'masterCard', 'amex', 'discover'],
-    merchantCapabilities: [
-      'supports3DS',
-      'supportsCredit',
-      'supportsDebit',
-      'supportsEMV',
-    ] as ApplePayJS.ApplePayMerchantCapability[],
-    total: {
-      label: isSetupMode ? 'Setup Payment' : 'Payment Total',
-      amount: isSetupMode ? '0.00' : (initialPreview.amountAtom / 100).toFixed(2),
-      type: 'final',
-    },
-  };
-};
+import { z } from 'zod';
+import { FieldName } from '../../../shared-models';
 
 export const loadApplePayScript = (): Promise<void> => {
   return new Promise((resolve, reject) => {
@@ -40,20 +15,102 @@ export const loadApplePayScript = (): Promise<void> => {
 
 export const fillEmptyFormInputsWithApplePay = (
   formInputs: Record<string, unknown>,
-  billingContact: ApplePayJS.ApplePayPayment['billingContact']
+  applePayPayment: ApplePayJS.ApplePayPayment
 ): Record<string, unknown> => {
+  const pmBillingContact = applePayPayment.token.paymentMethod.billingContact;
+  const billingContact = applePayPayment.billingContact;
+  const shippingContact = applePayPayment.shippingContact;
+
   const inputs = { ...formInputs };
 
-  if (billingContact) {
-    inputs[FieldName.EMAIL] = inputs[FieldName.EMAIL] || billingContact.emailAddress || 'op_unfilled@getopenpay.com';
-    inputs[FieldName.COUNTRY] = inputs[FieldName.COUNTRY] || billingContact.countryCode || 'US';
-    inputs[FieldName.ADDRESS] = inputs[FieldName.ADDRESS] || billingContact.addressLines?.[0] || '';
-    inputs[FieldName.CITY] = inputs[FieldName.CITY] || billingContact.locality || '';
-    inputs[FieldName.ZIP_CODE] = inputs[FieldName.ZIP_CODE] || billingContact.postalCode || '00000';
-    inputs[FieldName.STATE] = inputs[FieldName.STATE] || billingContact.administrativeArea || '';
-    inputs[FieldName.FIRST_NAME] = inputs[FieldName.FIRST_NAME] || billingContact.givenName || '_OP_UNKNOWN';
-    inputs[FieldName.LAST_NAME] = inputs[FieldName.LAST_NAME] || billingContact.familyName || '_OP_UNKNOWN';
+  if (pmBillingContact || billingContact || shippingContact) {
+    inputs[FieldName.EMAIL] =
+      inputs[FieldName.EMAIL] ||
+      pmBillingContact?.emailAddress ||
+      billingContact?.emailAddress ||
+      shippingContact?.emailAddress ||
+      'op_unfilled@email.com';
+
+    inputs[FieldName.COUNTRY] =
+      inputs[FieldName.COUNTRY] ||
+      pmBillingContact?.countryCode ||
+      billingContact?.countryCode ||
+      shippingContact?.countryCode ||
+      'US';
+
+    inputs[FieldName.ZIP_CODE] =
+      inputs[FieldName.ZIP_CODE] ||
+      pmBillingContact?.postalCode ||
+      billingContact?.postalCode ||
+      shippingContact?.postalCode ||
+      '00000';
+
+    inputs[FieldName.FIRST_NAME] =
+      inputs[FieldName.FIRST_NAME] ||
+      pmBillingContact?.givenName ||
+      billingContact?.givenName ||
+      shippingContact?.givenName ||
+      '_OP_UNKNOWN';
+
+    inputs[FieldName.LAST_NAME] =
+      inputs[FieldName.LAST_NAME] ||
+      pmBillingContact?.familyName ||
+      billingContact?.familyName ||
+      shippingContact?.familyName ||
+      '_OP_UNKNOWN';
   }
 
   return inputs;
+};
+
+const ApplePayEventSchema = z.object({
+  data: z.object({
+    messageHeaders: z.record(z.string(), z.any()),
+    errors: z.array(z.any()),
+    messageType: z.string(),
+    messageBody: z.record(z.string(), z.any()),
+  }),
+  origin: z.literal('https://applepay.cdn-apple.com'),
+});
+type ApplePayEvent = z.infer<typeof ApplePayEventSchema>;
+
+export const parseApplePayEvent = (event: MessageEvent): ApplePayEvent | undefined => {
+  const parsed = ApplePayEventSchema.safeParse(event);
+  return parsed.data;
+};
+
+/**
+ * ApplePaySession.oncancel is only fired in Safari and not fired in
+ * non-Safari browsers - https://developer.apple.com/forums/thread/773868.
+ *
+ * This event handler responsible for catching event for popup window closed by user
+ * fires by: Apple Pay's CDN (applepay.cdn-apple.com)
+ *
+ * dev-note: `monitorEvents(window, 'message')` in console helped identify which event is fired when closed
+ *
+ * @param onCancel - Callback function to handle the cancellation
+ * @returns {cleanupCancelListener: () => void} - Cleanup function to remove the event listener
+ */
+export const handleApplePayQRPopupClose = (onCancel: () => void): { cleanupCancelListener: () => void } => {
+  // Used AbortController instead of removeEventLister
+  // https://css-tricks.com/using-abortcontroller-as-an-alternative-for-removing-event-listeners/
+  const eventAbortController = new AbortController();
+
+  window.addEventListener(
+    'message',
+    (event) => {
+      const mayBeApplePayEvent = parseApplePayEvent(event);
+      if (mayBeApplePayEvent?.data?.messageType === 'windowclosing') {
+        onCancel();
+        eventAbortController.abort();
+      }
+    },
+    {
+      signal: eventAbortController.signal,
+    }
+  );
+
+  return {
+    cleanupCancelListener: () => eventAbortController.abort(),
+  };
 };

@@ -1,4 +1,4 @@
-import { Amount } from '../../../..';
+import { Amount, DefaultFieldValues } from '../../../..';
 
 export type AirwallexGooglePayFlowCustomParams = {
   overridePaymentRequest?: {
@@ -6,6 +6,7 @@ export type AirwallexGooglePayFlowCustomParams = {
     pending?: boolean;
     googlePayPaymentRequest?: google.payments.api.PaymentDataRequest;
   };
+  defaultFieldValues?: DefaultFieldValues;
 };
 
 export type InitAirwallexGooglePayFlowResult = {
