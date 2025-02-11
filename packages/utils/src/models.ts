@@ -10,7 +10,7 @@ import {
   AirwallexApplePayFlowCustomParams,
   InitAirwallexApplePayFlowResult,
 } from './flows/airwallex/types/apple-pay.types';
-import { LoopWidgetProps } from './flows/loop/types';
+import { LoopConnectConfig, LoopWidgetProps } from './flows/loop/types';
 export type DynamicPreview = {
   amount: Amount | null;
   isLoading: boolean;
@@ -49,7 +49,10 @@ export type ElementsFormChildrenProps = {
     googlePay: InitAirwallexGooglePayFlowResult;
     applePay: InitAirwallexApplePayFlowResult;
   };
-  loop: LoopWidgetProps | null;
+  loop: {
+    widget: LoopWidgetProps | null,
+    config: LoopConnectConfig | null,
+  };
   loaded: boolean;
   preview: DynamicPreview;
 };

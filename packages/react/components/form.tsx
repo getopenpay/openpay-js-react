@@ -8,7 +8,7 @@ import { usePaymentRequests } from '../hooks/use-payment-requests';
 import { InitAirwallexGooglePayFlowResult } from '@getopenpay/utils/src/flows/airwallex/types/google-pay.types';
 import { InitAirwallexApplePayFlowResult } from '@getopenpay/utils/src/flows/airwallex/types/apple-pay.types';
 import { AWX_LOADING } from '@getopenpay/utils/src/flows/airwallex/airwallex-utils';
-import { LoopWidgetProps } from '@getopenpay/utils/src/flows/loop/types';
+import { LoopConnectConfig, LoopWidgetProps } from '@getopenpay/utils/src/flows/loop/types';
 const FORM_TARGET = 'op_ojs_form';
 
 const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
@@ -17,6 +17,7 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
   const { paymentRequests, overridenOnPaymentRequestLoad } = usePaymentRequests(props.onPaymentRequestLoad);
   const [loaded, setLoaded] = useState(false);
   const [stripeLinkCtrl, setStripeLinkCtrl] = useState<StripeLinkController | null>(null);
+  const [loopConnectConfig, setLoopConnectConfig] = useState<LoopConnectConfig| null>(null);
   const [loopWidgetProps, setLoopWidgetProps] = useState<LoopWidgetProps | null>(null);
   const [airwallex, setAirwallex] = useState<{
     googlePay: InitAirwallexGooglePayFlowResult;
@@ -63,6 +64,7 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
     form.initFlows.loop.publisher.subscribe((result) => {
       if (result.isSuccess && result.loadedValue.isAvailable) {
         setLoopWidgetProps(result.loadedValue.widgetProps);
+        setLoopConnectConfig(result.loadedValue.initLoopConnectProps)
       }
     });
 
@@ -116,7 +118,10 @@ const ElementsForm: FC<ElementsFormPropsReact> = (props) => {
     },
     stripeLink: stripeLinkCtrl,
     airwallex,
-    loop: loopWidgetProps,
+    loop: {
+      widget: loopWidgetProps,
+      config: loopConnectConfig
+    },
   };
 
   return (

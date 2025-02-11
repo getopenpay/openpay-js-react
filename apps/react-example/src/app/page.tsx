@@ -14,7 +14,7 @@ import classNames from 'classnames';
 import { CurrencySymbolMap } from '@/utils/currency';
 import { atomToCurrency } from '@/utils/math';
 import { LoopWidgetProps } from '@getopenpay/utils/src/flows/loop/types';
-import { initLoopConnect, LoopConnectPayIn } from "@loop-crypto/connect";
+import { initLoopConnect, LoopConnectConfig, LoopConnectPayIn } from "@loop-crypto/connect";
 
 type OnCheckoutSuccess = (invoiceUrls: string[], subscriptionIds: string[], customerId: string) => void;
 type OnSetupPaymentMethodSuccess = (paymentMethodId: string) => void;
@@ -173,7 +173,7 @@ const Form: FC<FormProps> = (props) => {
     );
   };
 
-  const renderLoopWidget = (loop: LoopWidgetProps | null) => {
+  const renderLoopWidget = (loop: {widget: LoopWidgetProps | null, config: LoopConnectConfig | null}) => {
     /**
      * TODO:
      * - create lifecycle hook where we load checkout data via the loop.initFlow function
@@ -181,17 +181,23 @@ const Form: FC<FormProps> = (props) => {
      * - setup the callbacks
      * -
      */
-    if (!loop) {
+    if (!loop.widget || !loop.config) {
       return null;
     }
+    initLoopConnect({
+      apiKey: loop.config.apiKey,
+      entityId: loop.config.entityId,
+      merchantId: loop.config.merchantId,
+      environment: loop.config.environment,
+    })
     return (
       <>
         <LoopConnectPayIn
-          paymentUsdAmount={loop.paymentUsdAmount}
-          suggestedAuthorizationUsdAmount={loop.suggestedAuthorizationUsdAmount}
-          subscriptionRefId={loop.subscriptionRefId}
-          customerRefId={loop.customerRefId}
-          invoiceRefId={loop.invoiceRefId}
+          paymentUsdAmount={loop.widget.paymentUsdAmount}
+          suggestedAuthorizationUsdAmount={loop.widget.suggestedAuthorizationUsdAmount}
+          subscriptionRefId={loop.widget.subscriptionRefId}
+          customerRefId={loop.widget.customerRefId}
+          invoiceRefId={loop.widget.invoiceRefId}
           onPayInCustomerCreated={(customer) => {
             // TODO: set state with created customer
             console.log('customer created')

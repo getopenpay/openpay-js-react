@@ -1,20 +1,9 @@
 export type LoopWidgetProps = {
   paymentUsdAmount: number;
   suggestedAuthorizationUsdAmount: number;
-  subscriptionRefId: string;
-  customerRefId: string;
-  invoiceRefId: string;
-};
-
-export type LoopInitConnectProps = {
-  onInitialized: (params: { entityId: string, [key: string]: any }) => void;
-  onInitFailed: (params: { type: string, message: string, data: any, [key: string]: any }) => void;
-  onWalletChange: (params: { address: string, [key: string]: any }) => void;
-  onNetworkChange: (params: { id: string, name: string, chain: string, [key: string]: any }) => void;
-  apiKey: string;
-  entityId: string;
-  merchantId: string;
-  environment: string;
+  subscriptionRefId?: string;
+  customerRefId?: string;
+  invoiceRefId?: string;
 };
 
 

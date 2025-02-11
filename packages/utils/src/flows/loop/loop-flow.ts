@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getPrefill } from '../../cde-client';
+import { confirmPaymentFlow, getPrefill, startPaymentFlow } from '../../cde-client';
 import {
   addBasicCheckoutCallbackHandlers,
   addErrorCatcherForInit,
@@ -9,7 +9,8 @@ import {
   SimpleOjsFlowResult,
 } from '../ojs-flow';
 import { findCpmMatchingType } from '../common/common-flow-utils';
-import { LoopInitConnectProps, LoopWidgetProps, PayInCompleteEvent, PayInCustomerCreatedEvent, PayInFailedEvent } from './types';
+import { InitFailedEvent, InitializedEvent, LoopConnectConfig, LoopWidgetProps, NetworkChangeEvent, PayInCompleteEvent, PayInCustomerCreatedEvent, PayInFailedEvent, WalletChangeEvent } from './types';
+import { StartPaymentFlowResponse } from '../../cde_models';
 
 
 const { log__, err__ } = createOjsFlowLoggers('loop');
@@ -36,7 +37,8 @@ export type InitLoopFlowSuccess =
   | {
       isAvailable: true;
       widgetProps: LoopWidgetProps;
-      initLoopConnectProps: LoopInitConnectProps;
+      initLoopConnectProps: LoopConnectConfig;
+      startPaymentFlowResponse: StartPaymentFlowResponse
     }
   | {
       isAvailable: false;
@@ -46,6 +48,12 @@ export type InitLoopFlowSuccess =
 // - See CheckoutPaymentMethod for more details
 export const LoopCpm = z.object({
   processor_name: z.literal('loop'),
+  provider: z.literal('loop'),
+  metadata: z.object({
+    merchant_id: z.string(),
+    entity_id: z.string(),
+    api_token: z.string(),
+  })
 });
 export type LoopCpm = z.infer<typeof LoopCpm>;
 
@@ -64,41 +72,69 @@ export const initLoopFlow: InitOjsFlow<InitLoopFlowSuccess> = addErrorCatcherFor
     // 👉 Examples of logs. You can also use logs as headers/sections of code blocks
     log__(`Starting loop flow...`);
     const prefill = await getPrefill(context.anyCdeConnection);
-    const isSetupMode = prefill.mode === 'setup';
-    log__(`isSetupMode: ${isSetupMode}`);
+    if (prefill.mode === 'setup') {
+      throw Error('Loop does not support setup mode')
+    }
+    if (prefill.currency !== 'usd') {
+      throw Error('Cannot support non USD currency for Loop')
+    }
     err__(`Example of an error log`);
+
+    /**
+      payment_provider: z.string(),
+      checkout_payment_method: CheckoutPaymentMethod,
+      existing_cc_pm_id: z.string().optional(),
+      their_existing_pm_id: z.string().optional(),
+      use_pay_first_flow: z.boolean().optional(),
+      pay_first_flow_cart_info: CartInfo.optional(),
+      new_customer_email: z.string().optional(),
+      new_customer_address: z.record(z.string(), z.any()).optional(),
+      new_customer_first_name: z.string().optional(),
+      new_customer_last_name: z.string().optional(),
+      processor_specific_metadata: nullOrUndefOr(z.record(z.string(), z.any())),
+    */
+    const startPaymentFlowResponse = await startPaymentFlow(context.anyCdeConnection, {
+      checkout_payment_method: checkoutPaymentMethod,
+      payment_provider: checkoutPaymentMethod.provider,
+    })
+
+
 
     // 👉 Fill in the rest here
     // generate the props to pass to the react component here:
-    const paymentUsdAmount = 100;
+    const paymentUsdAmount = prefill.amount_total_atom;
     // authorize for 3 years worth of payments (if monthly)
     const suggestedAuthorizationUsdAmount = paymentUsdAmount * 12 * 3;
-    const subscriptionRefId = '';
-    const customerRefId = '';
-    const invoiceRefId = '';
+
+    // TODO: Figure out way to get our customer id here to fill in for the
+    // const customerRefId = '';
+
+    // TODO: probably leave these null
+    // const invoiceRefId = '';
+    // const subscriptionRefId = '';
 
     const widgetProps = {
       paymentUsdAmount,
       suggestedAuthorizationUsdAmount,
-      subscriptionRefId,
-      customerRefId,
-      invoiceRefId,
+      // customerRefId,
+      // subscriptionRefId,
+      // invoiceRefId,
     }
 
-    const apiKey = '964d4532-3ce4-45b2-a339-192dc46ebc76';
-    const entityId= 'dc1a2948-c72a-439e-9f0f-788e4c4cad80';
-    const merchantId = 'dc1a2948-c72a-439e-9f0f-788e4c4cad80';
+    // const apiKey = '964d4532-3ce4-45b2-a339-192dc46ebc76';
+    // const entityId= 'dc1a2948-c72a-439e-9f0f-788e4c4cad80';
+    // const merchantId = 'dc1a2948-c72a-439e-9f0f-788e4c4cad80';
     const environment = 'staging';
 
-    const onInitialized = ({ entityId }: { entityId: string }) => { log__(entityId) };
-    const onInitFailed = ({ type, message, data }: { type: string, message: string, data: any }) => { log__(`${type} ${message} ${data}`) };
-    const onWalletChange = ({ address }: { address: string }) => log__(`${address}`);
-    const onNetworkChange = ({ id, name, chain }: { id: string, name: string, chain: string }) => log__(`${id} ${name} ${chain}`);
+    const onInitialized = ({ entityId }: InitializedEvent) => { log__(entityId) };
+    const onInitFailed = ({ type, message, data }: InitFailedEvent) => { log__(`${type} ${message} ${data}`) };
+    const onWalletChange = ({ address }: WalletChangeEvent) => log__(`${address}`);
+    const onNetworkChange = ({ id, name, chain }: NetworkChangeEvent) => log__(`${id} ${name} ${chain}`);
 
-    const initLoopConnectProps: LoopInitConnectProps = {
-      apiKey,
-      entityId,
-      merchantId,
+    const initLoopConnectProps: LoopConnectConfig = {
+      apiKey: checkoutPaymentMethod.metadata.api_token,
+      entityId: checkoutPaymentMethod.metadata.entity_id,
+      merchantId: checkoutPaymentMethod.metadata.merchant_id,
       environment,
       onInitialized,
       onInitFailed,
@@ -106,11 +142,11 @@ export const initLoopFlow: InitOjsFlow<InitLoopFlowSuccess> = addErrorCatcherFor
       onNetworkChange,
     };
 
-
     return {
       isAvailable: true,
       widgetProps,
       initLoopConnectProps,
+      startPaymentFlowResponse
     };
   }
 );
@@ -147,17 +183,68 @@ export const runLoopFlow: RunOjsFlow<LoopFlowCustomParams, InitLoopFlowSuccess> 
       log__('customParams', customParams);
       log__('initResult', initResult);
 
+      const prefill = await getPrefill(anyCdeConnection);
+
+      if (initResult.isAvailable && customParams.success) {
+        const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
+          secure_token: prefill.token,
+          their_pm_id: customParams.payin.paymentMethod.paymentMethodId,
+          checkout_attempt_id: initResult.startPaymentFlowResponse.checkout_attempt_id,
+          processor_specific_metadata: {
+            loop_customer: customParams.customer,
+            loop_payin: customParams.payin
+          }
+        });
+      }
+
       // 👉 For the decorator addBasicCheckoutCallbackHandlers,
       // we need to return a CheckoutSuccessResponse or SetupCheckoutResponse through SimpleOjsFlowResult
       // - CDE functions like performCheckout return these objects for you. See cde-client.ts for more details
-      return {
-        mode: 'checkout',
-        result: {
-          invoice_urls: [],
-          subscription_ids: [],
-          customer_id: '',
-        },
-      };
+
+      // might not need to do the below:
+      if (prefill.mode === 'setup') {
+        log__(`Doing payment setup...`);
+        // might not be able to do this for loop...
+        return { mode: 'setup', result: { payment_method_id: '' } }
+      } else {
+        log__(`Doing checkout...`);
+
+        // Pasting here because this is what we should shove the results into.
+        // create one of these objects and set it to the `checkout_payment_method field
+        // for the CheckoutRequest below
+        //
+        // export const CheckoutPaymentMethod = z.object({
+        //   provider: z.string(),
+        //   processor_name: nullOrUndefOr(z.string()),
+        //   metadata: nullOrUndefOr(z.record(z.string(), z.any())),
+        // });
+
+        // TODO: Do we need to actually perform the checkout?
+        // const checkoutRequest: CheckoutRequest = {
+        //   secure_token: prefill.token,
+        //   payment_input: {
+        //     provider_type: checkoutPaymentMethod.provider,
+        //   },
+        //   customer_email: nonCdeFormFields[FieldName.EMAIL],
+        //   customer_zip_code: nonCdeFormFields[FieldName.ZIP_CODE],
+        //   customer_country: nonCdeFormFields[FieldName.COUNTRY],
+        //   promotion_code: nonCdeFormFields[FieldName.PROMOTION_CODE],
+        //   line_items: prefill.line_items,
+        //   total_amount_atom: prefill.amount_total_atom,
+        //   cancel_at_end: false,
+        //   checkout_payment_method: checkoutPaymentMethod,
+        // };
+        // const result = await performCheckout(anyCdeConnection, checkoutRequest);
+
+        return {
+          mode: 'checkout',
+          result: {
+            invoice_urls: [],
+            subscription_ids: [],
+            customer_id: '',
+          },
+        };
+      }
     }
   );
 
