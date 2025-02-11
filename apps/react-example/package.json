@@ -14,6 +14,7 @@
   "dependencies": {
     "@getopenpay/openpay-js-react": "*",
     "@getopenpay/utils": "*",
+    "@loop-crypto/connect": "^0.3.1",
     "@stripe/stripe-js": "^4.3.0",
     "classnames": "^2.5.1",
     "fraction.js": "^4.3.7",

@@ -10,7 +10,7 @@ import {
   AirwallexApplePayFlowCustomParams,
   InitAirwallexApplePayFlowResult,
 } from './flows/airwallex/types/apple-pay.types';
-
+import { LoopWidgetProps } from './flows/loop/types';
 export type DynamicPreview = {
   amount: Amount | null;
   isLoading: boolean;
@@ -21,7 +21,7 @@ export type ElementProps<PlaceholderType extends z.ZodTypeAny = z.ZodString> = {
   styles?: ElementsStyle<z.ZodOptional<PlaceholderType>>;
 };
 
-export type SubmitMethod = 'pockyt-paypal' | 'airwallex-google-pay' | 'airwallex-apple-pay';
+export type SubmitMethod = 'pockyt-paypal' | 'airwallex-google-pay' | 'airwallex-apple-pay' | 'loop';
 
 export type DefaultFieldValues = Partial<Record<FieldNameEnum, string>>;
 
@@ -33,6 +33,7 @@ export type ProcessorSpecificSubmitSettings<T extends SubmitMethod = SubmitMetho
   'pockyt-paypal': { useRedirectFlow?: boolean };
   'airwallex-google-pay': AirwallexGooglePayFlowCustomParams;
   'airwallex-apple-pay': AirwallexApplePayFlowCustomParams;
+  'loop': { };
 }[T];
 
 export type SubmitSettings<T extends SubmitMethod = SubmitMethod> = ProcessorSpecificSubmitSettings<T> &
@@ -48,6 +49,7 @@ export type ElementsFormChildrenProps = {
     googlePay: InitAirwallexGooglePayFlowResult;
     applePay: InitAirwallexApplePayFlowResult;
   };
+  loop: LoopWidgetProps | null;
   loaded: boolean;
   preview: DynamicPreview;
 };

@@ -13,6 +13,8 @@ import BillingDetails, { HorizontalRule } from '@/components/billing-details';
 import classNames from 'classnames';
 import { CurrencySymbolMap } from '@/utils/currency';
 import { atomToCurrency } from '@/utils/math';
+import { LoopWidgetProps } from '@getopenpay/utils/src/flows/loop/types';
+import { initLoopConnect, LoopConnectPayIn } from "@loop-crypto/connect";
 
 type OnCheckoutSuccess = (invoiceUrls: string[], subscriptionIds: string[], customerId: string) => void;
 type OnSetupPaymentMethodSuccess = (paymentMethodId: string) => void;
@@ -55,6 +57,7 @@ const Form: FC<FormProps> = (props) => {
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [stripeLinkShown, setStripeLinkShown] = useState<boolean>(true);
+  const [loopShown, setLoopShown] = useState<boolean>(true);
 
   const prParams = {
     overridePaymentRequest: {
@@ -135,7 +138,7 @@ const Form: FC<FormProps> = (props) => {
                 {method.isAvailable && !method.render && (
                   <button
                     onClick={method.toggleShow}
-                    className="text-sm px-3 py-1 rounded-md bg-emerald-100 hover:bg-emerald-200 
+                    className="text-sm px-3 py-1 rounded-md bg-emerald-100 hover:bg-emerald-200
                            dark:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors"
                   >
                     {method.isShown ? 'Hide' : 'Show'}
@@ -170,6 +173,45 @@ const Form: FC<FormProps> = (props) => {
     );
   };
 
+  const renderLoopWidget = (loop: LoopWidgetProps | null) => {
+    /**
+     * TODO:
+     * - create lifecycle hook where we load checkout data via the loop.initFlow function
+     * - after we have the results, call the `initLoopConnect` component
+     * - setup the callbacks
+     * -
+     */
+    if (!loop) {
+      return null;
+    }
+    return (
+      <>
+        <LoopConnectPayIn
+          paymentUsdAmount={loop.paymentUsdAmount}
+          suggestedAuthorizationUsdAmount={loop.suggestedAuthorizationUsdAmount}
+          subscriptionRefId={loop.subscriptionRefId}
+          customerRefId={loop.customerRefId}
+          invoiceRefId={loop.invoiceRefId}
+          onPayInCustomerCreated={(customer) => {
+            // TODO: set state with created customer
+            console.log('customer created')
+            console.log(customer)
+          }}
+          onPayInComplete={(payin) => {
+            // TODO: submit saved customer and payin to loop.runFlow
+            console.log('payin complete')
+            console.log(payin)
+          }}
+          onPayInFailed={(details) => {
+            // TODO: call loop.runFlow with failure state
+            console.log('payin failed')
+            console.log(details)
+          }}
+        />
+      </>
+    );
+  };
+
   return (
     <>
       <button
@@ -197,7 +239,7 @@ const Form: FC<FormProps> = (props) => {
             },
           }}
         >
-          {({ submit, submitWith, applePay, googlePay, loaded, stripeLink, airwallex }) => (
+          {({ submit, submitWith, applePay, googlePay, loaded, stripeLink, airwallex, loop}) => (
             <FormWrapper error={validationErrors}>
               {loading && (
                 <div data-testid="loading" className="flex items-center">
@@ -240,8 +282,8 @@ const Form: FC<FormProps> = (props) => {
                 data-testid="submit-button"
                 disabled={!loaded || loading}
                 onClick={submit}
-                className={`shadow-lg shadow-emerald-500/50 dark:shadow-emerald-900/50 border border-emerald-600 dark:border-emerald-500 px-4 py-2.5 mt-2 w-full font-bold rounded-lg bg-emerald-500 
-                       dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500 
+                className={`shadow-lg shadow-emerald-500/50 dark:shadow-emerald-900/50 border border-emerald-600 dark:border-emerald-500 px-4 py-2.5 mt-2 w-full font-bold rounded-lg bg-emerald-500
+                       dark:bg-emerald-600 text-white hover:bg-emerald-400 dark:hover:bg-emerald-500
                        active:bg-emerald-600 dark:active:bg-emerald-700 disabled:opacity-50 disabled:pointer-events-none`}
               >
                 Pay with Card | {amount}
@@ -268,6 +310,7 @@ const Form: FC<FormProps> = (props) => {
                     }
                   },
                 },
+
                 {
                   id: 'airwallex-gpay',
                   label: 'Google Pay (Airwallex)',
@@ -402,6 +445,21 @@ const Form: FC<FormProps> = (props) => {
                     </button>
                     </>
                   ),
+                },
+                {
+                  id: 'loop',
+                  label: 'Pay with Loop',
+                  isAvailable: true,
+                  isShown: loopShown,
+                  toggleShow: async () => {
+                    if (loopShown) {
+                      setLoopShown(false);
+                      renderLoopWidget(loop);
+                    } else {
+                      setLoopShown(true);
+                      renderLoopWidget(loop);
+                    }
+                  },
                 },
               ])}
             </FormWrapper>
