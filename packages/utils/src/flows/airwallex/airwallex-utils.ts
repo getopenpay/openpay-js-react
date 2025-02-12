@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { start3dsVerificationStrict } from '../../3ds-elements/events';
+import { start3dsVerification } from '../../3ds-elements/events';
 import { getErrorMessage } from '../../errors';
 import { createOjsFlowLoggers } from '../ojs-flow';
 import { InitAirwallexGooglePayFlowResult } from './types/google-pay.types';
 import { InitAirwallexApplePayFlowResult } from './types/apple-pay.types';
-
+import { ThreeDSStatus, assertNever } from '@getopenpay/utils';
 const { log__, err__ } = createOjsFlowLoggers('airwallex-cc');
 
 // Based on CDE error response headers
@@ -45,10 +45,25 @@ export const parseIntentIdFrom3dsHref = (href: string): string => {
   }
 };
 
-export const runAirwallex3dsFlow = async (baseUrl: string, errorResponseHeaders?: Record<string, string>) => {
+export const runAirwallex3dsFlow = async (
+  baseUrl: string,
+  errorResponseHeaders?: Record<string, string>
+): Promise<{
+  existing_cc: Record<string, string>;
+}> => {
   const headers = parseResponseHeaders(errorResponseHeaders);
-  const result = await start3dsVerificationStrict({ url: headers['op-airwallex-3ds-url'], baseUrl });
-  const intentId = parseIntentIdFrom3dsHref(result.href ?? '');
+  const { status, href } = await start3dsVerification({ url: headers['op-airwallex-3ds-url'], baseUrl });
+
+  if (status === ThreeDSStatus.FAILURE) {
+    // Do NOT raise an error here to allow processor fallback
+    err__('Airwallex 3DS verification failed');
+  } else if (status === ThreeDSStatus.CANCELLED) {
+    throw new Error('3DS verification cancelled');
+  } else if (status !== ThreeDSStatus.SUCCESS) {
+    assertNever(status);
+  }
+
+  const intentId = parseIntentIdFrom3dsHref(href ?? '');
   const initialIntentId = headers['op-airwallex-initial-intent-id'];
 
   if (initialIntentId !== intentId) {
@@ -60,6 +75,7 @@ export const runAirwallex3dsFlow = async (baseUrl: string, errorResponseHeaders?
 
   const extraMetadataForCheckout = {
     existing_cc: {
+      success: status === ThreeDSStatus.SUCCESS ? 'True' : 'False',
       initial_intent_id: intentId,
       consent_id: headers['op-airwallex-consent-id'],
     },

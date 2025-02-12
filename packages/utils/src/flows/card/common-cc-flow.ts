@@ -194,8 +194,8 @@ export const parseCommon3DSNextActionMetadata = (
 const commonCC3DSFlow = async (startPfResult: StartPaymentFlowForCCResponse, baseUrl: string) => {
   const nextActionMetadata = parseCommon3DSNextActionMetadata(startPfResult);
 
-  if (nextActionMetadata.type === 'airwallex_payment_consent' && nextActionMetadata.redirect_url === '3DS_COMPLETE') {
-    log__(`├ Airwallex 3DS flow completed successfully`);
+  if (nextActionMetadata.type === 'airwallex_payment_consent' && nextActionMetadata.redirect_url.startsWith('3DS_')) {
+    log__(`├ Airwallex 3DS flow completed [result: ${nextActionMetadata.redirect_url}]`);
     return;
   }
 
