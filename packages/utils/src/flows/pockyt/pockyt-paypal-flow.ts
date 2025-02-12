@@ -62,7 +62,7 @@ export const runPockytPaypalFlow: RunOjsFlow<PockytPaypalParams> = addBasicCheck
     log__(`Starting payment flow... Mode: ${prefill.mode}`);
     // We use pay-first flow on checkout, and setup-only flow on setup
     const isPayFirstFlow = prefill.mode !== 'setup';
-    const startPaymentFlowResponse = await startPaymentFlow(anyCdeConnection, {
+    const startPaymentFlowRequest = {
       payment_provider: cpm.provider,
       checkout_payment_method: cpm,
       use_pay_first_flow: isPayFirstFlow,
@@ -77,7 +77,21 @@ export const runPockytPaypalFlow: RunOjsFlow<PockytPaypalParams> = addBasicCheck
         use_paypal_redirect_flow: !!customParams?.settings?.useRedirectFlow,
       },
       ...newCustomerFields,
-    });
+    };
+
+    if (customParams?.settings?.useRedirectFlow) {
+      log__('Starting redirect mode for PayPal...');
+      const baseUrl = context.baseUrl;
+      const preActionUrl = new URL('/app/pre-action/start/', baseUrl).toString();
+      const encodedRequest = btoa(JSON.stringify(startPaymentFlowRequest));
+      const redirectUrl = `${preActionUrl}?st=${prefill.token}&r=${encodedRequest}`;
+      window.location.href = redirectUrl;
+      await sleep(20 * 1000);
+      throw new Error('Paypal flow timed out, please try again with another payment method.');
+    }
+
+    log__('Starting popup mode for PayPal...');
+    const startPaymentFlowResponse = await startPaymentFlow(anyCdeConnection, startPaymentFlowRequest);
     log__('Start payment flow response', startPaymentFlowResponse);
     if (!startPaymentFlowResponse.checkout_attempt_id) {
       err__('Checkout attempt ID not found in response:', startPaymentFlowResponse);
@@ -85,46 +99,40 @@ export const runPockytPaypalFlow: RunOjsFlow<PockytPaypalParams> = addBasicCheck
     }
     const nextActionMetadata = PockytPaypalRequiredUserActions.parse(startPaymentFlowResponse.required_user_actions)[0];
 
-    if (customParams?.settings?.useRedirectFlow) {
-      window.location.href = nextActionMetadata.paypal_iframe_url;
-      await sleep(20 * 1000);
-      throw new Error('Paypal flow timed out, please try again with another payment method.');
+    log__(`Opening paypal iframe...`);
+    const paypalFlowResult = await startPopupWindowVerificationStrict(
+      'PayPal',
+      anyCdeConnection,
+      nextActionMetadata.verify_token,
+      nextActionMetadata.paypal_iframe_url
+    );
+    log__('Paypal flow result', paypalFlowResult);
+    const vaultId = parseVaultIdFrom3dsHref(paypalFlowResult.href);
+
+    log__(`Confirming payment flow using vault ID ${vaultId}`);
+    const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
+      secure_token: prefill.token,
+      their_pm_id: vaultId,
+      checkout_attempt_id: isPayFirstFlow ? startPaymentFlowResponse.checkout_attempt_id : undefined,
+    });
+    log__('Confirm payment flow result', confirmResult);
+
+    if (prefill.mode === 'setup') {
+      return {
+        mode: 'setup',
+        result: {
+          payment_method_id: confirmResult.payment_methods[0].id,
+        },
+      } satisfies SimpleOjsFlowResult;
     } else {
-      log__(`Opening paypal iframe...`);
-      const paypalFlowResult = await startPopupWindowVerificationStrict(
-        'PayPal',
-        anyCdeConnection,
-        nextActionMetadata.verify_token,
-        nextActionMetadata.paypal_iframe_url
-      );
-      log__('Paypal flow result', paypalFlowResult);
-      const vaultId = parseVaultIdFrom3dsHref(paypalFlowResult.href);
-
-      log__(`Confirming payment flow using vault ID ${vaultId}`);
-      const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
-        secure_token: prefill.token,
-        their_pm_id: vaultId,
-        checkout_attempt_id: isPayFirstFlow ? startPaymentFlowResponse.checkout_attempt_id : undefined,
-      });
-      log__('Confirm payment flow result', confirmResult);
-
-      if (prefill.mode === 'setup') {
-        return {
-          mode: 'setup',
-          result: {
-            payment_method_id: confirmResult.payment_methods[0].id,
-          },
-        } satisfies SimpleOjsFlowResult;
-      } else {
-        if (!confirmResult.pay_first_success_response) {
-          err__('Checkout failed, no pay-first success response:', confirmResult);
-          throw new Error('Checkout failed, please try again with another payment method.');
-        }
-        return {
-          mode: 'checkout',
-          result: confirmResult.pay_first_success_response,
-        } satisfies SimpleOjsFlowResult;
+      if (!confirmResult.pay_first_success_response) {
+        err__('Checkout failed, no pay-first success response:', confirmResult);
+        throw new Error('Checkout failed, please try again with another payment method.');
       }
+      return {
+        mode: 'checkout',
+        result: confirmResult.pay_first_success_response,
+      } satisfies SimpleOjsFlowResult;
     }
   }
 );
