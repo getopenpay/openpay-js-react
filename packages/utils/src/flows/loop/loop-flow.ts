@@ -96,29 +96,31 @@ export const initLoopFlow: InitOjsFlow<InitLoopFlowSuccess> = addErrorCatcherFor
     const startPaymentFlowResponse = await startPaymentFlow(context.anyCdeConnection, {
       checkout_payment_method: checkoutPaymentMethod,
       payment_provider: checkoutPaymentMethod.provider,
+      use_pay_first_flow: true,
+      pay_first_flow_cart_info: {
+        // TODO: add coupon and cart adjusted line items later
+        line_items: prefill.line_items,
+        displayed_total_amount_atom: prefill.amount_total_atom,
+      }
     })
 
-
-
-    // 👉 Fill in the rest here
-    // generate the props to pass to the react component here:
     const paymentUsdAmount = prefill.amount_total_atom;
     // authorize for 3 years worth of payments (if monthly)
     const suggestedAuthorizationUsdAmount = paymentUsdAmount * 12 * 3;
 
-    // TODO: Figure out way to get our customer id here to fill in for the
-    // const customerRefId = '';
+    // Should have exactly one user action which stores our metadata.
+    const nextUserAction = startPaymentFlowResponse.required_user_actions[0];
 
-    // TODO: probably leave these null
-    // const invoiceRefId = '';
-    // const subscriptionRefId = '';
+    const customerRefId = nextUserAction.our_customer_id;
+    const invoiceRefId = nextUserAction.invoice_ids;
+    const subscriptionRefId = nextUserAction.subscription_ids;
 
     const widgetProps = {
       paymentUsdAmount,
       suggestedAuthorizationUsdAmount,
-      // customerRefId,
-      // subscriptionRefId,
-      // invoiceRefId,
+      customerRefId,
+      subscriptionRefId,
+      invoiceRefId,
     }
 
     // const apiKey = '964d4532-3ce4-45b2-a339-192dc46ebc76';
