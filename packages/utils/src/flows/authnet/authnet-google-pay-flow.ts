@@ -157,14 +157,16 @@ export const runAuthnetGooglePayFlow: RunOjsFlow<MobileWalletFlowCustomParams> =
       });
 
       log__('Start payment flow response', startPaymentFlowResponse);
+      const theirCustomerId = startPaymentFlowResponse.required_user_actions?.[0]?.['their_customer_id'];
 
       const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
         secure_token: prefill.token,
         processor_specific_metadata: {
           payment_provider: checkoutPaymentMethod.provider,
+          their_customer_id: theirCustomerId,
           authnet_payment_data: {
-            payment_type: 'google_pay',
-            payment_token: window.btoa(encryptedPaymentToken),
+            dataDescriptor: 'COMMON.GOOGLE.INAPP.PAYMENT',
+            dataValue: window.btoa(encryptedPaymentToken),
           },
         },
       });

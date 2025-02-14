@@ -10,11 +10,14 @@ export async function handleValidateMerchant(event: ApplePayJS.ApplePayValidateM
     const startPaymentFlowResponse = await startPaymentFlow(context.connection, {
       payment_provider: context.checkoutPaymentMethod.provider,
       checkout_payment_method: context.checkoutPaymentMethod,
+      new_customer_email: 'dummy@email.com',
+      new_customer_first_name: 'Dummy',
+      new_customer_last_name: 'User',
       processor_specific_metadata: {
-        authnet_apple_pay_validation: {
+        apple_payment_session: {
           validation_url: event.validationURL,
-          domain_name: window.location.hostname,
-          display_name: context.processorAccount.processor_account_name,
+          initiative_context: window.location.hostname,
+          their_account_id: context.processorAccount.processor_account_id,
         },
       },
     });
@@ -54,8 +57,8 @@ export async function handlePaymentAuthorized(
       processor_specific_metadata: {
         payment_provider: context.checkoutPaymentMethod.provider,
         authnet_payment_data: {
-          payment_type: 'apple_pay',
-          payment_token: JSON.stringify(paymentData.token),
+          dataDescriptor: 'COMMON.APPLE.INAPP.PAYMENT',
+          dataValue: window.btoa(JSON.stringify(paymentData.token.paymentData)),
         },
       },
     });
