@@ -44,6 +44,11 @@ export const parseVaultIdFrom3dsHref = (href: string): string => {
   }
 };
 
+export const parseArgFromHref = (href: string, argName: string): string | null => {
+  const url = new URL(href);
+  return url.searchParams.get(argName);
+};
+
 export const checkIfRequiresPockyt3ds = (errorResponseHeaders?: Record<string, string>) => {
   return errorResponseHeaders?.['op-pockyt-3ds-url'] !== undefined;
 };
