@@ -93,12 +93,6 @@ export const runPockytPaypalFlow: RunOjsFlow<PockytPaypalParams> = addBasicCheck
       throw new Error('Paypal flow timed out, please try again with another payment method.');
     }
 
-    // TODO ASAP: open pre-action in a modal here instead of doing SPFR
-    // TODO ASAP: add redirect mode (cs urls, or internal)
-    // TODO ASAP: generate token from frontend and then pass it
-    // TODO ASAP: redirect to 3ds placeholder
-    // TODO ASAP: still wait for popup window verification
-
     log__('Starting popup mode for PayPal...');
 
     log__(`Opening paypal iframe...`);
