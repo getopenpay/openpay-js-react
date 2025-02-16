@@ -84,7 +84,11 @@ export const runPockytPaypalFlow: RunOjsFlow<PockytPaypalParams> = addBasicCheck
 
     const preActionUrl = new URL('/app/pre-action/start/', context.baseUrl).toString();
     const encodedRequest = btoa(JSON.stringify(startPaymentFlowRequest));
-    const redirectUrl = `${preActionUrl}?st=${prefill.token}&r=${encodedRequest}`;
+    const searchParams = new URLSearchParams({
+      st: prefill.token,
+      r: encodedRequest,
+    });
+    const redirectUrl = `${preActionUrl}?${searchParams.toString()}`;
 
     if (customParams?.settings?.useRedirectFlow) {
       log__('Starting redirect mode for PayPal...');
