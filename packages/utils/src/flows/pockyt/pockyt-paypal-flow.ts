@@ -1,12 +1,13 @@
 import { z } from 'zod';
-import { confirmPaymentFlow, getPrefill, startPaymentFlow } from '../../cde-client';
+import { confirmPaymentFlow, getPrefill } from '../../cde-client';
 import { addBasicCheckoutCallbackHandlers, createOjsFlowLoggers, RunOjsFlow, SimpleOjsFlowResult } from '../ojs-flow';
 import { createCustomerFieldsFromForm } from '../common/common-flow-utils';
 import { validateNonCdeFormFieldsForCC } from '../common/cc-flow-utils';
 import { startPopupWindowVerificationStrict } from '../../3ds-elements/events';
-import { parseVaultIdFrom3dsHref } from './pockyt-utils';
+import { parseArgFromHref, parseVaultIdFrom3dsHref } from './pockyt-utils';
 import { SubmitSettings } from '../../models';
 import { sleep } from '../../..';
+import { v4 as uuidv4 } from 'uuid';
 
 const { log__, err__ } = createOjsFlowLoggers('pockyt-paypal');
 
@@ -61,6 +62,7 @@ export const runPockytPaypalFlow: RunOjsFlow<PockytPaypalParams> = addBasicCheck
 
     log__(`Starting payment flow... Mode: ${prefill.mode}`);
     // We use pay-first flow on checkout, and setup-only flow on setup
+    const frontendTokenForRedirectFlow = uuidv4();
     const isPayFirstFlow = prefill.mode !== 'setup';
     const startPaymentFlowRequest = {
       payment_provider: cpm.provider,
@@ -75,45 +77,49 @@ export const runPockytPaypalFlow: RunOjsFlow<PockytPaypalParams> = addBasicCheck
         : undefined,
       processor_specific_metadata: {
         use_paypal_redirect_flow: !!customParams?.settings?.useRedirectFlow,
+        frontend_token_for_redirect_flow: frontendTokenForRedirectFlow,
       },
       ...newCustomerFields,
     };
 
+    const preActionUrl = new URL('/app/pre-action/start/', context.baseUrl).toString();
+    const encodedRequest = btoa(JSON.stringify(startPaymentFlowRequest));
+    const searchParams = new URLSearchParams({
+      st: prefill.token,
+      r: encodedRequest,
+    });
+    const redirectUrl = `${preActionUrl}?${searchParams.toString()}`;
+
     if (customParams?.settings?.useRedirectFlow) {
       log__('Starting redirect mode for PayPal...');
-      const baseUrl = context.baseUrl;
-      const preActionUrl = new URL('/app/pre-action/start/', baseUrl).toString();
-      const encodedRequest = btoa(JSON.stringify(startPaymentFlowRequest));
-      const redirectUrl = `${preActionUrl}?st=${prefill.token}&r=${encodedRequest}`;
       window.location.href = redirectUrl;
       await sleep(20 * 1000);
       throw new Error('Paypal flow timed out, please try again with another payment method.');
     }
 
     log__('Starting popup mode for PayPal...');
-    const startPaymentFlowResponse = await startPaymentFlow(anyCdeConnection, startPaymentFlowRequest);
-    log__('Start payment flow response', startPaymentFlowResponse);
-    if (!startPaymentFlowResponse.checkout_attempt_id) {
-      err__('Checkout attempt ID not found in response:', startPaymentFlowResponse);
-      throw new Error('An error occurred during checkout, please try again with another payment method.');
-    }
-    const nextActionMetadata = PockytPaypalRequiredUserActions.parse(startPaymentFlowResponse.required_user_actions)[0];
 
     log__(`Opening paypal iframe...`);
     const paypalFlowResult = await startPopupWindowVerificationStrict(
       'PayPal',
       anyCdeConnection,
-      nextActionMetadata.verify_token,
-      nextActionMetadata.paypal_iframe_url
+      frontendTokenForRedirectFlow,
+      redirectUrl
     );
     log__('Paypal flow result', paypalFlowResult);
     const vaultId = parseVaultIdFrom3dsHref(paypalFlowResult.href);
+    const checkoutAttemptId = parseArgFromHref(paypalFlowResult.href, 'catt');
+
+    if (!checkoutAttemptId) {
+      err__('Checkout attempt ID not found in redirect URL:', paypalFlowResult.href);
+      throw new Error('Checkout attempt ID not found in redirect URL');
+    }
 
     log__(`Confirming payment flow using vault ID ${vaultId}`);
     const confirmResult = await confirmPaymentFlow(anyCdeConnection, {
       secure_token: prefill.token,
       their_pm_id: vaultId,
-      checkout_attempt_id: isPayFirstFlow ? startPaymentFlowResponse.checkout_attempt_id : undefined,
+      checkout_attempt_id: isPayFirstFlow ? checkoutAttemptId : undefined,
     });
     log__('Confirm payment flow result', confirmResult);
 
